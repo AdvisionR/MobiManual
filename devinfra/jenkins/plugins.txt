@@ -15,6 +15,13 @@ pipeline-stage-view
 #                          foundation doc (§8.2) selects for production.
 #   gitlab-plugin        : commit-status reporting back onto the MR, plus the
 #                          classic push/MR webhook trigger for freestyle jobs.
+#                          Currently inert — kept for the commit-status step
+#                          Phase 2 will need. It is not a dependency of
+#                          gitlab-branch-source, and nothing wires it up: no
+#                          gitLabConnectionConfig in casc/jenkins.yaml, no
+#                          gitlabCommitStatus in the Jenkinsfile. It also owns a
+#                          different endpoint (/project/...) than the one MR
+#                          detection uses.
 gitlab-branch-source
 gitlab-plugin
 

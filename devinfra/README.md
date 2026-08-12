@@ -134,6 +134,12 @@ port this to the real CLI.
   DocBot CLI in a pinned image; that starts mattering when there is a CLI.
 - **No trigger #2.** §8.3's push-to-main drafting run is a stub in the
   `Jenkinsfile`.
+- **No commit-status reporting.** `gitlab-plugin` is installed but unwired, so
+  the MR page shows no Jenkins status. Detection does not depend on it.
+- **No fallback branch indexing.** The multibranch job has no
+  `PeriodicFolderTrigger`, so discovery is webhook-only: a dropped delivery
+  means the MR is never seen. Acceptable here because `open-test-mr.sh` times
+  out visibly; production wants a slow periodic scan behind the webhook.
 - **No HTTPS.** Plain HTTP throughout.
 - **The forge is assumed to be GitLab.** This is open question #1 in §12. If it
   turns out to be Bitbucket or GitHub Enterprise, this stack's GitLab half is
@@ -183,6 +189,14 @@ message alone.
    credential in the same context. `seed-project.sh` therefore registers the
    hook via the GitLab API against `/gitlab-webhook/post` — the same endpoint
    the plugin would have used, so runtime behaviour is identical.
+
+   The JCasC file consequently sets **`manageWebHooks: false`**. It said `true`
+   for a while, which was misleading in a way worth avoiding: the config read
+   as though Jenkins owned the webhook while the hook that actually existed was
+   the one `seed-project.sh` created. The flag governs only hook *creation* on
+   the GitLab side — inbound deliveries are served by `GitLabWebHookAction`
+   whatever it is set to. Flip it back to `true` if a plugin upgrade fixes the
+   credential lookup, and drop the API call from `seed-project.sh` when you do.
 
 ---
 

@@ -58,7 +58,15 @@ unclassified:
       - name: "local-gitlab"
         serverUrl: "${GITLAB_SERVER_URL}"
         credentialsId: "gitlab-pat"
-        # Lets Jenkins create and maintain the project webhook itself, so MR
-        # events arrive without anyone configuring GitLab by hand.
-        manageWebHooks: true
+        # Jenkins does NOT manage the project webhook, despite the valid
+        # credentialsId above. Registration aborts with "No Item credentials
+        # added, cannot create web hook" because GitLabSCMSource.credentials()
+        # resolves to null in this context (README §7.5). seed-project.sh
+        # registers the hook via the GitLab API against /gitlab-webhook/post
+        # instead — the same endpoint the plugin would have used.
+        #
+        # This flag only controls whether the plugin creates and maintains
+        # hooks on the GitLab side. Receiving them is unaffected: the endpoint
+        # is served by GitLabWebHookAction regardless.
+        manageWebHooks: false
         manageSystemHooks: false
