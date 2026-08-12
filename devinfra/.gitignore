@@ -1,0 +1,3 @@
+# Generated at runtime by scripts/seed-gitlab.sh — holds the GitLab API token.
+# Never commit: it is a live credential, even if only for a local instance.
+.runtime/

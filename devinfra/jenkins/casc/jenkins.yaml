@@ -1,0 +1,64 @@
+# Jenkins Configuration as Code.
+# Everything here is applied at boot, so the controller can be rebuilt from
+# scratch at any time. Secrets come from the environment (see docker-compose.yml
+# and .runtime/gitlab.env), never from this file.
+#
+# The symbol names below were not guessed: they were read back from a running
+# instance via POST /configuration-as-code/export after configuring the same
+# objects programmatically. Several differ from the obvious spelling — notably
+# `loggedInUsersCanDoAnything` and `gitlabPersonalAccessToken` (lowercase "l",
+# unlike `gitLabServers`). Re-verify the same way after any plugin upgrade.
+
+jenkins:
+  systemMessage: |
+    MobiManual DocBot — local prototype environment.
+    GitLab: http://gitlab.orb.local   Jenkins: http://jenkins.orb.local:8080
+  numExecutors: 2
+  mode: NORMAL
+  # Builds run on the controller. Fine for a prototype; the production design
+  # (foundation doc §8.5) runs the DocBot CLI in a pinned container agent.
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: "${JENKINS_ADMIN_ID}"
+          password: "${JENKINS_ADMIN_PASSWORD}"
+  authorizationStrategy: "loggedInUsersCanDoAnything"
+
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+          # Consumed by the GitLab Branch Source plugin for API calls, MR
+          # discovery and webhook registration.
+          - gitlabPersonalAccessToken:
+              scope: GLOBAL
+              id: "gitlab-pat"
+              description: "GitLab PAT (root) — MR discovery + webhook management"
+              token: "${GITLAB_PAT}"
+          # Same secret as an HTTP username/password pair, for plain `git`
+          # operations inside a pipeline (e.g. the merge-base fetch in §8.4).
+          - usernamePassword:
+              scope: GLOBAL
+              id: "gitlab-http"
+              description: "GitLab HTTP clone credentials"
+              username: "root"
+              password: "${GITLAB_PAT}"
+
+unclassified:
+  location:
+    # Must be an address GitLab can reach, because the Branch Source plugin
+    # derives the webhook callback URL from it. jenkins.orb.local resolves
+    # from inside the GitLab container as well as from the browser.
+    url: "${JENKINS_URL_EXTERNAL}"
+    adminAddress: "docbot@mobimanual.local"
+
+  gitLabServers:
+    servers:
+      - name: "local-gitlab"
+        serverUrl: "${GITLAB_SERVER_URL}"
+        credentialsId: "gitlab-pat"
+        # Lets Jenkins create and maintain the project webhook itself, so MR
+        # events arrive without anyone configuring GitLab by hand.
+        manageWebHooks: true
+        manageSystemHooks: false

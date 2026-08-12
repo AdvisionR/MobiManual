@@ -1,0 +1,102 @@
+# MobiManual DocBot — local GitLab + Jenkins prototype environment.
+#
+# Design constraint: total removal must be one command. Therefore:
+#   - no host paths are bind-mounted for state (named volumes only)
+#   - no ports are published (OrbStack routes *.orb.local straight to the
+#     container IP, so nothing is claimed on the macOS side)
+#   - nothing is installed on the host: no Java, no Ruby, no brew services
+# Teardown is `./scripts/nuke.sh`, which is just `docker compose down -v --rmi local`.
+
+services:
+  gitlab:
+    image: gitlab/gitlab-ce:${GITLAB_VERSION}
+    container_name: gitlab
+    hostname: ${GITLAB_HOST}
+    restart: unless-stopped
+    shm_size: 256m
+    environment:
+      GITLAB_ROOT_PASSWORD: ${GITLAB_ROOT_PASSWORD}
+      # Omnibus is tuned down hard. Stock GitLab assumes a dedicated 8 GB box;
+      # these settings bring a working instance to roughly 2.5-3 GB RSS so it
+      # coexists with Jenkins and macOS inside an 8 GB VM.
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://${GITLAB_HOST}'
+
+        # -- footprint reduction --
+        puma['worker_processes'] = 2
+        puma['min_threads'] = 1
+        puma['max_threads'] = 4
+        sidekiq['max_concurrency'] = 9
+        nginx['worker_processes'] = 2
+        postgresql['shared_buffers'] = "256MB"
+        postgresql['max_worker_processes'] = 4
+
+        # -- components the prototype does not use --
+        prometheus_monitoring['enable'] = false
+        gitlab_kas['enable'] = false
+        registry['enable'] = false
+        gitlab_rails['usage_ping_enabled'] = false
+
+        # -- Jenkins integration --
+        # Note: allowing webhooks to reach a private-network address is an
+        # *application* setting stored in the database, not an omnibus setting,
+        # so it is applied by scripts/seed-gitlab.sh. Leaving it off is the
+        # single most common reason a local GitLab->Jenkins setup never fires.
+        gitlab_rails['webhook_timeout'] = 30
+    volumes:
+      - gitlab-config:/etc/gitlab
+      - gitlab-logs:/var/log/gitlab
+      - gitlab-data:/var/opt/gitlab
+    healthcheck:
+      # NOT the bundled /opt/gitlab/bin/gitlab-healthcheck: that script exits 0
+      # while nginx is still down, so `depends_on: service_healthy` releases
+      # Jenkins minutes too early. Hitting the readiness endpoint through nginx
+      # is the only probe that actually means "GitLab will answer requests".
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost/-/readiness?all=1"]
+      interval: 15s
+      timeout: 10s
+      retries: 60
+      start_period: 240s
+    networks:
+      - docbot
+
+  jenkins:
+    build:
+      context: ./jenkins
+      args:
+        JENKINS_BASE_VERSION: ${JENKINS_BASE_VERSION}
+    image: mobimanual/jenkins:local
+    container_name: jenkins
+    hostname: ${JENKINS_HOST}
+    restart: unless-stopped
+    environment:
+      JAVA_OPTS: >-
+        -Djenkins.install.runSetupWizard=false
+        -Dhudson.model.DownloadService.noSignatureCheck=true
+        -Xmx1g
+      CASC_JENKINS_CONFIG: /var/jenkins_conf/jenkins.yaml
+      JENKINS_ADMIN_ID: ${JENKINS_ADMIN_ID}
+      JENKINS_ADMIN_PASSWORD: ${JENKINS_ADMIN_PASSWORD}
+      JENKINS_URL_EXTERNAL: http://${JENKINS_HOST}:${JENKINS_PORT}/
+      GITLAB_SERVER_URL: http://${GITLAB_HOST}
+    # Written by scripts/seed-gitlab.sh once GitLab is up. Holds GITLAB_PAT.
+    # Kept out of .env because it is generated, not authored.
+    env_file:
+      - .runtime/gitlab.env
+    volumes:
+      - jenkins-home:/var/jenkins_home
+    depends_on:
+      gitlab:
+        condition: service_healthy
+    networks:
+      - docbot
+
+volumes:
+  gitlab-config:
+  gitlab-logs:
+  gitlab-data:
+  jenkins-home:
+
+networks:
+  docbot:
+    name: mobimanual-docbot

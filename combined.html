@@ -1,0 +1,3794 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>cover_page</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <link rel="stylesheet" href="../seperate.css" />
+  <link rel="stylesheet" href="../combined.css" />
+</head>
+<body>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#chapter-1-general-information-about-mobivisor"
+id="toc-chapter-1-general-information-about-mobivisor">CHAPTER 1:
+GENERAL INFORMATION ABOUT MOBIVISOR</a>
+<ul>
+<li><a href="#basic-management-steps"
+id="toc-basic-management-steps">BASIC MANAGEMENT STEPS</a></li>
+</ul></li>
+<li><a href="#chapter-2-user-profile-settings"
+id="toc-chapter-2-user-profile-settings">CHAPTER 2: USER PROFILE
+SETTINGS</a>
+<ul>
+<li><a href="#edit-profile" id="toc-edit-profile">Edit Profile</a></li>
+<li><a href="#change-password" id="toc-change-password">Change
+Password</a></li>
+<li><a href="#ldap-settings" id="toc-ldap-settings">LDAP
+Settings</a></li>
+<li><a href="#setting-theme" id="toc-setting-theme">Setting
+Theme</a></li>
+</ul></li>
+<li><a href="#chapter-3-users" id="toc-chapter-3-users">CHAPTER 3:
+USERS</a>
+<ul>
+<li><a href="#add-users" id="toc-add-users">Add Users</a></li>
+<li><a href="#users-list" id="toc-users-list">Users List</a></li>
+<li><a href="#web-action-logs-audit-logs"
+id="toc-web-action-logs-audit-logs">Web Action Logs / Audit
+Logs</a></li>
+</ul></li>
+<li><a href="#chapter-4-roles" id="toc-chapter-4-roles">CHAPTER 4:
+ROLES</a>
+<ul>
+<li><a href="#add-new-role" id="toc-add-new-role">Add New Role</a></li>
+<li><a href="#roles" id="toc-roles">Roles</a></li>
+<li><a href="#agreements" id="toc-agreements">Agreements</a></li>
+</ul></li>
+<li><a href="#chapter-5-policies" id="toc-chapter-5-policies">CHAPTER 5:
+POLICIES</a>
+<ul>
+<li><a href="#my-locations" id="toc-my-locations">My Locations</a></li>
+<li><a href="#criteria" id="toc-criteria">Criteria</a></li>
+<li><a href="#policies" id="toc-policies">Policies</a></li>
+<li><a href="#assign-policies-to-users"
+id="toc-assign-policies-to-users">Assign Policies to Users</a></li>
+</ul></li>
+<li><a href="#section" id="toc-section"></a></li>
+<li><a href="#call-blacklists" id="toc-call-blacklists">Call
+Blacklists</a>
+<ul>
+<li><a href="#firewall-rules" id="toc-firewall-rules">Firewall
+Rules</a></li>
+<li><a href="#violations" id="toc-violations">Violations</a></li>
+<li><a href="#keyguard-features" id="toc-keyguard-features">Keyguard
+Features</a></li>
+<li><a href="#kiosk-modes" id="toc-kiosk-modes">Kiosk Modes</a></li>
+</ul></li>
+<li><a href="#permission-grant-states"
+id="toc-permission-grant-states">Permission Grant States</a>
+<ul>
+<li><a href="#permission-grant-concept"
+id="toc-permission-grant-concept">Permission Grant Concept</a></li>
+<li><a href="#configure-permission-grant-state"
+id="toc-configure-permission-grant-state">Configure Permission Grant
+State</a></li>
+<li><a href="#sending-permission-grant-states-to-devices"
+id="toc-sending-permission-grant-states-to-devices">Sending Permission
+Grant States to Devices</a></li>
+<li><a href="#system-update-policies"
+id="toc-system-update-policies">System Update Policies</a></li>
+<li><a href="#access-point-names" id="toc-access-point-names">Access
+Point Names</a></li>
+<li><a href="#vpn-configurations" id="toc-vpn-configurations">VPN
+Configurations</a></li>
+<li><a href="#exchange-configurations"
+id="toc-exchange-configurations">Exchange Configurations</a></li>
+<li><a href="#predefined-apps" id="toc-predefined-apps">Predefined
+Apps</a></li>
+<li><a href="#single-app-modes" id="toc-single-app-modes">Single App
+Modes</a></li>
+<li><a href="#ios-app-notification-settings"
+id="toc-ios-app-notification-settings">IOS App Notification
+Settings</a></li>
+<li><a href="#kiosk-modes-1" id="toc-kiosk-modes-1">Kiosk Modes</a></li>
+<li><a href="#passcode-policies" id="toc-passcode-policies">Passcode
+Policies</a></li>
+<li><a href="#shared-device-configurations"
+id="toc-shared-device-configurations">Shared Device
+Configurations</a></li>
+<li><a href="#simcard-numbers" id="toc-simcard-numbers">Simcard
+Numbers</a></li>
+<li><a href="#wallpapers" id="toc-wallpapers">Wallpapers</a></li>
+</ul></li>
+<li><a href="#wifi-configurations" id="toc-wifi-configurations">Wifi
+Configurations</a>
+<ul>
+<li><a href="#configure-wifi-configuration"
+id="toc-configure-wifi-configuration">Configure Wifi
+Configuration</a></li>
+<li><a href="#platform-specific-settings"
+id="toc-platform-specific-settings">Platform-Specific Settings</a></li>
+<li><a href="#sending-wifi-configuration-to-devices"
+id="toc-sending-wifi-configuration-to-devices">Sending Wifi
+Configuration to Devices</a></li>
+<li><a href="#system-update-policies-1"
+id="toc-system-update-policies-1">System Update Policies</a></li>
+<li><a href="#airprint-configuration"
+id="toc-airprint-configuration">AirPrint Configuration</a></li>
+<li><a href="#home-screen-layouts" id="toc-home-screen-layouts">Home
+Screen Layouts</a></li>
+<li><a href="#ios-accounts" id="toc-ios-accounts">iOS Accounts</a></li>
+<li><a href="#web-content-filters" id="toc-web-content-filters">Web
+Content Filters</a></li>
+</ul></li>
+<li><a href="#chapter-6-applications"
+id="toc-chapter-6-applications">CHAPTER 6: APPLICATIONS</a>
+<ul>
+<li><a href="#add-new-app" id="toc-add-new-app">Add New App</a></li>
+<li><a href="#application-list" id="toc-application-list">Application
+List</a></li>
+<li><a href="#delete-application" id="toc-delete-application">Delete
+Application</a></li>
+<li><a href="#edit-application" id="toc-edit-application">Edit
+Application</a></li>
+<li><a href="#application-details"
+id="toc-application-details">Application Details</a></li>
+<li><a href="#application-installations"
+id="toc-application-installations">Application Installations</a></li>
+<li><a href="#blacklists" id="toc-blacklists">Blacklists</a></li>
+</ul></li>
+<li><a href="#chapter-7-messaging" id="toc-chapter-7-messaging">CHAPTER
+7 : MESSAGING</a>
+<ul>
+<li><a href="#message-create" id="toc-message-create">Message
+Create</a></li>
+</ul></li>
+<li><a href="#chapter-8-config" id="toc-chapter-8-config">CHAPTER 8:
+CONFIG</a>
+<ul>
+<li><a href="#general-device-configuration"
+id="toc-general-device-configuration">General Device
+Configuration</a></li>
+<li><a href="#updating-mdm-agents" id="toc-updating-mdm-agents">Updating
+MDM Agents</a></li>
+<li><a href="#statistics-tool-settings"
+id="toc-statistics-tool-settings">Statistics Tool Settings</a></li>
+<li><a href="#system-settings" id="toc-system-settings">System
+Settings</a></li>
+<li><a href="#android-enterprise" id="toc-android-enterprise">Android
+Enterprise</a></li>
+<li><a href="#cloud-connect" id="toc-cloud-connect">Cloud
+Connect</a></li>
+<li><a href="#apple-vpp" id="toc-apple-vpp">Apple VPP</a></li>
+<li><a href="#license-info" id="toc-license-info">License Info</a></li>
+<li><a href="#proxy-configuration" id="toc-proxy-configuration">Proxy
+Configuration</a></li>
+<li><a href="#scep-configurations" id="toc-scep-configurations">SCEP
+Configurations</a></li>
+<li><a href="#secure-exchange" id="toc-secure-exchange">Secure
+Exchange</a></li>
+<li><a href="#file-manager-config" id="toc-file-manager-config">File
+Manager Config</a></li>
+<li><a href="#phone-contacts" id="toc-phone-contacts">Phone
+Contacts</a></li>
+<li><a href="#secure-browser" id="toc-secure-browser">Secure
+Browser</a></li>
+<li><a href="#device-files" id="toc-device-files">Device Files</a></li>
+</ul></li>
+<li><a href="#chapter-9-devices" id="toc-chapter-9-devices">CHAPTER 9:
+DEVICES</a>
+<ul>
+<li><a href="#devices" id="toc-devices">Devices</a></li>
+<li><a href="#device-locations" id="toc-device-locations">Device
+Locations</a></li>
+<li><a href="#device-inventory" id="toc-device-inventory">Device
+Inventory</a></li>
+<li><a href="#certificates" id="toc-certificates">Certificates</a></li>
+</ul></li>
+<li><a href="#chapter-10-commands" id="toc-chapter-10-commands">CHAPTER
+10: COMMANDS</a>
+<ul>
+<li><a href="#command-states" id="toc-command-states">Command
+States</a></li>
+<li><a href="#processes-of-commands"
+id="toc-processes-of-commands">Processes of Commands</a></li>
+<li><a href="#processes-of-ios-devices--mdm-commands"
+id="toc-processes-of-ios-devices--mdm-commands">Processes of iOS
+Devices- MDM commands</a></li>
+<li><a href="#device-commands-sent" id="toc-device-commands-sent">Device
+Commands Sent</a></li>
+<li><a href="#taillogs" id="toc-taillogs">TailLogs</a></li>
+</ul></li>
+<li><a href="#chapter-11-groups" id="toc-chapter-11-groups">CHAPTER 11:
+GROUPS</a>
+<ul>
+<li><a href="#new-group" id="toc-new-group">New Group</a></li>
+<li><a href="#group-details" id="toc-group-details">Group
+Details</a></li>
+</ul></li>
+</ul>
+</nav>
+<p><img src="../../img/logo.png" /></p>
+<h1 id="chapter-1-general-information-about-mobivisor">CHAPTER 1:
+GENERAL INFORMATION ABOUT MOBIVISOR</h1>
+<h2 id="basic-management-steps">BASIC MANAGEMENT STEPS</h2>
+<p>In this chapter, the following issues are analysed;</p>
+<ul>
+<li>Described Subjects About This Chapter in this Document</li>
+<li>Meeting with the IOTIQ Mobile Device Management System and
+Adaptation</li>
+<li>Organisation System of the Mobile Device Management System
+Screens</li>
+<li>Screens and Modüles of the IOTIQ Mobile Device Management
+System</li>
+</ul>
+<p>In this chapter, information about the general structure and the
+usage of the system is given. As part of elucidating of this chapter,
+signing in to application, software properties, information about the
+screens and usage of the pages will be declared</p>
+<h3 id="explained-subjects-about-chapter-in-this-document">Explained
+Subjects About Chapter in This Document</h3>
+<p>Information about the access, usage and user experience of the Mobile
+Device System will be given in this section of the document.</p>
+<ol type="1">
+<li><p>Meeting with the IOTIQ Mobile Device Management System and
+Adaptation. Information about the accessing the application,
+understanding of the system, logging into system and usage of the system
+after installing the application will be given in this section.</p></li>
+<li><p>Organisation System of the Mobile Device Management System
+Screens. In order to use the MDM fastly and actively application menu
+and screen organization system should be known. In this context,
+systematic of management screens created for this application and
+general structure of the system will be explained in this
+section.</p></li>
+<li><p>Screens and Modüles of the IOTIQ Mobile Device Management System.
+In this section, all screens of the system one by one will be detailed
+and which page is used for what kind of operations will be explained.
+While created screens is explaning, which points is important for
+engaging the system will be explained.</p></li>
+</ol>
+<p>You will understand which operations are realized by using which
+pages of MDM software, after the explanation mentioned in this chapter.
+Therefore, it is required that you pay attention to the naming that
+refers to in this chapter in order to fully understand subjects given
+and explained in detail in other chapters.</p>
+<h3
+id="meeting-with-the-iotiq-mobile-device-management-system-and-adaptation">Meeting
+with the IOTIQ Mobile Device Management System and Adaptation</h3>
+<p>Information about the accessing the application, understanding of the
+system, logging into system and usage of the system after installing the
+application will be given in this section.</p>
+<p>Firstly, how the user will login into the installed Mobile Device
+Management System will be described.</p>
+<p>Mobile Device Management System is a web based application and it can
+be used just by using whichever web browser.</p>
+<h3
+id="organisation-system-of-the-mobile-device-management-system-screens">Organisation
+System of the Mobile Device Management System Screens</h3>
+<p>In order to use the MDM fastly and actively application menu and
+screen organization system should be known. In this context, systematic
+of management screens created for this application and general structure
+of the system will be explained in this section.</p>
+<p>MDM System consists of main modules and forms belonging to these
+modules, projection screens. These parts can be reachable through MDM
+system.</p>
+<h3
+id="screens-and-modules-of-the-iotiq-mobile-device-management-system">Screens
+and Modules of the IOTIQ Mobile Device Management System</h3>
+<p>In the last section of this chapter, all screens of the system one by
+one will be detailed and which page is used for what kind of operations
+will be explained. While created screens is explaning, which points is
+important for engaging the system will be explained.</p>
+<p>In the tables below, modules and screens, which create the MDM
+system, are founded. Operations that are done in that module and pages
+will be explained shortly in this table. Short descriptions will be
+explained in detail.</p>
+<p><strong>Detailed Tables of the Screens and Modules of the
+System:</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th><strong>Chapter</strong></th>
+<th><strong>Brief information about the screen</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>USER PROFILE SETTING (Chapter 2)</strong></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Edit Profile</strong></td>
+<td>Edit his/her own profile</td>
+</tr>
+<tr class="odd">
+<td><strong>Change Password</strong></td>
+<td>Change his/her own password</td>
+</tr>
+<tr class="even">
+<td><strong>Themes</strong></td>
+<td>Change application theme</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>USERS (Chapter 3)</strong></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>Add User</strong></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Adding Internally</strong></td>
+<td>Added a user manually</td>
+</tr>
+<tr class="odd">
+<td><strong>Ldap Adding</strong></td>
+<td>Add an LDAP User</td>
+</tr>
+<tr class="even">
+<td><strong>CSV Adding</strong></td>
+<td>Add users via CSV upload</td>
+</tr>
+<tr class="odd">
+<td><strong>User List</strong></td>
+<td>List and delete users</td>
+</tr>
+<tr class="even">
+<td><strong>Edit User</strong></td>
+<td>Details of a users</td>
+</tr>
+<tr class="odd">
+<td><strong>Web Action Logs</strong></td>
+<td>Web user action logs</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>ROLES (Chapter 4)</strong></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Add Role</strong></td>
+<td>Adding a new role</td>
+</tr>
+<tr class="odd">
+<td><strong>Role List</strong></td>
+<td>List and delete roles</td>
+</tr>
+<tr class="even">
+<td><strong>Edit Roles</strong></td>
+<td>Role details and assigning</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>POLICIES (Chapter 5)</strong></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>My Locations</strong></td>
+<td>List, add/edit and delete locations</td>
+</tr>
+<tr class="even">
+<td><strong>New</strong></td>
+<td>Adding a new location</td>
+</tr>
+<tr class="odd">
+<td><strong>Show on Map</strong></td>
+<td>Showing location on map</td>
+</tr>
+<tr class="even">
+<td><strong>Edit</strong></td>
+<td>Editing location</td>
+</tr>
+<tr class="odd">
+<td><strong>Criteria</strong></td>
+<td>List, add/edit and delete criteria</td>
+</tr>
+<tr class="even">
+<td><strong>New</strong></td>
+<td>Adding a new criteria</td>
+</tr>
+<tr class="odd">
+<td><strong>Policies</strong></td>
+<td>List, add/edit and delete policies</td>
+</tr>
+<tr class="even">
+<td><strong>New</strong></td>
+<td>Adding a new policy</td>
+</tr>
+<tr class="odd">
+<td><strong>Assign Policies to Users</strong></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Assign Policies to Devices</strong></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>Firewall</strong></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Violations</strong></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>Apns</strong></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Call Blacklists</strong></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>Exchange Configs</strong></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>IOS Lost Messages</strong></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>Kiosk Modes</strong></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Passcode Policies</strong></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>SharedDeviceConfigurations</strong></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Simcard Numbers</strong></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>Single App Modes</strong></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Wallpapers</strong></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>Web Content Filters</strong></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Wifi Configs</strong></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>Permission Grant States</strong></td>
+<td></td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>APPLICATIONS (Chapter 6)</strong></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Add</strong></td>
+<td>Adding a new application</td>
+</tr>
+<tr class="odd">
+<td><strong>Edit</strong></td>
+<td>Editing an application</td>
+</tr>
+<tr class="even">
+<td><strong>Details</strong></td>
+<td>Details of an application</td>
+</tr>
+<tr class="odd">
+<td><strong>Android</strong></td>
+<td>Adding Android applications</td>
+</tr>
+<tr class="even">
+<td><strong>IOS</strong></td>
+<td>Adding IOS applications</td>
+</tr>
+<tr class="odd">
+<td><strong>Lists</strong></td>
+<td>List, add/edit and delete applications</td>
+</tr>
+<tr class="even">
+<td><strong>Installations</strong></td>
+<td>Installed and sent applications</td>
+</tr>
+<tr class="odd">
+<td><strong>Blacklists / Whitelists</strong></td>
+<td>Application blacklist and whitelist</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>MESSAGING (Chapter 7)</strong></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Broadcasting</strong></td>
+<td>Sending bulk messages</td>
+</tr>
+<tr class="odd">
+<td><strong>Messaging</strong></td>
+<td>Sending/receiving messages</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>CONFIGURATIONS (Chapter 8)</strong></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>General Device Configuration</strong></td>
+<td>The default device configs</td>
+</tr>
+<tr class="odd">
+<td><strong>Default VPN Connection</strong></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>E-Mail Connections</strong></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>Device-Specific VPN</strong></td>
+<td>Device-specific VPN</td>
+</tr>
+<tr class="even">
+<td><strong>Create a New VPN</strong></td>
+<td>Adding a new VPN</td>
+</tr>
+<tr class="odd">
+<td><strong>Select Devices for a VPN</strong></td>
+<td></td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>DEVICES (Chapter 9)</strong></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Enrolled Devices Main Page</strong></td>
+<td>The enrolled device statistics</td>
+</tr>
+<tr class="odd">
+<td><strong>Enrolled Devices</strong></td>
+<td>Listing enrolled devices</td>
+</tr>
+<tr class="even">
+<td><strong>Manage</strong></td>
+<td>Managing an enrolled device</td>
+</tr>
+<tr class="odd">
+<td><strong>Actions</strong></td>
+<td>Device command actions</td>
+</tr>
+<tr class="even">
+<td><strong>Statistics</strong></td>
+<td>Device statistics</td>
+</tr>
+<tr class="odd">
+<td><strong>Location Requests</strong></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Installed Apps</strong></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>Policies</strong></td>
+<td>Managing single device policies</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>COMMANDS (Chapter 10)</strong></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Commands</strong></td>
+<td>Device commands and their statuses</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>GROUPS (Chapter 11)</strong></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>Groups</strong></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>New Group</strong></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>Group Details</strong></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h1 id="chapter-2-user-profile-settings">CHAPTER 2: USER PROFILE
+SETTINGS</h1>
+<h2 id="edit-profile">Edit Profile</h2>
+<p>Edit Profile page is used in order to change profile information.</p>
+<ul>
+<li><strong>User Profile Settings &gt;&gt; Edit Profile</strong> opens
+the interface which supports user to change his information</li>
+<li>He enters data into related part such as first name, last name,
+e-mail and user name which information he wants to change</li>
+</ul>
+<p><img
+src="screenshots/settings_profile_page-should_start_within_profile_page.png" /></p>
+<ul>
+<li>Finally, he should save the changes by clicking
+<strong>“Save”</strong> button</li>
+</ul>
+<p><img
+src="screenshots/settings_profile_page-should_modify_email_on_save.png" /></p>
+<h2 id="change-password">Change Password</h2>
+<p>Changing Password page is used to change user logging password.</p>
+<ul>
+<li><strong>User Profile Settings &gt;&gt; Change Password</strong>
+opens the interface which supports user to change his password</li>
+<li>He enters data into the current password, new password and verify
+password fields.</li>
+<li>Finally, he should save the changes by clicking “Save” button</li>
+</ul>
+<p><img
+src="screenshots/settings_password_page-Should_not_save_when_current_pass_is_wrong.png" /></p>
+<h2 id="ldap-settings">LDAP Settings</h2>
+<ul>
+<li><p><strong>Config &gt;&gt; Ldap Settings</strong>, opens the
+interface which supports the logged in user to set ldap
+settings</p></li>
+<li><p>LDAP settings are configured in this page.</p></li>
+<li><p>LDAP settings are managed in different sections. These sections
+are, “Connection Settings, Search Settings, Authentication Settings,
+Field Mappings” . You can navigate between these tabs by either clicking
+related tab or clicking continue button right of the bottom of the
+form</p></li>
+<li><p><strong>Connection Settings:</strong> To perform any operation in
+ldap directory , firstly you should bind with correct url ,admin name
+and admin password. “LDAP Url, Admin Domain Name and Admin Password” is
+entered into related fields.</p>
+<p><img src="screenshots/_ldapSettings_1.png" /></p></li>
+<li><p><strong>Search Settings:</strong> These settings are used to
+search a user . In detail :</p>
+<ul>
+<li><p>“Search Base” determines from where to begin to search item in
+directory hierarchy.</p></li>
+<li><p>“Search Filter” as understood from its name , is used for
+filtering searches.</p></li>
+<li><p>“Search Scope” decides search behaviour .</p>
+<ul>
+<li>base - For searching only the base entry.</li>
+<li>one - For searching only the children of the base entry.</li>
+<li>sub - For searching the base entry and all its descendants.</li>
+</ul></li>
+<li><p>You can choose attributes you want to return from search
+operation by writing names of them to Attributes to return field
+separating with comma . Do not put space anywhere</p>
+<p><img src="screenshots/_ldapSettings_2.png" /></p></li>
+</ul></li>
+<li><p><strong>Authentication Settings:</strong> This section is related
+to authentication of the ldap user .</p></li>
+<li><p>“CN (Common Name)” or “DN (Domain Name)” is selected from list
+according to the type of the active directory. For example , while a
+user is authenticated by dn in OpenLDAP , cn is used for authentication
+in Microsoft Active Directory . If your ldap directory type is OpenLdap
+,select “DN” then a new field “Search Filter” will be visible.Since you
+will send only username and password information , dn should be found to
+authenticate especially when enrolling device to the your system.This is
+why you should set the search filter .In case of Microsoft Active
+Directory , there is no need for search filter because it authenticates
+by cn directly.</p></li>
+<li><p>If the usernames in your system and cns in ldap directory are
+different but related in some patterns , you can supply the parts for
+replacement. It can be , for example, the user names are like email
+addresses i.e <name>@<enterprise-name>.com , however CNs are simply
+<name> in your ldap directory Then, you can set replace field as
+“@<enterprise-name>.com” and with field as “” .</p>
+<p><img src="screenshots/_ldapSettings_3.png" /></p></li>
+<li><p><strong>Field Mappings:</strong></p></li>
+</ul>
+<p>You can add ldap users to your system from ldap tab of the add user
+page by searching ldap user and simply click save button.Which fields in
+ldap correspond to which fields in your system is determined in Field
+Mappings tab . To illustrate , if you choose “mail” for “UserName
+Fields” , you should sign in with ldap mail in your system because your
+username field matches with mail of the ldap directory item.Similarly ,
+you can set fields (putting commas between them) to construct display
+name.</p>
+<p>From any tab you can save whole settings by clicking save button ,
+and also you can test your settings for each tab .</p>
+<p><img src="screenshots/_ldapSettings_4.png" /></p>
+<h2 id="setting-theme">Setting Theme</h2>
+<p>Themes page is used to change theme of the system.</p>
+<ul>
+<li><strong>User Profile Settings &gt;&gt; Themes</strong> opens the
+interface which supports user to change theme</li>
+<li>Themes that can be used are listed automatically</li>
+<li>Buttons over the themes are clicked to determine menu location
+<ul>
+<li>If the “Topbar Menu” is clicked, menu is displayed at the top of the
+page and operations are realized by selecting menus and submenus from
+the top of the page</li>
+<li>If the “Sidebar Menu” is clicked, menu is displayed at the side part
+of the page and operations are realized by selecting menus and submenus
+from the side of the page</li>
+</ul></li>
+<li>User clicks on the theme that he want to use, then the theme of the
+system changes</li>
+<li>Theme of MDM system changes simultaneously</li>
+<li>If he wants to use default theme, user should click on the “Use The
+Custom Theme” button</li>
+</ul>
+<p><img
+src="screenshots/themes_page-Should_choose_different_theme_then_turn_back_to_default.png" /></p>
+<h1 id="chapter-3-users">CHAPTER 3: USERS</h1>
+<h2 id="add-users">Add Users</h2>
+<p>Add User page is used in order to add new users. New user can be
+added in two different way. One of these is adding internally which
+supports user to add user information manually, the other one is LDAP
+(Lightweight Directory Access Protocol) which supports user to add user
+LDAP users by searching easily.</p>
+<p><img
+src="screenshots/users_create_page-Should_go_to_the_page.png" /></p>
+<h3 id="internal-adding">Internal Adding</h3>
+<ul>
+<li><strong>Users &gt;&gt; Add</strong>, opens the interface which
+supports the logged in user to add new user</li>
+<li>User should chose adding option, as Internal</li>
+<li>Internal adding page is opened, he enters data first name, last
+name, e-mail and password information into related fields</li>
+<li>Finally, he should save the user’s information by clicking “Add”
+button</li>
+<li>After the adding operation completed, success message is
+alerted</li>
+</ul>
+<p><img
+src="screenshots/users_create_page-Should_add_from_internal_tab_when_everything_is_valid.png" /></p>
+<h3 id="ldap-adding">LDAP Adding</h3>
+<ul>
+<li><strong>Users &gt;&gt; Add</strong>, opens the interface which
+supports the logged in user to add new user</li>
+<li>User should chose adding option, as LDAP (Lightweight Directory
+Access Protocol)</li>
+<li>To add a user via LDAP, firstly system configurations should be done
+in “System Settings” page. If the configurations is not been done then
+an error exist while adding user via LDAP.</li>
+<li>LDAP adding page is opened, he enters data into “Search LDAP User”
+area in order to search the Ldap user, the user information is filtered
+and he choose which he wants</li>
+<li>DN (Distinguish Name) is filled automatically after he selected
+user</li>
+<li>Mail is filled automatically after he selected user</li>
+<li>CN (Common Name) is filled automatically after he selected the
+user.</li>
+<li>He enters data first name, last name information into related
+fields</li>
+<li>Finally, he should save the user’s information by clicking “Add”
+button</li>
+<li>After the adding operation completed, success message is
+alerted</li>
+</ul>
+<p><img
+src="screenshots/users_create_page-Should_add_user_from_ldap.png" /></p>
+<h3 id="csv-adding">CSV Adding</h3>
+<ul>
+<li><p><strong>Users &gt;&gt; Add</strong>, opens the interface which
+supports the logged in user to add new user</p></li>
+<li><p>User should chose adding option, as <strong>“CSV
+Import”</strong></p></li>
+<li><p>To download the sample CSV file, click on the “Download Sample
+Csv File” button.</p></li>
+<li><p>Click on the <strong>“Browse”</strong> button and select a CSV
+file in the appropriate format from the computer files.</p></li>
+<li><p>After the file is selected, the selected file name appears next
+to the “Browse” button.</p></li>
+<li><p>The <strong>“Import”</strong> button is clicked, the users are
+saved and the operation successful message is displayed.</p></li>
+<li><p><strong>The CSV file’s format should look like this:</strong></p>
+<ul>
+<li>E-mail, User Name, Display Name, Password, Group, Is Administrator
+(optional)</li>
+</ul></li>
+<li><p>For example;</p>
+<ul>
+<li>sample@mobivisor.com,sampleuser,mobivisor,group,1 (group admin)</li>
+<li>sample@mobivisor.com,sampleuser,mobivisor,group (not group
+admin)</li>
+</ul></li>
+<li><p><strong>Possible error message reasons:</strong></p></li>
+<li><p>A user with the same username may already exist.</p></li>
+<li><p>The CSV file format may be entered incorrectly.</p></li>
+</ul>
+<h2 id="users-list">Users List</h2>
+<p><strong>Users List</strong> page is used in order to list the added
+users. In this page user information can be edited, deleted and role can
+be added to selected user.</p>
+<ul>
+<li><strong>Users &gt;&gt; List</strong>, opens the interface which
+supports the logged in user to view and transact some operations about
+users</li>
+<li>Users List &gt;&gt; Edit, if the Edit button is clicked then user
+information edit page is opened, operations done in this pages is
+explained detailed in “Edit User” part</li>
+<li>Users List &gt;&gt; Delete User, if the Delete User button is
+clicked then user is deleted</li>
+<li>Users List &gt;&gt; Add Role, if the Add Role button is clicked then
+adding role page is opened</li>
+</ul>
+<p><img src="screenshots/users_page-Should_edit_user.png" /></p>
+<h3 id="delete-user">Delete User</h3>
+<ul>
+<li><strong>Users &gt;&gt; List</strong>, the user list page is
+opened</li>
+<li>Users added to the system is listed</li>
+<li>The user who will be deleted is searched or filtered from the
+list</li>
+<li>Then “Delete User” button is clicked and user is deleted</li>
+</ul>
+<h3 id="edit-user">Edit User</h3>
+<ul>
+<li><strong>Users &gt;&gt; List</strong>, opens the interface which
+supports the logged in user to view and transact some operations about
+users</li>
+<li>Firstly, <strong>Users List</strong> page is opened and
+<strong>“Edit”</strong> button is clicked <img
+src="screenshots/users_page-Should_edit_user.png" /></li>
+<li>“Edit User” page is opened, user information is viewed
+automatically</li>
+<li>He enters data into the related first name, last name and e-mail
+fields which he wants to change</li>
+<li>Changed user information is saved by clicking “Save” button <img
+src="screenshots/settings_profile_page-should_modify_email_on_save.png" /></li>
+</ul>
+<h2 id="web-action-logs-audit-logs">Web Action Logs / Audit Logs</h2>
+<p>Web Action Logs are used to audit actions performed in the MDM admin
+panel. This page helps administrators understand who did what, when it
+was done, from which IP address, and which system function was
+affected.</p>
+<p><strong>Users » Audit</strong> opens the Web Action Logs page.</p>
+<p><img
+src="screenshots/WebActionsLogs_page-should_filter_for_GET_action.png" /></p>
+<h3 id="using-web-action-logs">Using Web Action Logs</h3>
+<p>The admin can filter audit records by:</p>
+<ul>
+<li><strong>User</strong> to see actions performed by a specific
+admin.</li>
+<li><strong>Action</strong> to filter request types such as create,
+update, delete, or test actions.</li>
+<li><strong>URL</strong> to find which admin panel function or backend
+endpoint was used.</li>
+<li><strong>IP Address</strong> to identify where the action came
+from.</li>
+<li><strong>Start Date</strong> and <strong>End Date</strong> to review
+actions in a specific time period.</li>
+<li><strong>Advanced Search</strong> to search inside detailed log
+data.</li>
+</ul>
+<h3 id="understanding-log-records">Understanding Log Records</h3>
+<p>Each log record shows the action details in a structured way:</p>
+<ul>
+<li><strong>IP</strong> shows the source address of the admin
+request.</li>
+<li><strong>User Name</strong> shows which admin account performed the
+action.</li>
+<li><strong>URL</strong> shows the system endpoint that was called. This
+usually represents the feature that was used, not a website visited by a
+device.</li>
+<li><strong>Action</strong> shows the request method, such as POST, GET,
+PUT, or DELETE.</li>
+<li><strong>Date</strong> shows when the action happened.</li>
+<li><strong>Data</strong> shows the submitted values or request details,
+usually in JSON format.</li>
+</ul>
+<p>The <strong>Data</strong> field is useful when the admin needs to
+understand exactly what was changed or sent. For example, it may show
+policy values, VPN configuration details, selected apps, device
+commands, or other configuration data submitted from the admin
+panel.</p>
+<h1 id="chapter-4-roles">CHAPTER 4: ROLES</h1>
+<h2 id="add-new-role">Add New Role</h2>
+<ul>
+<li><strong>Users &gt;&gt; Add</strong>, opens the interface which
+supports the logged in user to add new roles</li>
+<li>Authorities are listed in this page</li>
+<li>Enters the Role Name into the related field</li>
+</ul>
+<p><img
+src="screenshots/roles_create_page-Should_change_state_of_add_button.png" /></p>
+<ul>
+<li>Then, the authorities which will be given to this role are
+chosen</li>
+<li>Finally, the role and role’s authorities are saved by clicking the
+“Submit” button</li>
+</ul>
+<p><img
+src="screenshots/roles_create_page-Should_create_role.png" /></p>
+<h2 id="roles">Roles</h2>
+<ul>
+<li><strong>Users &gt;&gt; List</strong>, opens the interface which
+supports the logged in user to view, to update and to delete the
+recorded roles</li>
+<li>Roles and authorities are listed in this page</li>
+<li>Wanted role is found by filtering according to the role name</li>
+<li>If the user wants to update the role, clicks “Edit Role” button and
+Edit Role page is opened, operations done in this pages is explained
+detailed in “Edit Role” part</li>
+<li>If the user wants to delete the role, clicks “Delete Role” button
+and deletes role</li>
+</ul>
+<p><img
+src="screenshots/roles_create_page-Should_create_role.png" /></p>
+<h3 id="edit-role">Edit Role</h3>
+<ul>
+<li>Role which will be updated is filtered and then “Edit Role” button
+is clicked</li>
+<li>It is explained in more detail in “Edit Role” section</li>
+</ul>
+<h3 id="delete-role">Delete Role</h3>
+<ul>
+<li>Roles added to the system is listed</li>
+<li>The role which will be deleted is searched or filtered from the
+list</li>
+<li>Then “Delete Role”, button is clicked and role is deleted</li>
+</ul>
+<h3 id="set-role">Set Role</h3>
+<ul>
+<li>Roles added to the system is listed</li>
+<li>The role which will be deleted is searched or filtered from the
+list</li>
+<li>Role is selected by clicking the check box next to selected
+role</li>
+<li>After role is selected, users are listed below</li>
+</ul>
+<p><img
+src="screenshots/roles_page_2-should_send_selected_role_to_selected_users.png" /></p>
+<ul>
+<li>Users are selected who the role will be applied is selected from the
+list by marking checkbox next to users</li>
+<li>Finally “SET ROLES” button that is under users list is clicked to
+set selected roles to selected users</li>
+</ul>
+<h3 id="edit-role-1">Edit Role</h3>
+<ul>
+<li><strong>Users &gt;&gt; List</strong>, opens the interface which
+supports the logged in user to view, to update and to delete the
+recorded roles</li>
+<li>Roles and authorities are listed in this page</li>
+</ul>
+<p><img
+src="screenshots/roles_page-should_start_with_admin_role_only.png" /></p>
+<ul>
+<li>Wanted role is found by filtering according to the role name</li>
+<li>If the user wants to update the role, clicks “Edit Role” button and
+Edit Role page is opened</li>
+</ul>
+<p><img
+src="screenshots/roles_create_page-Should_create_role.png" /></p>
+<ul>
+<li>To change the role name edit it, however if the authorities will be
+changed then the authorities are marked or unmarked</li>
+<li>Finally, these changes are saved by clicking the “Submit”
+button</li>
+</ul>
+<h2 id="agreements">Agreements</h2>
+<p><strong>Agreements List</strong></p>
+<ul>
+<li>The agreements you created are shown in here</li>
+</ul>
+<p><img src="screenshots/agreements_1.png" /></p>
+<ul>
+<li>You can edit your agreements or preview its content</li>
+</ul>
+<p><img src="screenshots/agreements_2.png" /></p>
+<p><strong>Add Agreement</strong></p>
+<ul>
+<li>You can create a new agreement in here</li>
+</ul>
+<p><img src="screenshots/add_agreement.png" /></p>
+<p><strong>Devices</strong></p>
+<ul>
+<li>Devices tab shows devices that has signed agreements</li>
+</ul>
+<h1 id="chapter-5-policies">CHAPTER 5: POLICIES</h1>
+<h2 id="my-locations">My Locations</h2>
+<ul>
+<li><strong>Policies &gt;&gt; My Locations</strong>, opens the interface
+which supports the logged in user to add his new locations, and to view,
+to edit and to delete the added locations</li>
+<li>If any location has been added, it will be listed.</li>
+<li>If “+ New” button is clicked then adding location page is
+opened</li>
+<li>If “Show On Map” button is clicked then the location is shown on the
+map</li>
+<li>If “Edit” button is clicked then editing page is opened</li>
+<li>If “Delete” button is clicked then the chosen location is
+deleted</li>
+</ul>
+<h3 id="add-new-location">Add New Location</h3>
+<ul>
+<li><strong>Policies &gt;&gt; My Locations</strong> step is followed and
+this page is opened</li>
+<li>“+ New” button is clicked and location adding page is opened <img
+src="screenshots/_location_information_should_be_entered_1.png" /></li>
+<li>Location can be added in two different ways.</li>
+<li>First one is by selecting the location from the map, second one is
+searching location manually</li>
+<li>In order to add by marking from the map, user should specify that
+place, after that user should enter data into “Maximum distance to the
+location (m) and Name of the Location” fields <img
+src="screenshots/_location_information_is_entered_1.png" /></li>
+<li>Finally, user should click on the “Save” button to record the
+location, or user can click on the “Cancel” button if user does not want
+to save</li>
+<li>In order to add location by searching, user should location
+information into the “Search” label, after finding the location user
+should enter data into “Maximum distance to the location (m) and Name of
+the Location” fields</li>
+<li>Finally, user should click on the “Save” button to record the
+location, or user can click on the “Cancel” button if user does not want
+to save</li>
+<li>The recorded location is listed in the bellowing location list</li>
+</ul>
+<h3 id="show-on-map">Show On Map</h3>
+<ul>
+<li>Recorded locations are listed automatically</li>
+<li>Location which will be viewed is chosen and the button next to the
+locations that is named as “Show on Map” is clicked</li>
+<li>Location and its geofence is showed on the map, in addition to this,
+maximum distance to the location and name of the location information
+are written in the related fields</li>
+</ul>
+<h3 id="edit">Edit</h3>
+<ul>
+<li>Recorded locations are listed automatically</li>
+<li>Location which will be edited is chosen and the button next to the
+locations that is named as “Edit” is clicked</li>
+<li>The location can be readjusted by zooming in or zooming out on the
+map or searching again. Also, the maximum distance to the location(m)
+and location name information can be changed.</li>
+<li>After finishing to change location information, “Update” button is
+clicked to save changes.<br />
+</li>
+<li>If the user does not want to change location then user should click
+on the “Cancel” button</li>
+</ul>
+<h3 id="delete">Delete</h3>
+<ul>
+<li>Recorded locations are listed automatically</li>
+<li>Location which will be deleted is chosen and the button next to the
+locations that is named as “Delete” is clicked and the location is
+deleted</li>
+</ul>
+<h2 id="criteria">Criteria</h2>
+<ul>
+<li><strong>Policies &gt;&gt; Criteria</strong>, opens the interface
+which supports the logged in user to add new criteria, and to view and
+to delete the added criteria</li>
+<li>Criteria are categorized in three groups, these are “Date/Time”,
+“Location”, “SSID”</li>
+<li>The recorded criteria which are added by the system users are listed
+in this page</li>
+<li>If “+New” button is clicked then adding criteria page is opened</li>
+<li>If “Delete” button is clicked then the chosen criteria is
+deleted</li>
+</ul>
+<h3 id="add-criteria">Add Criteria</h3>
+<ul>
+<li><p><strong>“+ New”</strong> button is clicked and criteria adding
+page is opened</p></li>
+<li><p>Criteria is categorized in three different conditions, these are
+“Date/Time”, “Location” and “SSID”</p></li>
+<li><p>User chooses the option that he wants to add criteria</p></li>
+<li><p>For exapmle, user select the “SSID” option and records
+SSID</p></li>
+<li><p>Page where the “Wireless network” information will be entered to
+apply this criteria is opened by selecting <strong>“SSID (Service Set
+Identifier)”</strong> option.</p>
+<ul>
+<li>In this screen user determines SSID that this criteria will be
+available in which network</li>
+<li>SSID field will be available in this screen</li>
+<li>A SSID information is entered into this field, for
+example“TTNET_AIRTIES_0001”</li>
+</ul>
+<p><img src="screenshots/_create_ssid_criteria_1.png" /></p>
+<ul>
+<li>After completing the data entering operation, if user wants to add a
+different condition as like “Date/Time” or “Location” he should select
+that conditions and continue to add more conditions. However if he does
+not want to add any other condition, “Save” button is clicked to save
+SSID criteria</li>
+</ul></li>
+<li><p>If user selects <strong>“Location”</strong> condition, in this
+screen user determines where the criteria will be valid</p></li>
+<li><p>For an example, selecting <strong>“Location”</strong> option;</p>
+<ul>
+<li>Locations recorded to system are listed in this screen</li>
+<li>One location is selected from the list by marking the check
+boxes</li>
+<li>After completing the location selection, if user wants to add a
+different condition as like “Date/Time” or “SSID” he should select that
+conditions and continue to add more conditions. However if he does not
+want to add any other condition, “Save” button is clicked to save
+location criteria</li>
+</ul></li>
+<li><p>If user selects <strong>“Date/Time”</strong> condition, in this
+screen user determines days and periods in order to add criteria</p>
+<p><img
+src="screenshots/criteria_page-Should_show_and_select_different_dates_for_every_week_period.png" /></p>
+<ul>
+<li>User can set a time slot by selecting the start time and end time or
+if the “All Day” option is marked then the slot is set as all day and
+“Start time and end time” fields are hidden</li>
+<li>Repeat period is selected from the combo box
+<ul>
+<li>If “Every Day” is selected then the criteria will be valid every
+day</li>
+<li>If “Every Week” is selected, then days of the week will be listed
+and markable</li>
+<li>If “Every Month” is selected, then “Repeat This On Following Days Of
+Every Month” field will be visible, day which the user want will be
+selected</li>
+<li>If “Every Year” is selected, then “Repeat This On Following Days Of
+Every Month” field will be visible, days of all months will be listed
+and user will select the month and day</li>
+<li>If “No Repeat (Date Interval)” is selected, then time slots will be
+visible. User will determine the start date and end date by selecting
+from calendar.</li>
+<li>After completing the date arrangement, if user wants to add a
+different condition as like “Location” or “SSID” he should select that
+conditions and continue to add conditions. However if he does not want
+to add a different condition, “Save” button is clicked to save date/time
+criteria</li>
+</ul></li>
+</ul></li>
+<li><p>After data entry for these conditions is completed, “Save” button
+is clicked to save these criteria</p></li>
+</ul>
+<p><img
+src="screenshots/criteria_page-Should_add_a_location_criteria.png" /></p>
+<ul>
+<li>When saving process is completed the added criteria is listed in the
+bellowing list</li>
+</ul>
+<h3 id="delete-1">Delete</h3>
+<ul>
+<li>Recorded criteria is listed automatically</li>
+<li>“Delete” button next to the criteria which is wanted to be deleted
+is clicked</li>
+<li>Deleting process is realized</li>
+</ul>
+<h2 id="policies">Policies</h2>
+<ul>
+<li><strong>Policies &gt;&gt; Policies</strong>, opens the interface
+which supports the logged in user to add new policies, and to view and
+to delete the added policies</li>
+<li>The recorded policies that are added by the system user are listed
+in this page</li>
+<li>If “+New” button is clicked then adding policy page is opened</li>
+<li>If “Delete” button is clicked then the selected policy is deleted
+<img src="screenshots/policies_page-Should_add_a_policy.png" /></li>
+</ul>
+<h3 id="add-new-policy">Add New Policy</h3>
+<ul>
+<li><strong>Policies &gt;&gt; Policies</strong>, step is followed and
+Manage Policies page is opened</li>
+<li>“+ New” button is clicked and policy adding page is opened</li>
+<li>Features belonging to policies are listed in this page</li>
+<li>Criteria has been added previously is listed in this page</li>
+<li>Firstly, policy name is entered in the “Policy Name” field</li>
+<li>Features and options belonging to these features, eg. “Accessible,
+Denied, Permitted, Disabled, Editable, Uneditable, Enabled, Forced,
+Unspecified, etc” are selected from the list</li>
+<li>Criterion is selected from the criteria list</li>
+<li>After the selecting processes is completed, “+Add” button is clicked
+to save the policy. However, If the “Cancel” button is clicked the
+adding operation is finished</li>
+<li>After saving operation is completed the policy is added to the
+policies list <img
+src="screenshots/blacklistrules_page-should_add_new_rule_and_it_should_appear_in_policies_page_without_refreshing_page.png" /></li>
+</ul>
+<h3 id="delete-policy">Delete Policy</h3>
+<p><strong>Policies &gt;&gt; Policies</strong>, step is followed and
+Manage Policies page is opened - Recorded policies are listed
+automatically</p>
+<p><img src="screenshots/policies_page-Should_add_a_policy.png" /></p>
+<ul>
+<li>“Delete” button next to the policy which is wanted to be deleted is
+clicked</li>
+<li>Deleting process is realized</li>
+</ul>
+<h2 id="assign-policies-to-users">Assign Policies to Users</h2>
+<ul>
+<li><strong>Policies &gt;&gt; Assign Policies</strong>, opens the
+interface which supports the logged in user to assign policies to users,
+and to view and to delete the added policies</li>
+<li>Users and their user information are listed in this page</li>
+<li>In order to assign policies to users, bellowing steps should be
+followed
+<ul>
+<li>User is filtered according to user name or role
+<ul>
+<li>If data is entered into the “Username” field, user is filtered
+according to the entered user name</li>
+<li>If data is entered into the “Role” field, user is filtered according
+to the entered role</li>
+</ul></li>
+<li>After completing to filter the user, the check box next to the user
+is selected
+<ul>
+<li>After selecting the check box, policies and features of the policies
+are listed below</li>
+<li>When “+Add” buttons next to the policies are clicked, policy is
+assigned to the user. More then one policies can be added to same user
+in this way</li>
+</ul>
+<img
+src="screenshots/policies_page-Should_go_to_policyAssignment_page.png" /></li>
+</ul></li>
+</ul>
+<p><strong>In order to delete assigned policies, bellowing steps should
+be followed</strong></p>
+<ul>
+<li>User is filtered according to user name or role
+<ul>
+<li>If data is entered into the “Username” field, user is filtered
+according to the entered user name</li>
+<li>If data is entered into the “Role” field, user is filtered according
+to the entered role</li>
+</ul></li>
+<li>After completing to filter, user information and policies assigned
+to this user is listed</li>
+<li>“X” symbol, located next to the assigned policy, is clicked to
+unassigned the policies</li>
+</ul>
+<h1 id="section"></h1>
+<h1 id="call-blacklists">Call Blacklists</h1>
+<p>Call Blacklists are used to block outgoing calls to selected phone
+numbers or number patterns. A blacklist rule is created with a regular
+expression and then applied to devices through policies.</p>
+<p><strong>Policies » Call Blacklists</strong> opens the Call Blacklists
+page.</p>
+<h3 id="add-call-blacklist">Add Call Blacklist</h3>
+<p>In the Add New area, enter the number rule into the <strong>Enter A
+Regular Expression</strong> field.</p>
+<p>The rule can target a single number, multiple numbers, a number
+prefix or a wider number pattern. The rule should be written according
+to the number format used on the device.</p>
+<h3 id="test">Test</h3>
+<p>User can test if their REGEX match with desired output by editing the
+rule given.</p>
+<p><strong>Common examples:</strong></p>
+<ul>
+<li><code>.*</code><br />
+Blocks all outgoing calls.</li>
+<li><code>^0900.*</code><br />
+Blocks all numbers starting with 0900.</li>
+<li><code>^\+49.*</code><br />
+Blocks all numbers starting with the country code +49.</li>
+<li><code>^(0530000000)$</code><br />
+Blocks only the exact number 0530000000.</li>
+<li><code>^(0530000000|0540000000)$</code><br />
+Blocks only the numbers 0530000000 and 0540000000.</li>
+<li><code>^05[0-9].*</code><br />
+Blocks numbers starting with 05 followed by any digit.</li>
+<li><code>^[0-9]{4}$</code><br />
+Blocks four-digit short numbers.</li>
+</ul>
+<p>For exact number blocking, use <code>^</code> at the beginning and
+<code>$</code> at the end of the rule. For prefix-based blocking, use
+<code>.*</code> after the prefix.</p>
+<p>After the regular expression is entered, click <strong>Save</strong>
+to create the call blacklist. After the blacklist is saved, it must be
+added to a policy and assigned to the required users or devices.</p>
+<p><img src="screenshots/_add_callBlacklists_1.png" /></p>
+<h2 id="firewall-rules">Firewall Rules</h2>
+<ul>
+<li><strong>Policies &gt;&gt; Firewall Rules</strong> steps must be
+taken, using these steps, user can list or update the firewall rules for
+allowing or denying packages by policies or profiles.</li>
+</ul>
+<h3 id="listing-firewall-rules">Listing Firewall Rules</h3>
+<ul>
+<li>Allowing Rules and Denying Rules of firewalls are listed in
+different tabs.</li>
+<li>Firewall rules are listed with their host, port, network interface,
+port location, creation date properties and another field for actions
+that can be performed upon those firewall rules.</li>
+</ul>
+<p><img src="screenshots/_deny_firewall_rules_1.png" /></p>
+<h3 id="deleting-a-firewall">Deleting a Firewall</h3>
+<ul>
+<li>Hitting “Delete” key is enough for deleting a firewall, only if the
+firewall rule is not used in policies or profiles</li>
+<li>Deletion would result in an error if the firewall to be deleted is
+used in a policy or profile</li>
+<li>If the deletion is successful, deleted rule will instantly be
+removed from the list and user will be notified of the success
+status.</li>
+</ul>
+<h3 id="adding-a-firewall">Adding a Firewall</h3>
+<ul>
+<li>When firewall rules are being listed as in the initial state of the
+page, hit “Add” button</li>
+<li>If the rule to be added is not a denying rule, package name option
+would not be visible. Other fields (Host Name, Port Location, Network
+Interface, etc.) are usable.</li>
+<li>Enter Host, Host Name, Port, Port Number, Network, Network Interface
+and Package Name, and then hit “Save”</li>
+<li>The rule will be saved unless it is already added.</li>
+</ul>
+<p><img src="screenshots/_addition_of_firewall_rule_1.png" /></p>
+<h2 id="violations">Violations</h2>
+<p><strong>Policies &gt;&gt; Violations</strong>, opens the interface
+which supports the logged in user to view violations.</p>
+<ul>
+<li>All violations are listed.</li>
+<li>If the user wants to add new violations, clicks the “Add” button and
+give the name of the violations.</li>
+<li>User select the Causes Type.</li>
+<li>User select the Actions Type.</li>
+<li>If the user wants to save new violations, clicks “Save” button and
+the new violations was added.</li>
+</ul>
+<p><img src="screenshots/_violation_adding_open_1.png" /></p>
+<ul>
+<li>If the user wants to update the violations, clicks “Edit”
+button.</li>
+<li>If the user wants to delete the violations, clicks “Remove” button
+and delete the violations.</li>
+</ul>
+<p><img
+src="screenshots/violations_page-Should_add_a_violation_and_show_it_in_the_violation_list.png" /></p>
+<h2 id="keyguard-features">Keyguard Features</h2>
+<p>Keyguard Features are used to restrict selected functions on the
+Android lock screen. These settings help prevent users from accessing
+specific actions, authentication methods or notification content before
+the device is unlocked.</p>
+<p><strong>Policies » Keyguard Features</strong> opens the Keyguard
+Features configuration page.</p>
+<h3 id="configure-keyguard-features">Configure Keyguard Features</h3>
+<p>Enter a <strong>Name</strong> for the configuration and optionally
+add a <strong>Description</strong>.</p>
+<p>In the <strong>Android Features</strong> section, enable the
+restrictions that should be applied on the device lock screen.</p>
+<p>The following options can be configured:</p>
+<ul>
+<li><strong>Disable All Features</strong> disables all available
+keyguard customizations in this configuration.</li>
+<li><strong>Disable Biometric Authentication</strong> disables biometric
+unlock methods on the secure lock screen.</li>
+<li><strong>Disable Face Authentication</strong> disables face
+authentication on the secure lock screen.</li>
+<li><strong>Disable Fingerprint Usage</strong> disables fingerprint
+unlock on the secure lock screen.</li>
+<li><strong>Disable Iris Authentication</strong> disables iris
+authentication on the secure lock screen.</li>
+<li><strong>Disable Quick Reply</strong> disables text reply actions
+from lock screen notifications, where supported.</li>
+<li><strong>Disable Camera</strong> disables camera access from the
+secure lock screen.</li>
+<li><strong>Disable Secure Notifications</strong> prevents notifications
+from being shown on the secure lock screen.</li>
+<li><strong>Disable Trust Agents</strong> disables trust-agent based
+unlock methods, such as trusted device or trusted location unlock.</li>
+<li><strong>Disable Unredacted Notifications</strong> allows only
+redacted notification content on the secure lock screen.</li>
+</ul>
+<p>After selecting the required restrictions, click
+<strong>Save</strong> to create the configuration.</p>
+<h3 id="sending-keyguard-features-to-devices">Sending Keyguard Features
+to Devices</h3>
+<p>Creating a Keyguard Features configuration does not apply it to
+devices automatically. After saving the configuration, it must be added
+to a policy and assigned to the required users or devices.</p>
+<p>To apply the configuration:</p>
+<ul>
+<li>Create or edit the required policy.</li>
+<li>Select the saved Keyguard Features configuration in the policy.</li>
+<li>Assign the policy to the target users or devices.</li>
+</ul>
+<h2 id="kiosk-modes">Kiosk Modes</h2>
+<p><strong>Policies &gt;&gt; Kiosk Modes</strong>, opens the interface
+which supports the logged in user to view Kiosk Modes.</p>
+<ul>
+<li>All Kiosk Modes listed.</li>
+</ul>
+<p><img
+src="screenshots/Samsung_Kiosk_Modules_page-should_add_new_kiosk_mode.png" /></p>
+<ul>
+<li>If the user wants to add new single app modes, clicks the “Add”
+button and enter the Kiosk Mode name.</li>
+<li>User enter the package name.</li>
+<li>User continue write the other parts of kiosk mode page. Then, User
+click the “Add” button for save their mode.</li>
+</ul>
+<p><img src="screenshots/_samsung_kiosk_Mode_1.png" /></p>
+<ul>
+<li>If the user wants to edit new kiosk mode, clicks “Edit” button.</li>
+<li>If the user wants to delete the kiosk mode, clicks “Delete”
+button.</li>
+</ul>
+<h1 id="permission-grant-states">Permission Grant States</h1>
+<p>Permission Grant States are used to control Android application
+permissions from MobiVisor without requiring the user to approve them
+manually on the device.</p>
+<p>This feature is available only for Android devices enrolled with
+<strong>Device Owner</strong> profile.</p>
+<p><strong>Policies » Permission Grant States</strong> opens the
+Permission Grant States page.</p>
+<h2 id="permission-grant-concept">Permission Grant Concept</h2>
+<p>Normally, Android applications ask the user for permissions such as
+camera, location, phone or storage access. With Permission Grant States,
+the administrator can define how a specific permission should behave for
+a specific application.</p>
+<p>A permission can be configured in three ways:</p>
+<ul>
+<li><strong>Auto Grant</strong>: The permission is allowed
+automatically.</li>
+<li><strong>Auto Deny</strong>: The permission is denied
+automatically.</li>
+<li><strong>Prompt User</strong>: The device asks the user to
+decide.</li>
+</ul>
+<p>This is useful when company applications require certain permissions
+to work correctly, or when specific permissions should be blocked for
+security reasons.</p>
+<h2 id="configure-permission-grant-state">Configure Permission Grant
+State</h2>
+<p>To create a permission grant state:</p>
+<ul>
+<li>Enter a clear <strong>Name</strong> for the configuration.</li>
+<li>Enter the application package name in the <strong>Package
+Name</strong> field.</li>
+<li>Enter the Android permission value in the
+<strong>Permission</strong> field. The permission name should be
+obtained from the “Android Developers Develop API reference
+Manifest.permission” page.</li>
+<li>Select the required value from <strong>Grant State</strong>.</li>
+<li>Click <strong>Save</strong>.</li>
+</ul>
+<p>The permission value should start with android.permission..</p>
+<p>Examples:</p>
+<ul>
+<li><p>To allow camera permission automatically:<br />
+Package Name: com.example.app<br />
+Permission: android.permission.CAMERA<br />
+Grant State: <strong>Auto Grant</strong></p></li>
+<li><p>To block camera permission automatically:<br />
+Package Name: com.example.app<br />
+Permission: android.permission.CAMERA<br />
+Grant State: <strong>Auto Deny</strong></p></li>
+<li><p>To let the user decide for phone permission:<br />
+Package Name: com.example.app<br />
+Permission: android.permission.CALL_PHONE<br />
+Grant State: <strong>Prompt User</strong></p></li>
+</ul>
+<p>Saved permission grant states are listed at the bottom of the page.
+Existing configurations can be copied with <strong>Clone</strong>,
+updated with <strong>Edit</strong> or removed with
+<strong>Delete</strong>.</p>
+<h2 id="sending-permission-grant-states-to-devices">Sending Permission
+Grant States to Devices</h2>
+<p>Creating a permission grant state does not apply it to devices
+automatically. After saving the configuration, it must be added to a
+policy and assigned to the required devices or users.</p>
+<p>To apply the configuration:</p>
+<ul>
+<li>Create or edit the required policy.</li>
+<li>Select the saved Permission Grant State in the policy.</li>
+<li>Assign the policy to the target users or devices.</li>
+</ul>
+<h2 id="system-update-policies">System Update Policies</h2>
+<p>System Update Policies are used to control when Android system
+updates are installed on managed devices. This feature is available only
+for Android devices enrolled with Device Owner profile.</p>
+<p>Policies » System Update Policies opens the System Update Policies
+page.</p>
+<h3 id="configure-system-update-policy">Configure System Update
+Policy</h3>
+<p>Enter a Name for the policy and select one of the available update
+types.</p>
+<p>The available update types are:</p>
+<ul>
+<li><p><strong>Automatic Update</strong></p>
+<p>Installs system updates (without user interaction) as soon as they
+become available. Setting this policy type immediately installs any
+updates postponed or waiting. The user cannot install updates manually
+if this policy is applied. In order for the update to be fetched and
+installed, the device needs to be active and cannot be in sleep mode.
+Note: Whether an update is applied is dependent on Android.</p></li>
+<li><p><strong>Scheduled Update</strong></p>
+<p>Installs system updates (without user interaction) during a daily
+maintenance window. Set the start and end of the daily maintenance
+window. The user cannot install updates manually if this policy is
+applied. In order for the update to be fetched and installed, the device
+needs to be active and cannot be in sleep mode. No connectivity, not
+enough disk space, or a low battery are typical reasons Android might
+not install a system update in the daily maintenance window. After 30
+days trying to install an update in the maintenance window (regardless
+of policy changes in this period), the system prompts the device user to
+install the update. Note: Whether an update is applied is dependent on
+Android.</p></li>
+<li><p><strong>Postponed Update</strong></p>
+<p>Postpones the installation of system updates for 30 days. After the
+30-day period has ended, the system prompts the device user to install
+the update. The system limits each update to one 30-day postponement.
+The period begins when the system first postpones the update and setting
+a new postphone policy won’t extend the period. If, after 30 days the
+update isn’t installed (through policy changes), the system prompts the
+user to install the update.</p></li>
+</ul>
+<p>After selecting the update type, click Save to create the system
+update policy.</p>
+<h3 id="sending-system-update-policies-to-devices">Sending System Update
+Policies to Devices</h3>
+<p>Creating a System Update Policy does not apply it to devices
+automatically. After saving it, the policy must be assigned to the
+required users or devices.</p>
+<p>To apply the configuration:</p>
+<ul>
+<li>Create or edit the required policy.</li>
+<li>Select the saved System Update Policy.</li>
+<li>Assign the policy to the target users or devices.</li>
+</ul>
+<h2 id="access-point-names">Access Point Names</h2>
+<ul>
+<li><strong>Policies &gt;&gt; Access Point Names</strong> opens the
+interface which supports the logged in user to view access point names
+list.</li>
+<li>The users fill in the empty fields on the APN page.</li>
+<li>Named and APN parts are required. User enter these part Name, APN,
+User Name, Password ..etc.</li>
+<li>User choose the “Environment” part which is located in middle on the
+page.</li>
+<li>If the user filled all fields , click on “Add” button. Then, new
+access point names are saved.</li>
+<li>If the user want to edit their apn, click the “Edit” button.</li>
+<li>If the user want to delete their apn, click the “Delete”
+button.</li>
+</ul>
+<p><img src="screenshots/_apn_add_form_1.png" /></p>
+<h2 id="vpn-configurations">VPN Configurations</h2>
+<p>VPN Configurations are used to define VPN connection settings that
+can be sent to managed devices through policies. These configurations
+help route device or managed application traffic through a company VPN
+connection.</p>
+<p>This page supports two VPN configuration types: <strong>Custom
+SSL</strong> and <strong>Inhouse VPN</strong>. <strong>Custom
+SSL</strong> is used for custom VPN provider configurations, while
+<strong>Inhouse VPN</strong> is used for the company’s internal
+IKEv2-based VPN setup.</p>
+<p><strong>Policies » VPN Configurations</strong> opens the VPN
+Configurations page.</p>
+<h3 id="configure-vpn-configuration">Configure VPN Configuration</h3>
+<p>To create a VPN configuration:</p>
+<ul>
+<li>Click <strong>Add</strong>.</li>
+<li>Select <strong>Custom SSL</strong> or <strong>Inhouse
+VPN</strong>.</li>
+<li>Enter a clear <strong>Name</strong> for the configuration.</li>
+<li>Fill in the required VPN connection values.</li>
+<li>Select the <strong>Provider Type</strong> and <strong>VPN
+Type</strong> according to how the VPN should be used.</li>
+<li>Configure iOS-specific settings if required.</li>
+<li>Click <strong>Save</strong>.</li>
+</ul>
+<h3 id="custom-ssl">Custom SSL</h3>
+<p>Custom SSL is used when the VPN connection is handled by a custom VPN
+provider or VPN application. In this mode, the admin defines values such
+as <strong>Remote Identifier</strong>, <strong>VPN Subtype</strong>,
+<strong>Provider Type</strong>, <strong>Authentication Method</strong>,
+<strong>Username</strong> and <strong>Password</strong>.</p>
+<p>The <strong>Query Mappings</strong> option can be used in the
+Username field. For example, <code>$username$</code> or
+<code>$emailaddress$</code> can be replaced with the assigned user’s own
+information when the configuration is delivered.</p>
+<h3 id="inhouse-vpn">Inhouse VPN</h3>
+<p>Inhouse VPN is used for the internal VPN configuration managed by the
+system. In this mode, the admin defines values such as <strong>Local
+Identifier</strong>, <strong>Server Address</strong>, <strong>Remote
+Identifier</strong>, <strong>Provider Type</strong> and <strong>VPN
+Type</strong>.</p>
+<p>Inhouse VPN configurations also support additional management actions
+such as testing the VPN connection and managing user certificates.</p>
+<h3 id="provider-type">Provider Type</h3>
+<p>Provider Type defines how the VPN provider handles traffic.</p>
+<ul>
+<li><strong>App Proxy</strong> is used when VPN traffic is handled at
+application level.</li>
+<li><strong>Packet Tunnel</strong> is used when the VPN handles
+packet-level network traffic.</li>
+</ul>
+<h3 id="vpn-type">VPN Type</h3>
+<p>VPN Type defines the scope of the VPN configuration.</p>
+<ul>
+<li><strong>All Apps</strong> applies the VPN configuration
+generally.</li>
+<li><strong>Only Specified Apps</strong> is used when VPN should be
+applied only to selected managed applications.</li>
+</ul>
+<p>This is useful for per-app VPN scenarios where only corporate or
+managed apps should use the VPN connection.</p>
+<h3 id="ios-specific-settings">iOS Specific Settings</h3>
+<p>The iOS-specific section allows the admin to define domain-based VPN
+behavior.</p>
+<ul>
+<li><strong>Safari Domains</strong> define Safari-related domains that
+should use the VPN behavior.</li>
+<li><strong>Associated Domains</strong> define app or service domains
+related to the VPN configuration.</li>
+<li><strong>Excluded Domains</strong> define domains that should not use
+the VPN.</li>
+<li><strong>Vendor Config</strong> is used to send provider-specific
+values such as Group, Realm, Role or Login Group / Domain.</li>
+</ul>
+<p>These values should be configured according to the VPN provider or
+company VPN requirements.</p>
+<h3 id="managing-existing-vpn-configurations">Managing Existing VPN
+Configurations</h3>
+<p>Saved VPN configurations are listed on the page. Existing
+configurations can be managed with the following actions:</p>
+<ul>
+<li><strong>Clone:</strong> Creates a similar VPN configuration from an
+existing one.</li>
+<li><strong>Test:</strong> Opens the test area for the selected VPN
+configuration.</li>
+<li><strong>Manage:</strong> Opens certificate and user-related
+management options for Inhouse VPN configurations.</li>
+<li><strong>Delete:</strong> Removes the selected VPN configuration
+after confirmation.</li>
+</ul>
+<h3 id="testing-inhouse-vpn-configurations">Testing Inhouse VPN
+Configurations</h3>
+<p>For saved Inhouse VPN configurations, the <strong>Test</strong>
+action opens a test section under the selected VPN row. This area is
+used to check whether the VPN configuration and related network
+connection are working before or after the configuration is assigned to
+devices.</p>
+<p>The test section may include options such as:</p>
+<ul>
+<li><strong>Server Connection</strong></li>
+<li><strong>Single Host Ping</strong></li>
+<li><strong>Multiple Host Ping</strong></li>
+<li><strong>Telnet</strong></li>
+<li><strong>DNS</strong></li>
+<li><strong>CURL</strong></li>
+<li><strong>Trace Route</strong></li>
+<li><strong>IP Leases</strong></li>
+<li><strong>Connected Clients</strong></li>
+</ul>
+<p>After selecting the required test type, click <strong>Test</strong>.
+The result is shown in the <strong>Results</strong> area. These tests
+help the admin verify VPN server availability, host reachability, DNS
+behavior, routing and connected client information.</p>
+<p>Testing a VPN configuration does not send it to devices. It is only
+used to validate or troubleshoot the selected VPN configuration from the
+admin panel.</p>
+<h3 id="sending-vpn-configurations-to-devices">Sending VPN
+Configurations to Devices</h3>
+<p>Creating a VPN configuration does not apply it to devices
+automatically. After saving the configuration, it must be added to the
+related policy and assigned to the required users or devices.</p>
+<p>To apply the configuration:</p>
+<ul>
+<li>Create or edit the required policy.</li>
+<li>Select the saved VPN Configuration.</li>
+<li>Assign the policy to the target users or devices.</li>
+<li>The VPN settings are sent to devices through the policies.</li>
+</ul>
+<h2 id="exchange-configurations">Exchange Configurations</h2>
+<p><strong>Policies &gt;&gt; Exchange Configurations</strong>, opens the
+interface which supports the logged in user to view exchange
+configurations.</p>
+<p><img
+src="screenshots/Exchange_configuration_page-should_add_a_new_exchange.png" /></p>
+<ul>
+<li>All Exchange Configurations are listed.</li>
+<li>If you want to add new Exchange configuration, click the “Add”
+button.</li>
+<li>Fill in desired fields.</li>
+</ul>
+<p><img src="screenshots/_exchangeConfigs_add_1.png" /></p>
+<ul>
+<li>If you want to save new Exchange configuration, click “Save” button
+and the new Exchange configuration is added.</li>
+<li>If you want to add an Exchange configuration which is similar to an
+existing config, click “Copy” button to create a template settings from
+existing config.</li>
+<li>If you want to delete the Exchange configuration, click “Delete”
+button and confirm the dialog to delete the Exchange configuration.</li>
+</ul>
+<h2 id="predefined-apps">Predefined Apps</h2>
+<p>Predefined Apps are used to save application package names or bundle
+identifiers that can be reused in other MDM configurations such as
+<strong>Kiosk Mode</strong>, <strong>Single App Mode</strong>,
+<strong>Blacklisted Apps</strong> or similar app-based policy
+features.</p>
+<p>This page only defines the app reference. It does not install, block
+or restrict the app by itself. The predefined app becomes effective only
+when it is selected inside another policy configuration and that policy
+is assigned to users or devices.</p>
+<p><strong>Policies » Predefined Apps</strong> opens the Predefined Apps
+page.</p>
+<h3 id="add-predefined-app">Add Predefined App</h3>
+<p>To add a predefined app:</p>
+<ul>
+<li>Click <strong>Add</strong>.</li>
+<li>Enter the package name or bundle identifier value in the
+<strong>Package Name</strong> field.</li>
+<li>Package name or bundle identifier can be seen from the
+<strong>Applications list → Application Details</strong> or by fetching
+system applications from a device’s <strong>Management</strong>
+page</li>
+<li>Select <strong>Operating System Type</strong> as
+<strong>Android</strong>, <strong>iOS</strong> or
+<strong>Both</strong>.</li>
+<li>Click <strong>Save</strong>.</li>
+</ul>
+<p>The saved apps are listed on the page with <strong>Package
+Name</strong>, <strong>Operating System Type</strong> and <strong>Date
+Created</strong> information. Existing records can be searched and
+edited when needed.</p>
+<h3 id="notes">Notes</h3>
+<ul>
+<li>Package name or bundle identifier must be entered correctly.</li>
+<li>Select the correct operating system type for the target
+devices.</li>
+<li>Predefined Apps are reusable references and are applied only through
+related policy features.</li>
+</ul>
+<h2 id="single-app-modes">Single App Modes</h2>
+<p><strong>Policies &gt;&gt; Single App Modes</strong>, opens the
+interface which supports the logged in user to view Single App
+Modes.</p>
+<ul>
+<li>All Single App Modes listed.</li>
+</ul>
+<p><img src="screenshots/_singleAppMode_add_2.png" /></p>
+<ul>
+<li>If the user wants to add new single app modes, clicks the “Add”
+button and enter the single app mode name.</li>
+<li>User enter the package name.</li>
+<li>User select the value in Environment part.</li>
+</ul>
+<p><img src="screenshots/_singleAppMode_text_2.png" /></p>
+<ul>
+<li>If the user wants to save new single app modes, clicks “Add” button
+and the new app modes was added.</li>
+<li>If the user wants to delete the single app modes, clicks “Delete”
+button.</li>
+</ul>
+<h2 id="ios-app-notification-settings">IOS App Notification
+Settings</h2>
+<p><strong>Policies &gt;&gt; IOS App Notification Settings</strong>
+opens the interface which supports the logged in user to view, list the
+IOS notifications.</p>
+<ul>
+<li>All IOS App Notification listed.</li>
+</ul>
+<p><img src="screenshots/iosApp_page-should_go_to_the_page.png" /></p>
+<ul>
+<li>If the user wants to add a new notifications, clicks “Add”
+button.</li>
+<li>User must write these parts : “Name” , “Bundle Identifier”,
+“Notifications Enabled” etc.</li>
+</ul>
+<p><img
+src="screenshots/_iosApp_page-should_add_new_iosApp_page_1.png" /></p>
+<ul>
+<li>If the user wants to save the new notification, clicks “Add” button
+and save the notification.</li>
+<li>If the user wants to delete the notification, clicks “Delete” button
+and delete the notification.</li>
+</ul>
+<h2 id="kiosk-modes-1">Kiosk Modes</h2>
+<p><strong>Policies &gt;&gt; Kiosk Modes</strong>, opens the interface
+which supports the logged in user to view Kiosk Modes.</p>
+<ul>
+<li>All Kiosk Modes listed.</li>
+</ul>
+<p><img
+src="screenshots/Samsung_Kiosk_Modules_page-should_add_new_kiosk_mode.png" /></p>
+<ul>
+<li>If the user wants to add new single app modes, clicks the “Add”
+button and enter the Kiosk Mode name.</li>
+<li>User enter the package name.</li>
+<li>User continue write the other parts of kiosk mode page. Then, User
+click the “Add” button for save their mode.</li>
+</ul>
+<p><img src="screenshots/_samsung_kiosk_Mode_1.png" /></p>
+<ul>
+<li>If the user wants to edit new kiosk mode, clicks “Edit” button.</li>
+<li>If the user wants to delete the kiosk mode, clicks “Delete”
+button.</li>
+</ul>
+<h2 id="passcode-policies">Passcode Policies</h2>
+<ul>
+<li><strong>Policies &gt;&gt; Passcode Policies</strong>, opens the
+interface which supports the logged in user view the passcode
+policies.</li>
+<li>If the user add new passcode policies, click the “Add” button.</li>
+<li>User enter some feature of pascode policies like “Name” , “Min.
+Passcode Length” , “Max Passcode Age” …etc.</li>
+</ul>
+<p><img src="screenshots/_passcode_policies_page_1.png" /></p>
+<ul>
+<li>If the user save passcode policies, click “Save” button and save the
+new passcode policies.</li>
+</ul>
+<p><img
+src="screenshots/passcode_policies_page-should_add_passcode_policies.png" /></p>
+<ul>
+<li>If the user delete passcode policies , click the “Remove” link and
+delete the passcode policies.</li>
+</ul>
+<h2 id="shared-device-configurations">Shared Device Configurations</h2>
+<p><strong>Policies &gt;&gt; Shared Device Configurations</strong>,
+opens the interface which supports the logged in user to view shared
+device configurations.</p>
+<ul>
+<li>All shared devices listed.</li>
+<li>If the user wants add new device , clicks the “Add” button. <img
+src="screenshots/Shared_Devices_page-should_go_to_the_page.png" /></li>
+<li>Then, user wants to add new device, enter the “Name” , “If Lost
+Return To Message” and “Asset Tag Information” part. <img
+src="screenshots/_shared_devices_Configurations_1.png" /></li>
+<li>If the user wants to save the new device, clicks “Add” button and
+the device added.</li>
+<li>If the user wants to delete the device, clicks “Delete” button and
+delete the device.</li>
+</ul>
+<h2 id="simcard-numbers">Simcard Numbers</h2>
+<p><strong>Policies &gt;&gt; Sim Card Numbers</strong>, opens the
+interface which supports the logged in user to view, list the system
+card numbers</p>
+<ul>
+<li>All sim card numbers listed.</li>
+<li>If the user wants to add new sim card numbers, clicks “Add” button
+and the sim card numbers added.</li>
+</ul>
+<p><img src="screenshots/_simCardNumbers_add_sim_1.png" /></p>
+<ul>
+<li>If the user wants to save the new sim card numbers, clicks “Save”
+button and saves sim cards numbers.</li>
+<li>If the user wants to update the sim card number, clicks “Edit”
+button and update the sim card number.</li>
+</ul>
+<p><img src="screenshots/_simCardNumbers_edit_1.png" /></p>
+<ul>
+<li>If the user wants to delete the sim card number, clicks “Delete”
+button and delete the sim card number.</li>
+</ul>
+<h2 id="wallpapers">Wallpapers</h2>
+<p><strong>Policies &gt;&gt; Wallpapers</strong>, opens the interface
+which supports the logged in user to view wallpapers.</p>
+<ul>
+<li>If the user wants to add new wallpapers, click the “Add” button.
+<img src="screenshots/wallpapers_page-Should_go_to_the_page.png" /></li>
+<li>User enter the “Name” wallpapers and enter the “Where” part.</li>
+<li>If the user wants to choose the new wallpapers, clicks “Choose File”
+button and the wallpapers added or user can drop the file on the screen.
+<img src="screenshots/_wallpaper_upload_image_1.png" /></li>
+<li>If the user wants to temporary Image to modify, clicks “Choose File”
+button and the wallpapers added or user can drop the file on the
+screen.</li>
+<li>If the user wants to save new wallpaper, clicks “Save” button and
+save the new wallpapers.</li>
+<li>If the user wants to delete the wallpapers, clicks “Delete” button
+and delete the wallpapers.</li>
+</ul>
+<h1 id="wifi-configurations">Wifi Configurations</h1>
+<p>Wifi Configurations are used to prepare wireless network settings
+that can be sent to managed devices through MDM policies. With this
+configuration, the admin can define the company WiFi network once and
+allow devices to connect with the correct SSID, security type, password,
+proxy and platform-specific options.</p>
+<p>This helps reduce manual WiFi setup on devices and ensures that
+managed devices use the correct corporate network settings.</p>
+<p><strong>Policies » Wifi Configurations</strong> opens the Wifi
+Configurations page.</p>
+<p><img src="screenshots/_wifiConfigs_add_2.png" /></p>
+<h2 id="configure-wifi-configuration">Configure Wifi Configuration</h2>
+<p>To create a Wifi configuration:</p>
+<ul>
+<li>Click <strong>Add</strong>.</li>
+<li>Enter a clear <strong>Name</strong> for the configuration.</li>
+<li>Enter the <strong>Service Set Identifier (SSID)</strong> of the WiFi
+network.</li>
+<li>Select the <strong>Security Type</strong>, such as
+<strong>None</strong>, <strong>WEP</strong>, <strong>WPA /
+WPA2</strong>, <strong>WPA3</strong>, or <strong>Enterprise</strong>
+options.</li>
+<li>Enter the <strong>Password</strong> if the selected security type
+requires it.</li>
+<li>Enable <strong>Hidden Network</strong> if the SSID is not publicly
+visible.</li>
+<li>Select <strong>Proxy Type</strong> as <strong>None</strong>,
+<strong>Manual</strong>, or <strong>Auto</strong> if proxy settings are
+required.</li>
+<li>Configure Android or iOS-specific options if needed.</li>
+<li>Click <strong>Save</strong>.</li>
+</ul>
+<p><img src="screenshots/_wifiConfigs_edit_1.png" /></p>
+<h2 id="platform-specific-settings">Platform-Specific Settings</h2>
+<p>For Android, the admin can configure the MAC Randomization Setting.
+This controls how the device uses randomized MAC addresses when
+connecting to the WiFi network.</p>
+<p>For iOS, the admin can configure options such as Auto Join, Hotspot,
+and Disable Mac Randomization. These settings control how the device
+connects to the network and how the device identity is handled on the
+network.</p>
+<h2 id="sending-wifi-configuration-to-devices">Sending Wifi
+Configuration to Devices</h2>
+<p>Saving a Wifi configuration does not apply it to devices
+automatically. After saving, it must be added to the related policy and
+assigned to the required users, groups, or devices.</p>
+<h2 id="system-update-policies-1">System Update Policies</h2>
+<p>System Update Policies are used to control when Android system
+updates are installed on managed devices. This feature is available only
+for Android devices enrolled with Device Owner profile.</p>
+<p>Policies » System Update Policies opens the System Update Policies
+page.</p>
+<h3 id="configure-system-update-policy-1">Configure System Update
+Policy</h3>
+<p>Enter a Name for the policy and select one of the available update
+types.</p>
+<p>The available update types are:</p>
+<ul>
+<li><p><strong>Automatic Update</strong></p>
+<p>Installs system updates (without user interaction) as soon as they
+become available. Setting this policy type immediately installs any
+updates postponed or waiting. The user cannot install updates manually
+if this policy is applied. In order for the update to be fetched and
+installed, the device needs to be active and cannot be in sleep mode.
+Note: Whether an update is applied is dependent on Android.</p></li>
+<li><p><strong>Scheduled Update</strong></p>
+<p>Installs system updates (without user interaction) during a daily
+maintenance window. Set the start and end of the daily maintenance
+window. The user cannot install updates manually if this policy is
+applied. In order for the update to be fetched and installed, the device
+needs to be active and cannot be in sleep mode. No connectivity, not
+enough disk space, or a low battery are typical reasons Android might
+not install a system update in the daily maintenance window. After 30
+days trying to install an update in the maintenance window (regardless
+of policy changes in this period), the system prompts the device user to
+install the update. Note: Whether an update is applied is dependent on
+Android.</p></li>
+<li><p><strong>Postponed Update</strong></p>
+<p>Postpones the installation of system updates for 30 days. After the
+30-day period has ended, the system prompts the device user to install
+the update. The system limits each update to one 30-day postponement.
+The period begins when the system first postpones the update and setting
+a new postphone policy won’t extend the period. If, after 30 days the
+update isn’t installed (through policy changes), the system prompts the
+user to install the update.</p></li>
+</ul>
+<p>After selecting the update type, click Save to create the system
+update policy.</p>
+<h3 id="sending-system-update-policies-to-devices-1">Sending System
+Update Policies to Devices</h3>
+<p>Creating a System Update Policy does not apply it to devices
+automatically. After saving it, the policy must be assigned to the
+required users or devices.</p>
+<p>To apply the configuration:</p>
+<ul>
+<li>Create or edit the required policy.</li>
+<li>Select the saved System Update Policy.</li>
+<li>Assign the policy to the target users or devices.</li>
+</ul>
+<h2 id="airprint-configuration">AirPrint Configuration</h2>
+<p>This feature enables administrators to configure <strong>AirPrint
+printers</strong> so they appear in the end user’s list of available
+printers. It is compatible with:</p>
+<ul>
+<li><strong>iOS 7 and later</strong><br />
+</li>
+<li><strong>iPadOS 7 and later</strong><br />
+</li>
+<li><strong>macOS 10.10 and later</strong></li>
+</ul>
+<h3 id="key-notes">Key Notes:</h3>
+<ul>
+<li>This is a <strong>regular feature</strong>, meaning it is available
+on both <strong>Supervised</strong> and <strong>non-Supervised</strong>
+Apple devices.</li>
+<li>You can create and assign <strong>multiple AirPrint
+configurations</strong> to different sets of devices, based on your
+organization’s needs.</li>
+</ul>
+<hr />
+<h3 id="how-to-configure-airprint">How to Configure AirPrint</h3>
+<ol type="1">
+<li><p><strong>Add a New AirPrint Configuration</strong><br />
+Click the <strong>Add</strong> button to create a new AirPrint
+setup.</p></li>
+<li><p><strong>Name Your Configuration</strong><br />
+The name you provide will help end-users identify and differentiate
+between available printer configurations.</p></li>
+<li><p><strong>Enter Required Fields</strong></p>
+<ul>
+<li><strong>IP Address</strong> – The IP address of the
+AirPrint-compatible printer.<br />
+</li>
+<li><strong>Resource Path</strong> – The path to the AirPrint resource,
+as provided by the printer.</li>
+</ul></li>
+<li><p><strong>Optional Settings</strong></p>
+<ul>
+<li><strong>Port</strong> – Specify the port number if it differs from
+the default (usually 631 for IPP).<br />
+</li>
+<li><strong>Force TLS</strong> – Enable this if the printer requires a
+secure connection via HTTPS.</li>
+</ul></li>
+<li><p><strong>Save and Deploy</strong><br />
+After saving the configuration, navigate to <strong>Policies &gt;
+Policies</strong> and assign the configuration to the appropriate
+devices.</p></li>
+</ol>
+<h2 id="home-screen-layouts">Home Screen Layouts</h2>
+<p>Home Screen Layouts are used to configure how applications and web
+clips will appear on managed iOS device home screens. With this feature,
+the administrator can prepare a standard home screen structure and send
+it to devices through policies.</p>
+<p>This is useful when company devices should have the same app order,
+page structure, or folder organization.</p>
+<p><strong>Policies » Home Screen Layouts</strong> opens the Home Screen
+Layouts page.</p>
+<h3 id="configure-home-screen-layout">Configure Home Screen Layout</h3>
+<p>To create a Home Screen Layout:</p>
+<ul>
+<li>Click Add.</li>
+<li>Enter a clear Home Screen Layout Name.</li>
+<li>Enter the Page Count for the layout.</li>
+<li>Add Folders if the selected apps should be grouped.</li>
+<li>Select the applications or web clips that should appear on the home
+screen.</li>
+<li>Use Search, Show Only System Apps, or Hide System Apps to find apps
+more easily.</li>
+<li>Click Save.</li>
+</ul>
+<p>At least one application must be selected for the layout before it
+can be saved.</p>
+<p>Creating a Home Screen Layout does not apply it to devices
+automatically. After saving, the layout must be added to the related
+policy and assigned to the required users or devices.</p>
+<h2 id="ios-accounts">iOS Accounts</h2>
+<p>iOS Accounts are used to prepare account configurations that can be
+sent to managed iOS devices through policies. With this page, the admin
+can configure account types such as <strong>Gmail</strong>,
+<strong>Generic Mail</strong>, <strong>CalDav</strong>,
+<strong>CardDav</strong> and <strong>Subscribed Calendar</strong> from
+one central place.</p>
+<p>This helps users receive required mail, calendar or contact account
+settings without manually entering server details on the device.
+Multiple account configurations can be created and used in different
+policies.</p>
+<p><strong>Policies » iOS Accounts</strong> opens the iOS Accounts
+page.</p>
+<h3 id="configure-ios-account">Configure iOS Account</h3>
+<p>To create an iOS Account configuration:</p>
+<ul>
+<li>Click <strong>Add</strong>.</li>
+<li>Enter a clear <strong>Name</strong> for the configuration.</li>
+<li>Select the account <strong>Type</strong>.</li>
+<li>Fill in the required fields for the selected type.</li>
+<li>Use <strong>Query Mappings</strong> such as <span
+class="math inline"><em>u</em><em>s</em><em>e</em><em>r</em><em>n</em><em>a</em><em>m</em><em>e</em></span>
+or <span
+class="math inline"><em>e</em><em>m</em><em>a</em><em>i</em><em>l</em><em>a</em><em>d</em><em>d</em><em>r</em><em>e</em><em>s</em><em>s</em></span>
+when user-specific values should be inserted automatically.</li>
+<li>Enable <strong>Use SSL</strong> or related security options if
+required.</li>
+<li>Click <strong>Save</strong>.</li>
+</ul>
+<h3 id="generic-mail-options">Generic Mail Options</h3>
+<p>For Generic Mail accounts, the admin can configure incoming and
+outgoing server information, authentication values, SSL usage and
+optional mail protection settings such as Mail Drop, Mail Recents
+Syncing, Prevent App Sheet, Prevent Move and S/MIME options.</p>
+<p>These options help define how the mail account works and how
+corporate mail data is handled on the device.</p>
+<p>Saving an iOS Account configuration does not apply it to devices
+automatically. After saving, it must be added to the related policy and
+assigned to the required users or devices.</p>
+<h2 id="web-content-filters">Web Content Filters</h2>
+<p>Web Content Filters are used to control which websites can be
+accessed on supervised iOS devices. With this configuration, the
+administrator can allow, block, or limit web access according to company
+or school browsing rules.</p>
+<p>This helps organizations reduce access to unwanted websites and keep
+managed devices within an approved browsing environment.</p>
+<p><strong>Policies » Web Content Filters</strong> opens the Web Content
+Filters page.</p>
+<h3 id="configure-web-content-filter">Configure Web Content Filter</h3>
+<p>To create a Web Content Filter:</p>
+<ul>
+<li>Enter a clear <strong>Name</strong> for the filter.</li>
+<li>Select the <strong>Filter Type</strong> as <strong>Built In</strong>
+or <strong>Plugin</strong>.</li>
+<li>Enable <strong>Auto Filter Enabled</strong> if the iOS built-in
+filtering behavior should be used.</li>
+<li>Add <strong>Blacklisted URLs</strong> to block specific
+websites.</li>
+<li>Add <strong>Permitted URLs</strong> to allow specific websites.</li>
+<li>Add <strong>Whitelisted Bookmarks</strong> if approved websites
+should be shown as bookmarks.</li>
+<li>URLs can be added manually or imported with a CSV file.</li>
+<li>Click <strong>Save</strong>.</li>
+</ul>
+<h3 id="filter-type">Filter Type</h3>
+<p><strong>Built In</strong> uses the default iOS web content filtering
+system. This is commonly used for standard website restriction
+scenarios.</p>
+<p><strong>Plugin</strong> is used when filtering should be handled by a
+content filtering app or plugin installed on the device.</p>
+<h3 id="url-lists">URL Lists</h3>
+<ul>
+<li><strong>Blacklisted URLs</strong> are websites that users should not
+access.</li>
+<li><strong>Permitted URLs</strong> are websites that are allowed by the
+configuration.</li>
+<li><strong>Whitelisted Bookmarks</strong> are approved websites that
+can be provided to users as accessible bookmarks.</li>
+</ul>
+<h3 id="sending-web-content-filter-to-devices">Sending Web Content
+Filter to Devices</h3>
+<p>Saving a Web Content Filter does not apply it to devices
+automatically. After saving, the filter must be added to the related
+policy or profile and assigned to the required supervised iOS
+devices.</p>
+<p>When the policy reaches the device, the selected web content
+filtering rules are applied.</p>
+<h3 id="notes-1">Notes</h3>
+<ul>
+<li>Web Content Filters are for supervised iOS devices.</li>
+<li>URL lists should be checked carefully before assigning the
+policy.</li>
+<li>CSV import can be used when many URLs need to be added.</li>
+<li>The configuration becomes active only after the related policy or
+profile is applied to the device.</li>
+</ul>
+<h1 id="chapter-6-applications">CHAPTER 6: APPLICATIONS</h1>
+<h2 id="add-new-app">Add New App</h2>
+<ul>
+<li><strong>Applications &gt;&gt; Add</strong>, opens the interface
+which supports the logged in user to add new application for Android and
+IOS Devices</li>
+<li>If “Android” menu selected then Android Device application adding
+page is opened</li>
+<li>If “IOS” menu is selected then IOS Device application adding page is
+opened</li>
+</ul>
+<p><img
+src="screenshots/mobileapps_create_android_page-should_start_within_the_page.png" /></p>
+<h3 id="add-new-application">Add New Application</h3>
+<ul>
+<li>In this page, adding application for Android and IOS devices
+differs.</li>
+<li>Therefore, firstly user should choose to add application for what
+kind of operating system</li>
+</ul>
+<h4 id="android-applications">Android Applications</h4>
+<ul>
+<li>Android menu is selected and Android Device application adding page
+is opened
+<ul>
+<li>Android applications can be added in two different ways, first one
+is adding “From Google Play Store”, second one is “From File”<br />
+<img
+src="screenshots/mobileapps_create_android_page-should_start_within_the_page.png" />
+Fields in the page differs according to selection:</li>
+<li>If <strong>“From Google Play Store”</strong> is selected, then
+“Application link, Application name, Image URL” information should be
+entered.
+<ul>
+<li>If user wants to add application <strong>manually</strong>
+<ul>
+<li>Application link, application name and image URL information is
+entered into the related fields</li>
+<li>“Submit” button is clicked to add this application</li>
+<li>After adding completed, application is listed in application
+list</li>
+</ul></li>
+<li>If user wants to add application by <strong>searching</strong>,
+application is searched from Google Play Store for Android devices <img
+src="screenshots/_searching_android_app_1.png" />
+<ul>
+<li>He should enter the key words into the “Application Name” field
+located at the bottom of the page</li>
+<li>Should click Search button to find that application</li>
+<li>Found applications are listed below</li>
+<li>When mouse cursor overs the application images, information about
+that application is viewed</li>
+<li>When “+” symbol on application is clicked, application link,
+application name and Image URL information is written into related
+fields automatically</li>
+<li>“Submit” button is clicked to add this application After adding
+completed, application is listed in application list <img
+src="screenshots/mobileapps_create_android_page-Should_add_a_new_app_from_google_play_for_android.png" /></li>
+</ul></li>
+</ul></li>
+<li>If <strong>“From File”</strong> is selected, then “Application
+Package, Application name, Image URL” information should be entered and
+file should be appended
+<ul>
+<li>If user wants to add application manually
+<ul>
+<li>Application package, application name, image URL information is
+entered into the related fields</li>
+<li>“Upload File” button is clicked to select application file from
+computer</li>
+<li>“Submit” button is clicked to add this application</li>
+<li>After adding completed, application is listed in application
+list</li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul>
+<h4 id="ios-applications">iOS Applications</h4>
+<ul>
+<li>IOS menu is selected and IOS Device application adding page is
+opened IOS applications can be added in two different ways, first one is
+adding “iTunesStoreApp”, second one is “Enterprise App”<br />
+<img
+src="screenshots/mobileapps_create_ios_page-Should_add_a_new_app_from_itunes_store_for_ios.png" />
+Fields in the page differs according to selection:
+<ul>
+<li>If <strong>“iTunesStoreApp”</strong> is selected, then “iTunes Store
+ID, Application Name, Image URL” information should be entered.
+<ul>
+<li>If user wants to add application <strong>manually</strong>
+<ul>
+<li>iTunes Store ID, Application Name, Image URL information is entered
+into the related fields</li>
+<li>“Submit” button is clicked to add this application</li>
+<li>After adding completed, application is listed in application
+list</li>
+</ul></li>
+<li>If user wants to add application by <strong>searching</strong>,
+application is searched from iTunes Application Store for iOS devices
+<ul>
+<li>He should enter the key words into the “Application Name” field
+located at the bottom of the page</li>
+<li>If user wants, he can determine market that he wants to add
+application from the market list. If any market is selected, default
+market will be “US”</li>
+<li>Should click “Search” button to find that application</li>
+<li>Found applications in that market are listed below</li>
+<li>When mouse cursor overs the application images, information about
+that application is viewed<br />
+<img
+src="screenshots/mobileapps_create_ios_page-Should_add_a_new_app_from_itunes_store_for_ios.png" /></li>
+<li>When “+” symbol on application is clicked, iTunesStoreID,
+Application Name and Image URL information is written into related
+fields automatically</li>
+<li>“Submit” button is clicked to add this application</li>
+<li>After adding completed, application is listed in application
+list</li>
+</ul></li>
+</ul></li>
+<li>If <strong>“Enterprise App”</strong> is selected, then “Application
+Name, Image URL, iTunes Image URL, Bundle Identifier, Bundle Version”
+information should be entered.
+<ul>
+<li>Application Name, Image URL, iTunes Image URL, Bundle Identifier,
+Bundle Version information is entered into the related fields</li>
+<li>IPA file is loaded in two ways. First one, “Upload File” is clicked
+and file is selected from computer, but file extension must be “.ipa”
+otherwise it does not work</li>
+<li>Second one, file is selected from computer and it is dragged into
+“Drag icon image file here” field and dropped, file extension must be
+“.ipa” otherwise it does not work</li>
+<li>After uploading process finished, uploaded file is added to IPA File
+part</li>
+<li>“Submit” button is clicked to add this application</li>
+<li>After adding completed, application is listed in application
+list</li>
+</ul></li>
+</ul></li>
+</ul>
+<h2 id="application-list">Application List</h2>
+<ul>
+<li><p><strong>Applications &gt;&gt; List</strong>, opens the interface
+which supports the logged in user to view and to install the added
+applications for Android and IOS Devices</p></li>
+<li><p>Applications and their environment information are listed in this
+page</p>
+<p><img
+src="screenshots/mobileapps_create_android_page-Should_add_a_new_app_from_google_play_for_android.png" /></p></li>
+<li><p>Download buttons next to the application is used to download
+application or view and check the application.</p>
+<ul>
+<li>If the application is an Android application and uploaded from play
+store, when download button is clicked that goes to “Google Play
+Store”</li>
+<li>If the application is an Android application and uploaded from file,
+when download button is clicked that downloads application file
+directly</li>
+<li>If the application is an IOS application and uploaded from
+“iTunesStoreApp”, when download button is clicked that goes to Apple
+Store</li>
+<li>If the application is an IOS application and uploaded from file,
+when download button is clicked that downloads application file
+directly</li>
+</ul></li>
+</ul>
+<p><strong>To install an application to any device or to uninstall an
+application from any device bellowing steps should be
+followed;</strong></p>
+<ul>
+<li><p>Application is filtered according to application name or
+environment</p>
+<ul>
+<li>If data is entered into the “application name” field, application is
+filtered according to the entered application name</li>
+<li>If data is entered into the “environment” field, application is
+filtered according to the entered environment</li>
+</ul></li>
+<li><p>After completing to filter the application, the check box next to
+the application is selected</p>
+<p><img
+src="screenshots/mobileapps_details_page-Should_go_to_mobile_app_list_page.png" /></p></li>
+<li><p>After selecting the check box, users and enrolled devices are
+listed below and devices which of will be installed this application are
+selected</p></li>
+<li><p>Devices can be filtered by entering data into the fields in the
+“Enrolled Devices” table</p></li>
+<li><p><strong>To install applications to devices</strong>,</p>
+<ul>
+<li>Check box next to the listed devices that will install this
+application are selected</li>
+<li>“Install Apps to Devices” button is clicked, in order to install
+application</li>
+<li>Selected more than one applications can be sent to more than one
+selected devices for installing simultaneously</li>
+<li>When operation is completed a notice message is shown. These
+messages differs according to device status. These are going to be
+mentioned in Commands page in detail.</li>
+</ul></li>
+<li><p><strong>To uninstall applications from devices</strong>,</p>
+<ul>
+<li>Check box next to the listed devices that will uninstall this
+application are selected</li>
+<li>“Uninstall Apps from Devices” button is clickted, in order to
+uninstall application</li>
+<li>Selected more than one applications can be sent to more than one
+selected devices for uninstalling simultaneously</li>
+<li>When operation is completed a notice message is shown. These
+messages differs according to device status. These are going to be
+mentioned in Commands page in detail.</li>
+<li>Uninstallation operation for iOS devices can be done only for the
+application which have been installed by MDM system. Also, this process
+is realized as silent uninstallation, in other words it can be applied
+directly without users’ permission</li>
+</ul></li>
+</ul>
+<h2 id="delete-application">Delete Application</h2>
+<ul>
+<li>Application is filtered according to application name or environment
+<ul>
+<li>If data is entered into the “application name” field, application is
+filtered according to the entered application name</li>
+<li>If data is entered into the “environment” field, application is
+filtered according to the entered environment</li>
+</ul></li>
+<li>After completing to filter the application, the check box next to
+the application is selected</li>
+<li>After selection operation is completed a button named as “Delete
+App” is presented at the bottom of the table</li>
+<li>More than one checkboxes next to these applications can be selected
+and more than one application can be deleted at same time</li>
+<li>“Delete App” button is clicked and the selected
+application/applications are deleted</li>
+</ul>
+<h2 id="edit-application">Edit Application</h2>
+<ul>
+<li><strong>Applications &gt;&gt; List</strong>, opens the interface
+which supports the logged in user to list applications for Android and
+IOS Devices</li>
+<li>User click the “Edit” button on the screen.</li>
+</ul>
+<p><img
+src="screenshots/mobileapps_edit_page-Should_edit_mobileApps.png" /></p>
+<ul>
+<li><p>User direct to another page. In this screen user can edit their
+application and add a new application.</p></li>
+<li><p>If the user edit their application;</p>
+<ul>
+<li>Select the area of the loading type.</li>
+<li>Then, user edit these area: App Package , Version Code, App Name ,
+Image URL…etc.</li>
+<li>When the user save their new edit type, click the “Save”
+button.</li>
+</ul></li>
+</ul>
+<p><img
+src="screenshots/mobileapps_create_android_page-should_start_within_the_page.png" /></p>
+<h2 id="application-details">Application Details</h2>
+<ul>
+<li><strong>Applications &gt;&gt; List</strong>, opens the interface
+which supports the logged in user to list applications for Android and
+IOS Devices.</li>
+<li>User click the “Details” button on the screen.</li>
+</ul>
+<p><img
+src="screenshots/mobileapps_details_page-Should_go_to_mobile_app_list_page.png" /></p>
+<ul>
+<li>User direct another page. In this page, user view to installation
+version of the application.</li>
+<li>User view to details of the application.
+<ul>
+<li>User view the Application Name, Environment, Application Package
+Name and File or Store type.</li>
+<li>If application has another version, this name written under the
+application.</li>
+<li>Application’s other version are listed.</li>
+</ul></li>
+<li>User send a request the other application which is use other version
+into a device.</li>
+<li>The version does not decrease.</li>
+</ul>
+<p><img
+src="screenshots/mobileapps_details_page-Should_detail_mobileApps.png" /></p>
+<h2 id="application-installations">Application Installations</h2>
+<ul>
+<li><strong>Applications &gt;&gt; Installations</strong>, opens the
+interface which supports the logged in user to view installed
+applications and devices information</li>
+<li>In the applications installations list, user name, application icon,
+application name, package name, request sent time, request answer time
+and status information are listed</li>
+</ul>
+<p><img
+src="screenshots/mobileapps_create_android_page-Should_add_a_new_app_from_google_play_for_android.png" /></p>
+<h2 id="blacklists">Blacklists</h2>
+<ul>
+<li><strong>Policies &gt;&gt; Blacklists</strong>, opens the interface
+which supports the logged in user to create black lists for preventing
+users to install or to uninstall applications to only SAMSUNG
+Devices</li>
+<li>Blacklist applications prevent device users’ to install any
+application to Samsung Device</li>
+<li>Blacklist applications prevent device users’ to uninstall any
+application from Samsung Device</li>
+<li>Created blacklists are used while assigning policies to devices</li>
+<li>Current blacklists are listed automatically when the page is
+opened</li>
+</ul>
+<p><img
+src="screenshots/blacklistrules_page-should_start_with_no_element_in_the_table.png" /></p>
+<ul>
+<li>To create an installing blacklist to prevent user to install
+signified application to his device, the belowing steps should be
+followed
+<ul>
+<li>Package name of the application is entered in the field <img
+src="screenshots/_blackList_setName__2.png" /></li>
+<li>Save button is clicked to add this rule</li>
+<li>After saving process is completed, saved installation control rule
+is added to the above list</li>
+<li>Saved blacklisted application will be valid for “Running blacklist,
+running whitelist, application installation blacklist and appplication
+installation whitelist”</li>
+<li>Added blacklist is used while assigning policy when the property is
+going to be selected</li>
+<li>Also added blacklist is used for SAMSUNG device configurations,
+while managing policies for these kinds of devices</li>
+</ul></li>
+</ul>
+<h1 id="chapter-7-messaging">CHAPTER 7 : MESSAGING</h1>
+<ul>
+<li><strong>Messaging</strong>, opens the interface which supports the
+logged in user to send message to all devices of an user</li>
+<li>Users and their user information such first name, last name, user
+name, number of his device, e-mail, his role and his profile are listed
+in this page</li>
+<li>In order to send message users, bellowing steps should be followed
+<ul>
+<li>User is filtered according to user name or role</li>
+<li>If data is entered into the “Username” field, user is filtered
+according to the entered username</li>
+<li>If data is entered into the “Role” field, user is filtered according
+to the entered role</li>
+<li>After completing to filter the user, the check box next to the user
+is selected</li>
+<li>After selecting the check box, message text is entered into the
+message area under the user list</li>
+<li>When “SEND” button is clicked, message is sent to the selected
+users</li>
+<li>A message can be sent to more than one user in same time</li>
+<li>If a message is sent to a user whose device was not recorded to
+system, then user will get this message when his device is recorded</li>
+</ul></li>
+</ul>
+<p><img
+src="screenshots/messages_page-Should_start_within_the_page.png" /></p>
+<h2 id="message-create">Message Create</h2>
+<p><strong>Messaging &gt;&gt; Messaging</strong> opens the interface
+which supports the logged in user to view, list the users.</p>
+<ul>
+<li>All Groups listed.</li>
+<li>If the user wants to write a message, select the users.</li>
+<li>If the user wants to save the new group, clicks “Save” button and
+save the group.</li>
+<li>User write a “Send Message” part. Click the “Send” button and
+message send.</li>
+</ul>
+<p><img
+src="screenshots/messages_page-Should_start_within_the_page.png" /></p>
+<h1 id="chapter-8-config">CHAPTER 8: CONFIG</h1>
+<h2 id="general-device-configuration">General Device Configuration</h2>
+<ul>
+<li><strong>Config &gt;&gt; General Device Configuration</strong>, opens
+the interface which supports the logged in user to configure
+devices</li>
+<li>Configuration is managed in three sections, these are “General
+Device Configuration”, “Default VPN Conncetion” and “E-mail
+Connections”</li>
+<li>These settings will be valid for a device when device is recorded
+into MDM system after the setting is saved</li>
+<li>Last saved configuration will be valid</li>
+</ul>
+<p><img
+src="screenshots/generaldeviceconfig_page-Should_go_to_the_page.png" /></p>
+<h3 id="general-device-configuration-1">General Device
+Configuration</h3>
+<p>This page is opened by selecting <strong>“General Device
+Configuration”</strong> from tab menu in the configuration page</p>
+<ul>
+<li>In this page, general configuration is done for devices.</li>
+<li>Max screen lock timeout period in second is entered</li>
+<li>Password policy is determined by selecting from list</li>
+<li>If require storage encryption is selected than device is forced to
+storage encryption</li>
+<li>Default GPS period in minute is entered</li>
+<li>Log rotate size in kilobyte is entered</li>
+<li>Log rotate count is entered</li>
+<li>Log check period in minutes is entered</li>
+<li>Log send check period in minutes is entered</li>
+<li>For Samsung devices, selections in the Samsung specific features is
+selected</li>
+<li>“SAVE” button is clicked to save configuration</li>
+</ul>
+<p><img
+src="screenshots/generaldeviceconfig_page-Should_go_to_the_page.png" /></p>
+<h3 id="default-vpn-connection-configuration">Default VPN Connection
+Configuration</h3>
+<p>This page is opened by selecting <strong>“Default VPN Connection
+Configuration”</strong> from tab menu in the configuration page</p>
+<ul>
+<li>In this page, default VPN Connection configuration is done for
+devices.</li>
+<li>Data is entered into profile name, server name and pre-shared key,
+user name and user password fields</li>
+<li>If LDAP Integrated check box is selected than user information is
+get from LDAP automatically, so there exist no need to enter user name
+and user password</li>
+<li>“SAVE” button is clicked to save connection settings</li>
+<li><img
+src="screenshots/generaldeviceconfig_page-Should_save_default_vpn_connections.png" /></li>
+</ul>
+<h3 id="e-mail-connection-configuration">E-Mail Connection
+Configuration</h3>
+<p>This page is opened by selecting <strong>“E-Mail Connection
+Configuration”</strong> from tab menu in the configuration page</p>
+<ul>
+<li>Data is entered into incoming server name, incoming server port,
+outgoing server name, incoming protocol, outgoing protocol, outgoing
+server port fields</li>
+<li>“SAVE” button is clicked to save connection settings</li>
+</ul>
+<p><img
+src="screenshots/generaldeviceconfig_page-Should_save_e-mail_settings.png" /></p>
+<h2 id="updating-mdm-agents">Updating MDM Agents</h2>
+<ul>
+<li><strong>Config &gt;&gt; Update MDM Agents</strong>, opens the
+interface which sends devices with low MDM Agent Versions a new
+devicecommand which will remind them to update their MDM Agents.</li>
+<li>Configuration is managed in two sections, “Android” and “IOS”</li>
+<li>These settings will be independent from each other, so user can save
+either Android or IOS or both.</li>
+<li>When saved, all the devices that have their Android/IOS MDM Agents’
+versions lower than given input will receive a notification</li>
+</ul>
+<h3 id="ios-device-notification">IOS Device Notification</h3>
+<p>This page is opened by selecting green Update button near
+<strong>“Update IOS Devices Under A Specific Version”</strong>
+header.</p>
+<ul>
+<li>In the opened part, IOS update settings reside.</li>
+<li>Version Number To Be Upgraded To field will be sent to every device
+lower than the given value to update</li>
+<li>Reminder Period is the value for minute-interval to notify the
+device for updating to specific version</li>
+<li>“Send To All IOS Devices” checkbox should be clicked to send it to
+any IOS device, once checked the label changes</li>
+<li>Click “Send” button on the bottom to send command to the selected
+devices, or hit the red cross button to cancel changes done</li>
+</ul>
+<h3 id="android-device-notification">Android Device Notification</h3>
+<p>This page is opened by selecting green Update button near
+<strong>“Update Android Devices Under A Specific Version”</strong>
+header.</p>
+<ul>
+<li>In the opened part, Android update settings reside.</li>
+<li>Version Number To Be Upgraded To field will be sent to every device
+lower than the given value to update</li>
+<li>Reminder Period is the value for minute-interval to notify the
+device for updating to specific version</li>
+<li>APK Download Link is selected by the button next to it and it is
+either the latest version on Google Play or an apk URL given.</li>
+<li>Notification type defines how the notification will be shown on
+targeted device</li>
+<li>“Send To All Android Devices” checkbox should be clicked to send it
+to any Android device, once checked the label changes</li>
+<li>Click “Send” button on the bottom to send command to the selected
+devices, or hit the red cross button to cancel changes done</li>
+</ul>
+<h2 id="statistics-tool-settings">Statistics Tool Settings</h2>
+<ul>
+<li><strong>Configs &gt;&gt; Statistics Tool Dashboards
+Settings</strong> opens up the page for where Statistics Tool Dashboard
+URLs are being saved.</li>
+<li>Statistics Tool Dashboards consist of a name and URL</li>
+<li>Here in this page Statistics Tool Dashboards are created, updated or
+deleted</li>
+<li>Added dashboards appear on Devices&gt;&gt;(On Any Device’s
+Row)Manage&gt;&gt;Statistics</li>
+</ul>
+<h3 id="statistics-tool-url">Statistics Tool URL</h3>
+<p>A Statistics Tool URL:</p>
+<ul>
+<li>will have {{udid}} text substituded with the device’s own UDID (the
+one Statistics Tool statistics are opened at)</li>
+<li>will have {{userName}} text substituded with the device’s own
+username (the one Statistics Tool statistics are opened at)</li>
+<li>will be embedded to the statistics popup page if the URL is copied
+and pasted to URL part</li>
+</ul>
+<h2 id="system-settings">System Settings</h2>
+<p><strong>Config &gt;&gt; System Settings</strong>, opens the interface
+which supports the logged in user to view system settings.</p>
+<ul>
+<li>In Ios settings area, user enter a value “Enrollment Settings” and
+“Time Settings” part.</li>
+</ul>
+<p><img
+src="screenshots/system_settings_page-should_add_ios_settings.png" /></p>
+<ul>
+<li>If the user add new ios settings , clicks “Save” button and the new
+setting was added.</li>
+<li>In Voip settings area , user enter the Url part and clicks “Save”
+button.</li>
+</ul>
+<p><img
+src="screenshots/system_settings_page-should_add_voip_settings.png" /></p>
+<ul>
+<li>If the user want to change their password, clicks “Change Password”
+button.</li>
+<li>In Session settings area, user enter a value from in this part and
+clicks “Save” button.</li>
+</ul>
+<p><img
+src="screenshots/system_settings_page-should_add_session_settings.png" /></p>
+<ul>
+<li>In Statistics Tool Report Emailer area, user enter a value
+“Transport Setup” and “Mail Body Setup”. Then, user clicks “Save”
+button.</li>
+</ul>
+<p><img
+src="screenshots/system_settings_page-should_add_statistics_report_emailer.png" /></p>
+<ul>
+<li>In Other settings area , user enter a value in this part and finish
+the system settings.</li>
+<li>If the user save their settings, clicks “Save” button and save the
+system settings.</li>
+</ul>
+<p><img
+src="screenshots/system_settings_page-should_add_other_settings.png" /></p>
+<h2 id="android-enterprise">Android Enterprise</h2>
+<ul>
+<li>Click <em>start</em> to start creating a new Android Enterprise
+account.</li>
+</ul>
+<p><img src="screenshots/ae1.png" /></p>
+<ul>
+<li>Click <em>Get started</em>.</li>
+</ul>
+<p><img src="screenshots/ae2.png" /></p>
+<ul>
+<li>Follow the steps and fill your information.</li>
+</ul>
+<p><img src="screenshots/ae3.png" /></p>
+<p><img src="screenshots/ae4.png" /></p>
+<ul>
+<li>Registration is done. You can access Mobivisor’s Android Enterprise
+page with clicking <em>Complete Registration</em>.</li>
+</ul>
+<p><img src="screenshots/ae5.png" /></p>
+<ul>
+<li>Now, you can control the applications in Android Enterprise page.
+There is a Google Play screen inside of approve applications. You can
+select and approve any application you want.</li>
+</ul>
+<p><img src="screenshots/ae6.png" /></p>
+<ul>
+<li>You can see and edit the approved applications from applications
+part.</li>
+</ul>
+<p><img src="screenshots/ae7.png" /></p>
+<h2 id="cloud-connect">Cloud Connect</h2>
+<p>Serving local services (Active Directory etc) to the cloud might be
+distressing.</p>
+<p>If you have any concerns about opening your local services to the
+cloud, then you can use the Cloud Connect.</p>
+<p><img src="img/Cloud_Connect.png" /></p>
+<h2 id="apple-vpp">Apple VPP</h2>
+<p>The Volume Purchase Program allows businesses to purchase apps and
+books in volume and distribute them to their users.</p>
+<p>To use Apple VPP, first you should download the VPP token from Apple
+VPP Business Account and then please upload your VPP Token to MDM
+System.</p>
+<h2 id="license-info">License Info</h2>
+<p>In this page you can see your Mobivisor’s info. You can see your
+company name, maximum device number which you can control and expiration
+date of your account. Also you can see your server UDID, MDM server
+version and your extra modules which you can use with the devices.</p>
+<ul>
+<li>The license information of the users can be updated on this page.
+<strong>File Manager</strong>, <strong>Messaging</strong> and
+<strong>Secure Mail</strong> platforms can be added or removed to the
+user.</li>
+<li>The user whose license information is to be updated is filtered by
+user name, distinguished name or role, or selected from the list.
+<ul>
+<li>If data is entered in the username field, filtering is done by
+username</li>
+<li>If data is entered in the distinguished name field, filtering is
+done according to the distinguished name</li>
+<li>If data is entered in the role field, filtering is done according to
+the role of users.</li>
+</ul></li>
+<li>Also on this page, <strong>Easy Sign-in</strong> and <strong>Easy
+Licensing</strong> features can be turned on and off.</li>
+</ul>
+<h2 id="proxy-configuration">Proxy Configuration</h2>
+<p>Proxy Configuration is used to define proxy settings that can be
+applied to managed devices through policies. This configuration allows
+device network traffic to use the specified proxy server.</p>
+<p>Proxy configurations are supported only on <strong>Apple</strong> and
+<strong>Samsung</strong> devices.</p>
+<p><strong>Config » Proxy Configuration</strong> opens the Proxy
+Configuration page.</p>
+<h3 id="proxy-settings">Proxy Settings</h3>
+<p>The following fields are used to define the proxy connection:</p>
+<ul>
+<li><strong>Name</strong>: Defines the name of the proxy
+configuration.</li>
+<li><strong>Proxy Type</strong>: Defines how the proxy will be
+configured..</li>
+<li><strong>Server</strong>: Defines the proxy server address. ~~*
+<strong>Port</strong>: Defines the proxy server port.</li>
+<li><strong>Username</strong>: Defines the username if proxy
+authentication is required.</li>
+<li><strong>Password</strong>: Defines the password if proxy
+authentication is required.</li>
+</ul>
+<p>After the proxy information is entered, click <strong>Save</strong>
+to save the configuration.</p>
+<h3 id="android-specific-settings">Android Specific Settings</h3>
+<p>Android Specific Settings are used to define exceptions for Android
+devices.</p>
+<ul>
+<li><strong>Excluded URLs</strong>: Defines URLs that should not use the
+proxy configuration.</li>
+<li><strong>Excluded IPs</strong>: Defines IP addresses that should not
+use the proxy configuration.</li>
+</ul>
+<p>Use <strong>Add</strong> to add excluded URLs or IP addresses.</p>
+<h3 id="ios-specific-settings-1">iOS Specific Settings</h3>
+<p>iOS Specific Settings are used to configure Apple-specific proxy
+behavior.</p>
+<ul>
+<li><strong>Proxy Captive Login Allowed</strong>: Allows captive portal
+login behavior when proxy settings are applied.</li>
+<li><strong>Proxy Auto Configuration - PAC Fallback</strong>: Allows the
+device to use a fallback connection behavior if the Proxy Auto
+Configuration file cannot be reached or used.</li>
+</ul>
+<h2 id="scep-configurations">SCEP Configurations</h2>
+<ul>
+<li><strong>Config &gt;&gt; SCEP Settings</strong> step should be
+followed, following this step, the screen with All <strong>SCEP
+Settings</strong> is reached.</li>
+<li><strong>SCEP Server Settings</strong> on this page are valid for
+<strong>iOS devices only</strong>.</li>
+<li>All SCEP Server Configurations are listed.</li>
+<li>If it is desired to add a new SCEP Server Configuration, click the
+<strong>Add</strong> button above and fill in the new SCEP Server
+Information.</li>
+<li>There is a <strong>Edit</strong> button to edit a previously added
+SCEP Server Configuration. SCEP Server Information can be updated by
+clicking this button.</li>
+<li>In addition, the listed SCEP Server Configurations can be deleted
+via the <strong>Delete</strong> button.</li>
+<li>The <strong>Certificate Renewal Limit</strong> field on the page
+allows the SCEP server certificates to be renewed periodically. If 14 is
+entered, the certificate is renewed every 14 days.</li>
+</ul>
+<h2 id="secure-exchange">Secure Exchange</h2>
+<p>Secure Exchange configuration is used to define mail account settings
+and application restrictions for the Secure Exchange app. Secure
+Exchange is the managed mail application used to access Exchange mail,
+calendar and related account data on managed devices.</p>
+<p><strong>Config » Secure Exchange</strong> opens the Secure Exchange
+configuration page.</p>
+<h3 id="exchange-account-settings">Exchange Account Settings</h3>
+<p>This section defines the mail server and account settings used by
+Secure Exchange.</p>
+<p>The following fields can be configured:</p>
+<ul>
+<li><strong>Email</strong>: Defines the user e-mail address. Variables
+such as <span
+class="math inline"><em>e</em><em>m</em><em>a</em><em>i</em><em>l</em><em>a</em><em>d</em><em>d</em><em>r</em><em>e</em><em>s</em><em>s</em></span>
+can be used to apply user-based values automatically.</li>
+<li><strong>Allow Adding Other Account</strong>: Allows users to add
+another mail account inside Secure Exchange.</li>
+<li><strong>Server URL</strong>: Defines the Exchange server
+address.</li>
+<li><strong>Port</strong>: Defines the server port used for the
+connection.</li>
+<li><strong>Security Type</strong>: Defines the connection security
+method, such as <strong>SSL/TLS</strong>.</li>
+<li><strong>Domain (If Required)</strong>: Defines the domain value if
+the Exchange environment requires it.</li>
+<li><strong>Exchange Gateway URL</strong>: Defines the gateway address
+if Exchange traffic is routed through a gateway.</li>
+<li><strong>Email Filter</strong>: Defines how much past e-mail data
+will be synchronized.</li>
+<li><strong>Calendar Filter</strong>: Defines how much past calendar
+data will be synchronized.</li>
+</ul>
+<p>Use <strong>Query Mappings</strong> when user-based values need to be
+inserted into the configuration.</p>
+<h3 id="application-settings">Application Settings</h3>
+<p>Application Settings are used to control basic security behavior
+inside Secure Exchange.</p>
+<p>The following options can be configured:</p>
+<ul>
+<li><strong>Block Taking Screenshots</strong> prevents screenshots from
+being taken inside the Secure Exchange application.</li>
+<li><strong>Block Copying Text</strong> prevents users from copying text
+from the application.</li>
+</ul>
+<h3 id="browser-settings">Browser Settings</h3>
+<p>Browser Settings define how links opened from Secure Exchange are
+handled.</p>
+<ul>
+<li><strong>Browser Setting for Links</strong>: Defines where links
+inside e-mails are opened.</li>
+</ul>
+<h2 id="file-manager-config">File Manager Config</h2>
+<p>File Manager Config page is used to manage file manager related
+configuration settings.</p>
+<h3 id="user-based-windows-shares">User Based Windows Shares</h3>
+<p>User Based Windows Shares section is used to define Windows shared
+network folders that will be shown under the users’ private folder. When
+accessing these folders, the system might ask users to enter their
+credentials.</p>
+<ul>
+<li><strong>Config » File Manager Config</strong> opens the interface
+where the logged-in user can manage File Manager Config settings.</li>
+<li>User based Windows shares will be shown under the users’ private
+folder for each user.</li>
+<li>When accessing these folders, the system might ask users to enter
+their credentials.</li>
+</ul>
+<p><strong>You can use these variables in Application Config
+Area:</strong></p>
+<ul>
+<li><code>$username$</code></li>
+<li><code>$displayname$</code></li>
+<li><code>$emailaddress$</code></li>
+<li><code>$user.*$</code></li>
+</ul>
+<h3 id="adding-a-user-based-windows-share">Adding a User Based Windows
+Share</h3>
+<ul>
+<li><strong>Config » File Manager Config</strong> step is followed and
+the File Manager Config page is opened.</li>
+<li><strong>Add New</strong> button is clicked to add a new shared
+network folder entry.</li>
+<li><strong>Shared Network Folder</strong> field is filled with the
+Windows shared network folder path.</li>
+<li>For example: <code>\\127.0.0.1\samba</code></li>
+<li><strong>Name</strong> field is filled with the name of the folder
+that will be shown under the fixed <code>/Private</code> path.</li>
+<li>For example, if the name is entered as <code>samba</code>, it will
+be shown under <code>/Private</code> as <code>samba</code>.</li>
+<li>If more shared network folders are required, the same steps are
+repeated.</li>
+<li>The configuration should be saved or applied after the entry is
+completed.</li>
+</ul>
+<h3 id="removing-a-user-based-windows-share">Removing a User Based
+Windows Share</h3>
+<ul>
+<li><strong>Config » File Manager Config</strong> step is followed and
+the User Based Windows Shares section is opened.</li>
+<li>The shared network folder that will be deleted is found from the
+list.</li>
+<li><strong>Remove</strong> button under the selected shared network
+folder is clicked.</li>
+<li>The configuration should be saved or applied after removing the
+entry.</li>
+</ul>
+<h3 id="notes-2">Notes</h3>
+<ul>
+<li><strong>Shared Network Folder</strong> field should contain the
+Windows shared folder path.</li>
+<li><strong>Name</strong> field determines how the folder appears under
+the users’ private folder.</li>
+<li>The screenshot does not show the final save or apply button for this
+page.</li>
+</ul>
+<h2 id="phone-contacts">Phone Contacts</h2>
+<p>Phone Contacts is used to manage centrally controlled contact lists
+for workers. Contacts can be created manually, imported from files and
+organized into portfolios.</p>
+<h3 id="contacts">Contacts</h3>
+<p><strong>Phone Contacts » Contacts</strong> opens the contact
+management page.</p>
+<p>On this page, existing contacts are listed with their contact name,
+phone numbers, assigned portfolios and last update date.</p>
+<p>The following operations can be performed from this page:</p>
+<ul>
+<li>Search or filter contacts from the contact list.</li>
+<li>Import contacts by using <strong>Import VCARD</strong> or
+<strong>Import CSV</strong>.</li>
+<li>Export the existing contact list by using
+<strong>Export</strong>.</li>
+<li>Add a new contact manually by using <strong>Add</strong>.</li>
+<li>Edit or delete an existing contact from the <strong>Actions</strong>
+column.</li>
+</ul>
+<h3 id="portfolios">Portfolios</h3>
+<p><strong>Phone Contacts » Portfolios</strong> opens the portfolio
+management page.</p>
+<p>Portfolios are used to group contacts and assign contact lists to
+users or groups. Each portfolio shows its name and the number of
+contacts included in it.</p>
+<p>The following operations can be performed from this page:</p>
+<ul>
+<li>Search or filter portfolios from the portfolio list.</li>
+<li>Create a new portfolio by using <strong>Add</strong>.</li>
+<li>Send a notification for selected portfolios by using <strong>Send
+Notification</strong>.</li>
+<li>When <strong>Send Notification</strong> is used, all users and their
+corresponding devices receive a portfolio update notification, and the
+<strong>Phone Contacts</strong> portfolio can be distributed to
+them.<br />
+</li>
+<li>Clone, edit or delete an existing portfolio from the
+<strong>Actions</strong> column.</li>
+<li>For LDAP-based portfolios, use <strong>Clear Cache &amp;
+Refresh</strong> to update the LDAP contact data.</li>
+</ul>
+<h3 id="edit-portfolio">Edit Portfolio</h3>
+<p><strong>Phone Contacts » Portfolios » Edit</strong> opens the
+portfolio editing page.</p>
+<p>The edit page is used to update portfolio details and manage which
+contacts, users or groups are connected to the portfolio.</p>
+<p>The page contains the following tabs:</p>
+<ul>
+<li><strong>Contacts</strong></li>
+<li><strong>Name</strong></li>
+<li><strong>Users</strong></li>
+<li><strong>Groups</strong></li>
+</ul>
+<h4 id="contacts-tab">Contacts Tab</h4>
+<p>The <strong>Contacts</strong> tab is used to manage the contacts
+included in the selected portfolio.</p>
+<ul>
+<li>Open <strong>Phone Contacts » Portfolios</strong>.</li>
+<li>Click <strong>Edit</strong> for the portfolio that will be
+updated.</li>
+<li>In the <strong>Contacts</strong> tab, select the contacts that
+should be included in the portfolio.</li>
+<li>Mark <strong>LDAP Contacts</strong> if LDAP contacts should also be
+used.</li>
+<li>Click <strong>Save</strong> to apply the changes.</li>
+<li>Click <strong>Close</strong> to leave the edit page.</li>
+</ul>
+<h2 id="secure-browser">Secure Browser</h2>
+<p>Secure Browser page is used to configure browser-related settings for
+the <strong>Mobivisor Secure Browser</strong> application. From this
+page, proxy information, application restrictions and predefined
+bookmarks can be managed centrally.</p>
+<h3 id="secure-browser-settings">Secure Browser Settings</h3>
+<p><strong>Config » Secure Browser</strong> opens the Secure Browser
+configuration page.</p>
+<p>The page contains the following sections:</p>
+<ul>
+<li><strong>Proxy Settings</strong></li>
+<li><strong>Application Settings</strong></li>
+<li><strong>Bookmarks</strong></li>
+</ul>
+<h4 id="proxy-settings-1">Proxy Settings</h4>
+<p>Proxy Settings are used when Secure Browser traffic should be routed
+through a proxy server.</p>
+<ul>
+<li>Enter the proxy server address into the <strong>Proxy Host
+Name</strong> field.</li>
+<li>Enter the proxy port into the <strong>Proxy Port</strong>
+field.</li>
+</ul>
+<p>If proxy usage is not required, these fields can be left empty.</p>
+<h4 id="application-settings-1">Application Settings</h4>
+<p>Application Settings are used to define restrictions and browser
+behavior inside the Secure Browser application.</p>
+<p>The following options can be configured:</p>
+<ul>
+<li><strong>Block Taking Screenshots</strong> prevents screenshots from
+being taken inside the Secure Browser application.</li>
+<li><strong>Block Copying Text</strong> prevents users from copying text
+from web pages opened in Secure Browser.</li>
+<li><strong>Accept All SSL Certificates</strong> allows Secure Browser
+to accept SSL certificates without blocking the page.</li>
+<li><strong>Block Adding Bookmarks</strong> prevents users from adding
+their own bookmarks inside the application.</li>
+</ul>
+<p>Select the required options according to the company browser
+policy.</p>
+<h4 id="bookmarks">Bookmarks</h4>
+<p>Bookmarks are used to define web pages that will be available in
+Secure Browser.</p>
+<ul>
+<li>Click <strong>Add</strong> to create a new bookmark entry.</li>
+<li>Enter or search the web page address in the <strong>Search</strong>
+field.</li>
+<li>Enter the bookmark name in the <strong>Bookmark Title</strong>
+field.</li>
+<li>Enter the web page address in the <strong>Bookmark URL</strong>
+field.</li>
+<li>Enter the icon address in the <strong>Bookmark Icon URL</strong>
+field, if an icon should be used.</li>
+<li>Use <strong>Remove</strong> to delete a bookmark entry from the
+configuration.</li>
+</ul>
+<p>After the required proxy settings, application settings and bookmarks
+are configured, save the configuration.</p>
+<h2 id="device-files">Device Files</h2>
+<p>The Device Files page is used to upload files that can be distributed
+to devices through device policies. Files uploaded and distributed to a
+device will be accessible in the Files (system) application under the
+directory specified for the file. Files uploaded and distributed to a
+device will be accessible in the Files (system) application under the
+directory specified for the file.</p>
+<p><strong>Config » Device Files</strong> opens the Device Files
+page.</p>
+<p>Uploaded files are listed with <strong>Configuration Name</strong>,
+<strong>File Name</strong>, <strong>Uploads Directory</strong>,
+<strong>Created At</strong>, <strong>Updated At</strong> and
+<strong>Actions</strong> information.</p>
+<p>From this page:</p>
+<ul>
+<li>Use <strong>Add</strong> to upload a new file configuration.</li>
+<li>Select the upload directory where the file will be placed on the
+device.</li>
+<li>Use <strong>Download</strong> to download an uploaded file.</li>
+<li>Use <strong>Edit</strong> to update an existing file
+configuration.</li>
+<li>Use <strong>Delete</strong> to remove a file configuration.</li>
+</ul>
+<p>After a file is added, it can be assigned and sent to devices by
+using device policies.</p>
+<h1 id="chapter-9-devices">CHAPTER 9: DEVICES</h1>
+<h2 id="devices">Devices</h2>
+<ul>
+<li><p><strong>Devices</strong>, opens the interface which supports the
+logged in user to manage devices and to delete devices</p></li>
+<li><p>Devices and their some information are listed in this page
+automatically</p></li>
+<li><p>Inactivity timeout minute is modifiable</p></li>
+<li><p>Devices in the list are categorized in different color according
+to the inactivity timeout minutes</p></li>
+<li><p>When the inacti”vity timeout minute is changed then the color of
+the devices can be change according to that time</p></li>
+<li><p>The green rows are the active devices in that time slot</p></li>
+<li><p>The green rows are the inactive devices which have been logout
+before 2 times the length of time before inactivity timeout
+minute</p></li>
+<li><p>The red rows are the inactive devices in the system</p></li>
+<li><p>For example, inactivity time minute is 22, then</p>
+<ul>
+<li>Devices which are logged into the system in 22 minutes will be
+colored green</li>
+<li>Devices which are logged into the system in 44 minutes will be
+colored orange</li>
+<li>Devices which are not logged into the system in 44 minutes will be
+colored red</li>
+</ul>
+<p><img
+src="screenshots/devices_page-should_show_all_the_devices_in_the_table.png" /></p></li>
+<li><p>In order to manage devices, bellowing steps should be
+followed</p>
+<ul>
+<li><p>Device is filtered according to any information of the device,
+user name or role</p>
+<ul>
+<li>If data is entered into the “Any” field, devices are filtered
+according to the entered data</li>
+</ul>
+<p><img src="screenshots/devices_page-should_filter_by_any.png" /></p>
+<ul>
+<li>If data is entered into the “Device” field, device is filtered
+according to the entered device</li>
+</ul>
+<p><img
+src="screenshots/devices_page-should_filter_by_device_type.png" /></p>
+<ul>
+<li>If data is entered into the “User” field, device is filtered
+according to the entered user</li>
+</ul>
+<p><img
+src="screenshots/devices_page-should_filter_by_user.png" /></p></li>
+<li><p>After completing to filter the device, “Manage” button next to
+the device is clicked</p></li>
+<li><p>After clicking the button management page is opened</p></li>
+<li><p>Menus and Actions in the management page differ according to the
+selected device</p>
+<ul>
+<li>Android Devices
+<ul>
+<li>Menus: Actions, Statistics, Location Requests, Installed Apss,
+Policies</li>
+<li>Actions: Location request, status request, lock screen now, wipe
+device, wipe agent data</li>
+</ul></li>
+<li>IOS Devices
+<ul>
+<li>Menus: Actions, Location Requests, Installed Apps, Policies</li>
+<li>Actions: Lock, Device Info, Location, Wipe</li>
+</ul></li>
+<li>Samsung Devices
+<ul>
+<li>Menus: Actions, Statistics, Location Requests, Installed Apss,
+Policies</li>
+<li>Actions: Location request, status request, lock screen now, wipe
+device, wipe agent data, Enforce Password Change, Reboot, Power Off</li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul>
+<h2 id="device-locations">Device Locations</h2>
+<ul>
+<li><strong>Devices &gt;&gt; Device Locations</strong> steps must be
+taken in order to list the last locations of the devices</li>
+<li>Last locations of the devices are shown on the map and devices are
+listed on the column to the right</li>
+</ul>
+<p><img
+src="screenshots/device_locations_page-should_go_to_the_device_location_page.png" /></p>
+<h3 id="listing-device-locations">Listing Device Locations</h3>
+<ul>
+<li>Device Locations are listed and can be filtered as desired</li>
+<li>If desired, device locations can be filtered by the map viewport, to
+do this hit “List Devices Only On The Viewport” and only the devices on
+the current viewport will be listed on the column to the right</li>
+<li>Devices can also be filtered by username, that way if the keyword
+entered in the username field is not in the username of the device, then
+the device is not listed on the devices colummn</li>
+</ul>
+<h3 id="map-controls">Map Controls</h3>
+<ul>
+<li>The map has some controls on it
+<ul>
+<li>Locations can be searched on the map. If a keyword is written to the
+search bar and “Enter” is hit, then the map will change its position
+according to the searched place/city/country</li>
+<li>The map also has the controls to switch between map and satellite
+views. To the top-right corner, the map contains buttons to switch
+between them.</li>
+</ul></li>
+</ul>
+<h2 id="device-inventory">Device Inventory</h2>
+<p>Here you can see all of your devices and each device’s groups, apps,
+policies, etc. as a table.</p>
+<p><img
+src="screenshots/device_inventory_page-should_start_within_the_page.png" /></p>
+<p><strong>Get Report (CSV):</strong> Download the table as a CSV
+file</p>
+<p><strong>Get Report (XLSX):</strong> Download the table as a Microsoft
+Excel XLSX file</p>
+<h3 id="android-devices-menus">Android Devices Menus</h3>
+<h4 id="actions">Actions</h4>
+<p><strong>Actions: Devices &gt;&gt; Manage &gt;&gt; Actions</strong>,
+Actions button is clicked and actions are visible. In this page, some
+different commands are sent to the selected device.</p>
+<p><img
+src="screenshots/_actions_page_for_selected_android_device_1.png" /></p>
+<ul>
+<li><strong>Locations Request</strong> button is clicked in order to get
+the current location of this device. When operation is completed a
+notice message is shown. These messages differs according to device
+status. These are going to be mentioned in Commands page in detail.</li>
+<li><strong>Status Request</strong> button is clicked in order to get
+the current status of this device. When operation is completed a notice
+message is shown. These messages differs according to device status.
+These are going to be mentioned in Commands page in detail.</li>
+<li><strong>Lock Screen Now</strong> button is clicked in order to lock
+the screen of the device. When operation is completed a notice message
+is shown. These messages differs according to device status. These are
+going to be mentioned in Commands page in detail.</li>
+<li><strong>Wipe Logs</strong> button is clicked in order to delete
+collected MDM logs, contacts and application catalog on the selected
+device. When operation is completed a notice message is shown. These
+messages differs according to device status. These are going to be
+mentioned in Commands page in detail.</li>
+<li><strong>Wipe Device</strong> button is clicked in order to restore
+factory settings of the selected device. When operation is completed a
+notice message is shown. These messages differs according to device
+status. These are going to be mentioned in Commands page in detail.</li>
+<li><strong>Wipe Agent Data</strong> button is clicked in order to
+delete the applications that are downloaded by Mobivisor System.</li>
+</ul>
+<h4 id="statistics">Statistics</h4>
+<p><strong>Statistics: Devices &gt;&gt; Manage &gt;&gt;
+Statistics</strong>, Statistics button is clicked to generate some
+statistics. User can generate it for different time slots.</p>
+<ul>
+<li>Firstly, time slot is selected from the grouping data by list.</li>
+<li>System automatically assigned starting and ending dates according to
+the selected value
+<ul>
+<li><strong>Year:</strong> If year is selected, system assigns a default
+value “01.01.2000” as starting date and “Current Date” as ending
+date.</li>
+<li><strong>Month:</strong> If month is selected, system assigns a
+default value “01.01.2000” as starting date and “Current Date” as ending
+date.</li>
+<li><strong>Week:</strong> If week is selected, system assigns a default
+value, that range should be one year, by starting from Current Date to
+last year.</li>
+<li><strong>Day:</strong> If day is selected, system assigns a default
+value, that range should be one month, by starting from Current Date to
+last month.</li>
+<li><strong>Hour:</strong> If hour is selected, system assigns a default
+value, that range should be one week, by starting from Current Date to
+last week.</li>
+<li><strong>Minute:</strong> If minute is selected, system assigns a
+default value, that range should be one day, starting from Current Date
+to last day.</li>
+</ul></li>
+<li>If the user wants to determine this date range then should select
+the starting and ending time from calendars.</li>
+<li>After determining these values, “Retrieve” button is clicked and
+graphics about the battery level, CPU, RAM, Storage of the device</li>
+</ul>
+<h4 id="location-requests">Location Requests</h4>
+<p><strong>Location Requests: Devices &gt;&gt; Manage &gt;&gt; Location
+Requests</strong>, Location Requests button is clicked to view all
+requests.</p>
+<p><img
+src="screenshots/_location_requests_page_for_selected_android_device_1.png" /></p>
+<ul>
+<li><p>Location history is listed automatically</p></li>
+<li><p>Location can be filtered by selecting beginning and ending dates
+or all locations are listed if “Show All” option is selected</p></li>
+<li><p>If “Show On Map” button is clicked then that location is viewed
+on map</p></li>
+<li><p>If user wants to get location report he should open the Reporting
+page by selecting the “Location Reporting” at the beginning of the
+list</p>
+<ul>
+<li>Adding a new location to “Location Reporting” list can be done from
+<strong>Policies &gt;&gt; My Locations</strong></li>
+</ul>
+<p><img src="screenshots/policies_my_locations_page_1.png" /></p>
+<ul>
+<li>Locations that devices are present appear green in the Location
+Reporting page</li>
+</ul>
+<p><img src="screenshots/location_reporting_list_1.png" /></p></li>
+</ul>
+<h4 id="installed-apps">Installed Apps</h4>
+<p><strong>Installed Apss: Devices &gt;&gt; Manage &gt;&gt; Installed
+Apps</strong>, Installed Apps button is clicked to view all installed
+applications.</p>
+<ul>
+<li>All installed application is listed</li>
+<li>If the “X” symbol on the application is clicked then a command is
+sent to device to delete this application</li>
+</ul>
+<h4 id="policies-1">Policies</h4>
+<p><strong>Policies: Devices &gt;&gt; Manage &gt;&gt; Policies</strong>,
+Policies button is clicked to view and to edit added policies, and to
+add device features.</p>
+<p><img
+src="screenshots/Single_Device_page_for__s3beyaz@boryazilim_com-should_check_the_policy_has_changed.png" /></p>
+<ul>
+<li>If there exist any added policies, they are listed in this
+page.</li>
+<li>If the “Edit” button on the “Policies From User’s Profile” is
+clicked Assign Profiles to User page is opened. Operations that are
+explained in the Assign Profiles to User part are realized.</li>
+<li>If the “Edit” button on the “Policies From User’s Profile” is
+clicked Assign Profiles to User page is opened. Operations that are
+explained in the Assign Profiles to User part are realized.</li>
+<li>User can edit device control features from the last part. In order
+to add feature the listed features are selected.</li>
+</ul>
+<p>After finishing managing police settings <strong>“SAVE”</strong>
+button is clicked to record.</p>
+<h3 id="ios-device-menus">IOS Device Menus</h3>
+<h4 id="actions-1">Actions</h4>
+<p><strong>Actions: Devices &gt;&gt; Manage &gt;&gt; Actions</strong>,
+Actions button is clicked and actions are visible. Some data entry and
+some different commands are sent to the selected device in this
+page.</p>
+<p><img
+src="screenshots/Single_Device_page_for___ios_6-should_start_within_correct_page.png" /></p>
+<ul>
+<li><p><strong>“Lock”</strong> button is clicked in order to lock the
+device. When operation is completed a notice message is shown. These
+messages differs according to device status. These are going to be
+mentioned in Commands page in detail.</p></li>
+<li><p><strong>“Device Info”</strong> button is clicked in order to get
+some information about device such as device name, version, model name,
+build version, model, model code (product name), serial number, device
+capacity, available Device-capacity, battery level, cellular technology,
+device IMEI number, MEID number of device etc. When operation is
+completed a notice message is shown. These messages differs according to
+device status. These are going to be mentioned in Commands page in
+detail.</p></li>
+<li><p><strong>“Location”</strong> button is clicked in order to get the
+current location of this device. When operation is completed a notice
+message is shown. These messages differs according to device status.
+These are going to be mentioned in Commands page in detail.</p></li>
+<li><p><strong>“Wipe”</strong> button is clicked in order to restore
+factory settings of the selected device. When operation is completed a
+notice message is shown. These messages differs according to device
+status. These are going to be mentioned in Commands page in
+detail.</p></li>
+</ul>
+<h4 id="location-requests-1">Location Requests</h4>
+<p><strong>Location Requests: Devices &gt;&gt; Manage &gt;&gt; Location
+Requests</strong>, Location Requests button is clicked to view all
+requests.</p>
+<p><img
+src="screenshots/_location_requests_page_for_selected_android_device_1.png" /></p>
+<ul>
+<li><p>Location history is listed automatically</p></li>
+<li><p>Location can be filtered by selecting beginning and ending dates
+or all locations are listed if “Show All” option is selected</p></li>
+<li><p>If “Show On Map” button is clicked then that location is viewed
+on map</p></li>
+<li><p>If user wants to get location report he should open the Reporting
+page by selecting the “Location Reporting” at the beginning of the
+list</p>
+<ul>
+<li>Adding a new location to “Location Reporting” list can be done from
+<strong>Policies &gt;&gt; My Locations</strong></li>
+</ul>
+<p><img src="screenshots/policies_my_locations_page_1.png" /></p>
+<ul>
+<li>Locations that devices are present appear green in the Location
+Reporting page</li>
+</ul>
+<p><img src="screenshots/location_reporting_list_1.png" /></p>
+<ul>
+<li><p>In ios devices, user must report his location in order to
+activate location from Location Reporting list</p></li>
+<li><p>iOS cihazlarda Konum Raporlama listesindeki konumların aktif
+olabilmesi için kullanıcının cihaz üzerinden konumunu raporlaması
+gerekmektedir</p>
+<p><img src="screenshots/device_my_location_page.png" /></p></li>
+</ul></li>
+</ul>
+<h4 id="installed-apps-1">Installed Apps</h4>
+<p><strong>Installed Apss: Devices &gt;&gt; Manage &gt;&gt; Installed
+Apps</strong>, Installed Apps button is clicked to view all installed
+applications.</p>
+<ul>
+<li>All installed application is listed</li>
+<li>If the “X” symbol on the application is clicked then a command is
+sent to device to delete this application</li>
+</ul>
+<h3 id="samsung-device-menus">SAMSUNG Device Menus</h3>
+<h4 id="actions-2">Actions</h4>
+<p><strong>Actions: Devices &gt;&gt; Manage &gt;&gt; Actions</strong>,
+Actions button is clicked and actions are visible. In this page, some
+different commands are sent to the selected device.</p>
+<p><img
+src="screenshots/Single_Device_page_for__s3beyaz@boryazilim_com-should_start_within_correct_page.png" /></p>
+<ul>
+<li><strong>Locations Request</strong> button is clicked in order to get
+the current location of this device. When operation is completed a
+notice message is shown. These messages differs according to device
+status. These are going to be mentioned in Commands page in detail.</li>
+<li><strong>Status Request</strong> button is clicked in order to get
+the current status of this device. When operation is completed a notice
+message is shown. These messages differs according to device status.
+These are going to be mentioned in Commands page in detail.</li>
+<li><strong>Lock Screen Now</strong> button is clicked in order to lock
+the screen of the device. When operation is completed a notice message
+is shown. These messages differs according to device status. These are
+going to be mentioned in Commands page in detail.</li>
+<li><strong>Wipe Device</strong> button is clicked in order to restore
+factory settings of the selected device. When operation is completed a
+notice message is shown. These messages differs according to device
+status. These are going to be mentioned in Commands page in detail.</li>
+<li><strong>Wipe Agent Data</strong> button is clicked in order to
+delete the applications that are downloaded by Mobivisor System.</li>
+<li><strong>Enforce Password Change</strong> button is clicked in order
+to compel the user to change his device password</li>
+<li><strong>Reboot</strong> button is clicked to restart device</li>
+<li><strong>Power Off</strong> button is clicked to turn off device</li>
+</ul>
+<h4 id="statistics-1">Statistics</h4>
+<p><strong>Statistics: Devices &gt;&gt; Manage &gt;&gt;
+Statistics</strong>, Statistics button is clicked to generate some
+statistics. User can generate it for different time slots.</p>
+<ul>
+<li>Firstly, time slot is selected from the grouping data by list.</li>
+<li>System automatically assigned starting and ending dates according to
+the selected value
+<ul>
+<li><strong>Year:</strong> If year is selected, system assigns a default
+value “01.01.2000” as starting date and “Current Date” as ending
+date.</li>
+<li><strong>Month:</strong> If month is selected, system assigns a
+default value “01.01.2000” as starting date and “Current Date” as ending
+date.</li>
+<li><strong>Week:</strong> If week is selected, system assigns a default
+value, that range should be one year, by starting from Current Date to
+last year.</li>
+<li><strong>Day:</strong> If day is selected, system assigns a default
+value, that range should be one month, by starting from Current Date to
+last month.</li>
+<li><strong>Hour:</strong> If hour is selected, system assigns a default
+value, that range should be one week, by starting from Current Date to
+last week.</li>
+<li><strong>Minute:</strong> If minute is selected, system assigns a
+default value, that range should be one day, starting from Current Date
+to last day.</li>
+</ul></li>
+<li>If the user wants to determine this date range then should select
+the starting and ending time from calendars.</li>
+<li>After determining these values, “Retrieve” button is clicked and
+graphics about the battery level, CPU, RAM, Storage of the device</li>
+</ul>
+<h4 id="location-requests-2">Location Requests</h4>
+<p><strong>Location Requests: Devices &gt;&gt; Manage &gt;&gt; Location
+Requests</strong>, Location Requests button is clicked to view all
+requests.</p>
+<p><img
+src="screenshots/_location_requests_page_for_selected_android_device_1.png" /></p>
+<ul>
+<li>Location history is listed automatically</li>
+<li>Location can be filtered by selecting beginning and ending dates or
+all locations are listed if “Show All” option is selected</li>
+<li>If “Show On Map” button is clicked then that location is viewed on
+map</li>
+<li>IF user wants to get location report he should open the Reporting
+page by selecting the “Location Reporting” at the beginning of the
+list</li>
+</ul>
+<h4 id="installed-apps-2">Installed Apps</h4>
+<p><strong>Installed Apss: Devices &gt;&gt; Manage &gt;&gt; Installed
+Apps</strong>, Installed Apps button is clicked to view all installed
+applications.</p>
+<ul>
+<li>All installed application is listed</li>
+<li>If the “X” symbol on the application is clicked then a command is
+send to device to delete this application</li>
+</ul>
+<h4 id="policies-2">Policies</h4>
+<p><strong>Policies: Devices &gt;&gt; Manage &gt;&gt; Policies</strong>,
+Policies button is clicked to view and to edit added policies, and to
+add device features.</p>
+<p><img
+src="screenshots/Single_Device_page_for__s3beyaz@boryazilim_com-should_check_the_policy_has_changed.png" /></p>
+<ul>
+<li>If there exist any added policies, they are listed in this
+page.</li>
+<li>If the “Edit” button on the “Policies From User’s Profile” is
+clicked Assign Profiles to User page is opened. Operations that are
+explained in the Assign Profiles to User part are realized.</li>
+<li>If the “Edit” button on the “Policies From User’s Profile” is
+clicked Assign Profiles to User page is opened. Operations that are
+explained in the Assign Profiles to User part are realized.</li>
+<li>User can edit device control features from the last part. In order
+to add feature the listed features are selected.</li>
+</ul>
+<p><img
+src="screenshots/Single_Device_page_for__s3beyaz@boryazilim_com-should_check_the_policy_has_changed.png" /></p>
+<p>After finishing managing police settings <strong>SAVE</strong> button
+is clicked to record.</p>
+<h2 id="certificates">Certificates</h2>
+<p>Existing certificates are shown in this page. In order to assign a
+certificate to device, initially it should be added to Certificates
+list.</p>
+<p><img src="screenshots/certificates_1.png" /></p>
+<ul>
+<li><p>Adding Certificate:</p>
+<p><img src="screenshots/certificates_2.png" /></p>
+<p><img src="screenshots/certificates_3.png" /></p></li>
+</ul>
+<h1 id="chapter-10-commands">CHAPTER 10: COMMANDS</h1>
+<h2 id="command-states">Command States</h2>
+<ul>
+<li><strong>Not Sent:</strong> The command is created and stays in the
+server (DB)</li>
+<li><strong>At Push Server:</strong> The command is successfully
+transmitted to the Push Notification Server. (Google, APNS, etc.)</li>
+<li><strong>Push Server Error:</strong> Push Notification Server rejects
+the request to send the command</li>
+<li><strong>Transmitted:</strong> The command is delivered to the
+device, but its result has not been returned yet</li>
+<li><strong>Success:</strong> The device executed the command and
+returned success result.</li>
+<li><strong>Error:</strong> The device executed the command and returned
+error result</li>
+<li><strong>Malformed:</strong> The device decided that the command is
+malformed</li>
+<li><strong>Auto:</strong> state when command sent by devices
+automatically</li>
+</ul>
+<p><img
+src="screenshots/commands_page-Should_start_within_the_page.png" /></p>
+<h2 id="processes-of-commands">Processes of Commands</h2>
+<p>Some MDM commands sent to Android, iOS and W8 devices includes data
+in it, processes of this kind of commands is explained below.</p>
+<p>Firstly command is created and state of this command will be “Not
+Sent” when the command is in database at Server. Command is sent to
+Notification server of “Android, iOS or W8” devices. Notification Server
+returns a response about validity of the sent message. If the response
+is positive then state of command changes as “At Push Server”, or if the
+response is negative then state of command changes as “Push Server
+Error”. Later, command is sent to device and command is committed by
+device. After device committed the command, send message to server. This
+message is categorized in 3 different states, these are “Success, Error
+and Malformed”.</p>
+<ul>
+<li>If the transaction is realized successfully, then state of the
+command will be changed as “Success” and message will be sent to server.
+Some commands includes data in itself, in such cases “command data” is
+send in message to server</li>
+<li>If the transaction is not realized successfully, then state of the
+command will be changed as “Error” and message will be sent to
+server</li>
+<li>If the transaction is not realized successfully as the command is
+wrong, applicable, missing or unknown then state of the command will be
+changed as “Malformed” and message will be sent to server</li>
+</ul>
+<p><img src="img/commands_for_all_devices.png" /></p>
+<h2 id="processes-of-ios-devices--mdm-commands">Processes of iOS
+Devices- MDM commands</h2>
+<p>Some MDM commands sent to iOS devices does not include data in it;
+therefore, device wants command from server itself. Processes of this
+kind of command is explained below.</p>
+<p>Firstly command is created and state of this command will be “Not
+Sent” when the command is in database at Server. Command is sent to
+Notification server of “Android, iOS or W8” devices. Notification Server
+returns a response about validity of the sent message. If the response
+is positive then state of command changes as “At Push Server”, or if the
+response is negative then state of command changes as “Push Server
+Error”. Later, command is sent to device, information goes to device as
+it has a command. Device wants the command from server and state of the
+command is changed as “Transmitted”. Command is committed by device and
+the committed command message is send to server. This message is
+categorized in 3 different states, these are “Success, Error and
+Malformed”.</p>
+<ul>
+<li>If the transaction is realized successfully, then state of the
+command will be changed as “Success” and message will be sent to server.
+Some commands includes data in itself, in such cases “command data” is
+send in message to server</li>
+<li>If the transaction is not realized successfully, then state of the
+command will be changed as “Error” and message will be sent to
+server</li>
+<li>If the transaction is not realized successfully as the command is
+wrong, applicable, missing or unknown then state of the command will be
+changed as “Malformed” and message will be sent to server</li>
+</ul>
+<p><img src="img/commands_for_ios_devices.png" /></p>
+<h2 id="device-commands-sent">Device Commands Sent</h2>
+<ul>
+<li><strong>Commands &gt;&gt; Device Commands Sent</strong>, opens the
+interface which supports the logged in user to view commands sent to
+devices. Also, this page is opened directly when user logs into
+system</li>
+<li>In this page there exist some graphics about commands</li>
+</ul>
+<p><img
+src="screenshots/commands_page-Should_start_within_the_page.png" /></p>
+<ul>
+<li><p><strong>First pie chart</strong>, Command Distrubiton, is about
+distribution of all commands until this time, in this chart each pie is
+related to a command. These commands are like location, device info,
+text message, add policy, etc. User can manage which commands to display
+in chart, when the command names above chart are clicked then that
+command is added to chart or removed from chart. Also when mouse overed
+on the pies of chart, numbers of commands are displayed</p></li>
+<li><p><strong>Second graphic</strong>, Command State, is about states
+of commands. This graphics can be managed by user. If user wants to
+change graphic style, he can click on “Grouped” or “Stacked” buttons.
+Means of the status are explained detailly above</p></li>
+<li><p><strong>Estimated time remaining</strong>, means that all sent
+message takes duration to be sent to devices</p></li>
+</ul>
+<p><img
+src="screenshots/commands_page-Should_filter_when_charts_are_clicked.png" /></p>
+<ul>
+<li><strong>Third graphic</strong>, Command Send per Date, shows the
+rates of commands which of state is “SEND”. Options below graphics can
+be clicked and graphics change according to option.
+<ul>
+<li>If year is clicked, graphic shows the distribution of send commands
+in years</li>
+<li>If month is clicked, graphic shows the distribution of send commands
+in months</li>
+<li>If week is clicked, graphic shows the distribution of send commands
+in weeks</li>
+<li>If day is clicked, graphic shows the distribution of send commands
+in days</li>
+<li>If hour is clicked, graphic shows the distribution of send commands
+in hours</li>
+<li>If minute is clicked, graphic shows the distribution of send
+commands in minutes</li>
+</ul></li>
+<li><strong>Forth graphis</strong>, Command Time Interval Statistics, is
+about coming commands to MDM system.
+<ul>
+<li>If per day is clicked, graphic shows numbers of coming commands in
+each day</li>
+<li>If per hour is clicked, graphic shows numbers of coming commands in
+each hour</li>
+</ul></li>
+<li><strong>Device commands</strong> table shows the command details.
+<ul>
+<li>Whom the command was sent</li>
+<li>When the command was created</li>
+<li>When the command arrived</li>
+<li>When the command was replied</li>
+<li>Command data is shown if “DETAILS” button in the table is
+clicked</li>
+<li>Commands can be filtered by entering data into the labels locating
+on the table</li>
+</ul></li>
+</ul>
+<h2 id="taillogs">TailLogs</h2>
+<ul>
+<li>Server logs can be followed live on <strong>TailLogs</strong>
+page.</li>
+<li>By clicking the <strong>Start</strong> button on the panel, server
+logs are started to be followed.</li>
+<li>The user can end this process at any time by clicking the
+<strong>Stop</strong> button.</li>
+</ul>
+<h1 id="chapter-11-groups">CHAPTER 11: GROUPS</h1>
+<p><strong>Users &gt;&gt; Groups</strong> opens the interface which
+supports the logged in user to view, list the groups.</p>
+<ul>
+<li>All Groups listed.</li>
+</ul>
+<p><img
+src="screenshots/Groups_page-Should_assign_a_group_a_new_user.png" /></p>
+<ul>
+<li>If the user wants to add a new group, clicks “Add” button and the
+group was added.</li>
+<li>If the user wants to save the new group, clicks “Save” button and
+save the group.</li>
+<li>If the user wants to update the group name, clicks “Edit” button and
+update the group name.</li>
+<li>If the user wants to delete the group, clicks “Delete” button and
+delete the group.</li>
+</ul>
+<h2 id="new-group">New Group</h2>
+<p>Here you can create a new group. There are two ways:</p>
+<p><img src="screenshots/_groups_new_1.png" /></p>
+<p><strong>Local Group:</strong> Enter a group name and click “Add” to
+create a group</p>
+<p><strong>LDAP Groups:</strong> If your LDAP settings are set correctly
+(See: Config -&gt; LDAP Settings), LDAP groups are listed here. Click
+“Add Group” to add LDAP group to Mobivisor. Click “Add With Users” to
+add LDAP group and its users to Mobivisor.</p>
+<h2 id="group-details">Group Details</h2>
+<p>Selected group’s details are shown and you can edit group’s
+properties here. There are 5 tabs:</p>
+<p><img src="screenshots/_group_view_user_1.png" /></p>
+<p><strong>Users:</strong> To add a user to this group check the
+checkbox and to remove users from this group uncheck the checkbox then
+click “Save”.</p>
+<p><strong>Applications:</strong> To add a application to this group
+check the checkbox and to remove applications from this group uncheck
+the checkbox then click “Save”. “Added Applications” and “Removed
+Applications” sections may be displayed. You can click “Notify” or
+“Notify All” to notify group users’ devices about these
+addition/deletions so the devices can install/uninstall apps.</p>
+<p><strong>Policies:</strong> Click “+Add” button to add a policy to the
+group. Click “x” button near the policy name in “Policies” section to
+remove the policy from the group.</p>
+<p><strong>Group:</strong> Change the group name then click “Save”
+button.</p>
+<p><strong>Administrators:</strong> To set a user as administrator of
+this group check the checkbox and to unset users as administrator of
+this group uncheck the checkbox then click “Save”.</p>
+<div id="search">
+<p><input id="searchField" type="text" placeholder="Filter" />
+<a class="pdf-link" href="mobivisor.pdf">PDF ↗</a></p>
+</div>
+<script>
+var input = document.getElementById('searchField');
+var toc = document.getElementById('TOC');
+
+input.onkeyup = function () {
+    var filter = input.value.toLowerCase();
+    var lis = toc.getElementsByTagName('li');
+    
+    for (var i = 0; i < lis.length; i++) {        
+        var content = lis[i].innerHTML.replace(/<[^>]*>/g, "");
+        if (content.toLowerCase().indexOf(filter) !== -1) 
+            lis[i].style.display = 'list-item';
+        else
+            lis[i].style.display = 'none';
+    }
+}
+</script>
+</body>
+</html>
