@@ -1,0 +1,113 @@
+# Doc map — foundation doc §6.5.
+#
+# "The highest-leverage cheap thing in the whole design." Deterministic
+# retrieval beats embeddings here, and stale entries surface as review friction
+# rather than as silent wrong edits.
+#
+# `code` entries are Python regexes matched against changed file paths.
+# `description` is shown to the tier-2 model as a candidate area, so write it
+# for a reader who cannot see the code.
+#
+# This is an illustrative map covering the fixture repository in devinfra/ plus
+# a few realistic MobiVisor areas. The real one is hand-maintained against the
+# real repository layout.
+
+version: 1
+
+defaults:
+  # Reserved for pure noise that does not deserve an area of its own. Anything
+  # whose silence is a *decision* belongs in `areas` with class no-doc-impact
+  # instead, so the reasoning is recorded (§6.4).
+  ignore:
+    - "^package-lock\\.json$"
+    - "^uv\\.lock$"
+    - "^\\.gitignore$"
+    - "^vendor/"
+
+  # When a changed file matches no area at all, escalate to tier 2 rather than
+  # going quiet. This is how doc-map rot becomes visible instead of silently
+  # suppressing the gate. Set false to trade that safety net for spend.
+  escalate_unmapped: true
+
+areas:
+  - id: enrollment-ios
+    description: >-
+      iOS device enrollment: Apple Business Manager / DEP flows, the enrollment
+      wizard, and the steps an administrator follows to enrol an iOS device.
+    code:
+      - "^src/enrollment/ios/"
+      - "^src/protocol/dep/"
+    pages:
+      - "pages/enrollment/ios-abm.adoc"
+    class: ai-drafted
+
+  - id: users-and-roles
+    description: >-
+      Creating and editing users, LDAP import, role definitions and permission
+      assignment in the admin console.
+    code:
+      - "^src/console/users/"
+      - "^src/console/roles/"
+    pages:
+      - "pages/users.adoc"
+      - "pages/roles.adoc"
+    class: ai-drafted
+
+  - id: kiosk-modes
+    description: >-
+      Kiosk and single-app modes, including the Samsung kiosk module and the
+      keyguard feature restrictions.
+    code:
+      - "^src/console/kiosk/"
+      - "^src/policies/kiosk/"
+    pages:
+      - "pages/policies/kiosk-modes.adoc"
+    class: ai-drafted
+
+  - id: policy-schema
+    description: >-
+      The policy and restriction schemas. The manual's reference tables are
+      rendered from these at build time, never written by hand.
+    code:
+      - "^schema/policies/"
+    pages:
+      - "pages/reference/policy-settings.adoc"
+    class: generated
+
+  - id: security-statements
+    description: >-
+      Security posture, data handling and contractual statements in the manual
+      introduction. Customer-facing and arguably contractual.
+    code:
+      - "^docs/security/"
+    pages:
+      - "pages/intro/security.adoc"
+    class: human-only
+
+  # ---- explicit silence ----------------------------------------------------
+  # §6.4: "Explicit no-doc-impact entries matter as much as positive ones —
+  # they document *why* the gate stays silent so nobody rediscovers it later."
+
+  - id: push-transport
+    description: >-
+      APNS/FCM push transport. Internal plumbing: the manual never describes how
+      a command reaches a device, only what the administrator clicks.
+    code:
+      - "^src/protocol/apns/"
+      - "^src/protocol/fcm/"
+    pages: []
+    class: no-doc-impact
+
+  - id: ci-and-tests
+    description: >-
+      CI configuration and the test suites. Changes here never alter documented
+      behaviour, though E2E specs may still implicate screenshots — that is the
+      screenshots command's job, not the gate's.
+    code:
+      - "^\\.gitlab-ci\\.yml$"
+      - "^Jenkinsfile$"
+      - "^tests?/"
+      - "\\.spec\\.(ts|js)$"
+      - "^cypress/"
+    pages: []
+    class: no-doc-impact

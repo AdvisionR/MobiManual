@@ -1,0 +1,12 @@
+# Live credentials. Never commit.
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+
+# DocBot run artifacts: verdict logs, generated indexes, scratch output.
+.docbot/
