@@ -88,6 +88,111 @@ def test_silent_verdict_needs_no_forge_at_all(doc_map, tmp_path):
     assert result["status"] == "skipped"
 
 
+# -- the merge gate --------------------------------------------------------
+#
+# The source merge request must have landed before anything is written. An open
+# MR is a draft of an intention: it gets rewritten, rescoped and sometimes
+# closed unmerged, and a docs reviewer cannot tell which of those they are
+# looking at. This is §8.3's push-to-main trigger as a precondition.
+
+
+def test_unmerged_source_is_deferred_not_proposed(doc_map, tmp_path):
+    forge = FakeForge(merged=False)
+    result = propose_run(make_verdict(doc_map, tmp_path), forge, tmp_path)
+
+    assert result["status"] == "deferred"
+    assert forge.merge_requests == []
+    assert forge.commits == []
+    assert forge.notes == []
+
+
+def test_closed_source_is_abandoned_not_deferred(doc_map, tmp_path):
+    """`opened` is "not yet"; `closed` is "never". A queue that cannot tell
+    them apart fills with entries nobody will ever clear."""
+    forge = FakeForge(merged=False)
+    forge.merge.state = "closed"
+    result = propose_run(make_verdict(doc_map, tmp_path), forge, tmp_path)
+
+    assert result["status"] == "abandoned"
+    assert "closed without merging" in result["reason"]
+    assert forge.commits == []
+
+
+def test_deferral_is_not_silence(doc_map, tmp_path):
+    """`skipped` means the manual is unaffected; `deferred` means it is
+    affected but the change has not shipped. Collapsing the two would hide a
+    real doc impact behind the same word used for the 90% that are nothing."""
+    deferred = propose_run(make_verdict(doc_map, tmp_path), FakeForge(merged=False), tmp_path)
+    skipped = propose_run(silent_verdict(doc_map, tmp_path), FakeForge(), tmp_path)
+
+    assert deferred["status"] == "deferred"
+    assert deferred["doc_impact"] is True
+    assert skipped["status"] == "skipped"
+    assert skipped["doc_impact"] is False
+
+
+def test_merge_state_that_cannot_be_read_defers_rather_than_assuming_yes(doc_map, tmp_path):
+    """Fails closed, opposite to the gate. The gate's failure mode is a change
+    nobody looked at; this module's is documenting work that never shipped."""
+
+    class Unreachable(FakeForge):
+        def merge_state(self, project, merge_request):
+            raise ForgeError("500 internal error")
+
+    forge = Unreachable()
+    result = propose_run(make_verdict(doc_map, tmp_path), forge, tmp_path)
+
+    assert result["status"] == "deferred"
+    assert "500" in result["reason"]
+    assert forge.commits == []
+
+
+def test_merge_is_recorded_as_provenance(doc_map, tmp_path):
+    forge = FakeForge(merged=True, merged_by="alice")
+    result = propose_run(make_verdict(doc_map, tmp_path), forge, tmp_path, doc_map=doc_map)
+
+    assert result["status"] == "created"
+    assert result["merge"]["merged_by"] == "alice"
+
+    record = yaml.safe_load(forge.files[(DOCS, result["branch"])][result["record_path"]])
+    merge = record["source"]["merge"]
+    assert (merge["merged"], merge["merged_by"], merge["merge_commit"]) == (True, "alice", "deadbeef")
+    body = forge.merge_requests[0]["description"]
+    assert "merged" in body.lower() and "alice" in body
+
+
+def test_override_says_so_in_the_body(doc_map, tmp_path):
+    """--allow-unmerged is legitimate, but the docs reviewer has to be told
+    they are looking at a change that has not shipped."""
+    forge = FakeForge(merged=False)
+    result = propose_run(make_verdict(doc_map, tmp_path), forge, tmp_path, require_merged=False)
+
+    assert result["status"] == "created"
+    assert result["merge"] is None
+    assert "not checked" in forge.merge_requests[0]["description"]
+
+
+def test_merge_check_needs_to_know_which_project_to_ask(doc_map, tmp_path, forge):
+    with pytest.raises(ProposeError, match="source-project"):
+        propose.run(
+            make_verdict(doc_map, tmp_path), forge, docs_project=DOCS,
+            source_project="", log_dir=str(tmp_path),
+        )
+
+
+def test_silent_verdict_is_not_delayed_by_the_merge_check(doc_map, tmp_path):
+    """No doc impact means nothing to propose whether or not it merged, so the
+    check must not run — it would be a pointless API call on the vast majority
+    of merges."""
+
+    class NoMergeState(FakeForge):
+        def merge_state(self, project, merge_request):
+            raise AssertionError("merge state must not be checked for a silent verdict")
+
+    result = propose_run(silent_verdict(doc_map, tmp_path), NoMergeState(), tmp_path)
+    assert result["status"] == "skipped"
+
+
 # -- the merge request -----------------------------------------------------
 
 

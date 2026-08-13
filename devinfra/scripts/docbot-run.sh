@@ -7,6 +7,12 @@
 #   ./scripts/docbot-run.sh 3              # gate with the model, then propose
 #   ./scripts/docbot-run.sh 3 --no-model   # tier 1 only, no spend, no network
 #   ./scripts/docbot-run.sh 3 --dry-run    # render the proposal, write nothing
+#   ./scripts/docbot-run.sh 3 --allow-unmerged     # skip the merge check
+#
+# `propose` writes nothing until the source merge request has been merged — see
+# `merge-test-mr.sh`. The gate still runs on every invocation: it writes nothing
+# anywhere, and its verdicts are the dataset §6.3 wants, so there is no reason to
+# withhold them until the merge.
 #
 # This is deliberately the same sequence of commands the Jenkinsfile will run,
 # with the same artifacts, so that wiring Jenkins is a transcription rather than
@@ -26,9 +32,10 @@ GATE_FLAGS=()
 PROPOSE_FLAGS=()
 for arg in "$@"; do
   case "$arg" in
-    --no-model) GATE_FLAGS+=("--no-model") ;;
-    --dry-run)  PROPOSE_FLAGS+=("--dry-run") ;;
-    *) echo "unknown option: $arg (expected --no-model or --dry-run)" >&2; exit 2 ;;
+    --no-model)        GATE_FLAGS+=("--no-model") ;;
+    --dry-run)         PROPOSE_FLAGS+=("--dry-run") ;;
+    --allow-unmerged)  PROPOSE_FLAGS+=("--allow-unmerged") ;;
+    *) echo "unknown option: $arg (--no-model, --dry-run, --allow-unmerged)" >&2; exit 2 ;;
   esac
 done
 # Expanded below as `${GATE_FLAGS[@]+"${GATE_FLAGS[@]}"}` rather than plain

@@ -12,15 +12,27 @@ from __future__ import annotations
 
 from typing import Any
 
-from . import FileChange, MergeRequestRef, Note
+from . import FileChange, MergeRequestRef, MergeState, Note
 
 
 class FakeForge:
     name = "fake"
 
-    def __init__(self, default_branch: str = "main", base_url: str = "https://forge.invalid") -> None:
+    def __init__(self, default_branch: str = "main", base_url: str = "https://forge.invalid",
+                 merged: bool = True, merged_by: str = "reviewer") -> None:
         self._default_branch = default_branch
         self._base_url = base_url.rstrip("/")
+        #: Merged by default. `--dry-run` uses this forge to render a proposal
+        #: for a merge request that has not landed yet, and refusing to render
+        #: it would make the flag useless for exactly the case it previews.
+        self.merge = MergeState(
+            state="merged" if merged else "opened",
+            merged=merged,
+            merged_by=merged_by if merged else "",
+            merged_at="2026-08-13T10:00:00Z" if merged else "",
+            merge_commit="deadbeef" if merged else "",
+            target_branch=default_branch,
+        )
         #: (project, branch) -> {path: content}
         self.files: dict[tuple[str, str], dict[str, str]] = {}
         self.merge_requests: list[dict[str, Any]] = []
@@ -97,6 +109,9 @@ class FakeForge:
                     source_branch=mr["source_branch"], created=False,
                 )
         raise KeyError(f"no merge request {iid} in {project}")
+
+    def merge_state(self, project: str, merge_request: str) -> MergeState:
+        return self.merge
 
     def comment(self, project: str, merge_request: str, body: str) -> Note:
         self.notes.append({"project": project, "merge_request": merge_request, "body": body})

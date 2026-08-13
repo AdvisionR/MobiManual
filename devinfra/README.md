@@ -27,13 +27,17 @@ Nothing else. `up.sh` starts OrbStack itself if it is not running.
 ./scripts/seed-project.sh    # create the console fixture repo and the Jenkins job
 ./scripts/seed-docs-repo.sh  # create the docs repo DocBot writes to
 ./scripts/open-test-mr.sh docs
-./scripts/docbot-run.sh 1    # <- the merge request number the previous line printed
+./scripts/docbot-run.sh 1     # <- the MR number the previous line printed; defers
+./scripts/merge-test-mr.sh 1  # merge it, the way a maintainer would
+./scripts/docbot-run.sh 1     # now it proposes
 ```
 
 `open-test-mr.sh` opens a real merge request and prints the `verdict.json`
 Jenkins produced from it. `docbot-run.sh` then runs the real CLI over the same
-merge request and, if the gate says the manual is affected, opens a merge
-request on the docs repository linked back to it.
+merge request and, if the gate says the manual is affected **and the merge
+request has actually been merged**, opens a merge request on the docs
+repository linked back to it. Run it twice, either side of `merge-test-mr.sh`,
+to see both halves of that condition.
 
 | | URL | Login |
 |---|---|---|
@@ -53,6 +57,7 @@ Credentials are in [.env](.env). They are local-only throwaways.
 | `seed-project.sh` | Create the console fixture project, push it, register the webhook, create the Jenkins job |
 | `seed-docs-repo.sh` | Create the docs project, push the fixture manual, protect `main` |
 | `open-test-mr.sh [docs\|silent]` | Open a test MR and report what Jenkins decided |
+| `merge-test-mr.sh <iid>` | Merge an MR, as a maintainer would |
 | `docbot-run.sh <iid>` | Run the real CLI over that MR: `gate`, then `propose` |
 | `status.sh` | Containers, memory, disk, and four-way reachability check |
 | `down.sh` | Stop everything, keep data |
@@ -151,19 +156,57 @@ Verified end to end against this stack:
 
 | Run | Result |
 |---|---|
-| `docbot-run.sh 4` (enrollment change) | tier 2 `mistral-small-latest`, confidence 0.98 → docs MR !1 opened, carrying `doc-impact/pending/mr-4.yaml` |
-| second push to the same source MR | record recommitted, MR body rewritten, **still one docs MR** |
-| `docbot-run.sh 5` (push transport) | `doc_impact: false` at tier 1 — no model call, no docs MR, nothing written |
+| `docbot-run.sh 4`, MR **still open** | `deferred` — nothing committed, no docs MR, no comment |
+| MR closed unmerged | `abandoned` — the queue can tell "not yet" from "never" |
+| `merge-test-mr.sh 4`, then re-run | tier 2 `mistral-small-latest`, confidence 0.98 → docs MR !1 opened, carrying `doc-impact/pending/mr-4.yaml`, recording the merge commit `05fd685e87a5` |
+| re-run after the merge | record recommitted, MR body rewritten, **still one docs MR** |
+| `docbot-run.sh 5` (push transport) | `doc_impact: false` at tier 1 — no model call, no merge-state call, nothing written |
 | both directions | source MR carries a DocBot comment linking to the docs MR; GitLab cross-references it back |
 
-The middle row is the one worth keeping an eye on. A source merge request is
-pushed to repeatedly and the gate re-runs each time; the docs branch is named
-after the source MR id so all of them land on one merge request. Nine merge
-requests for one change would teach a reviewer to ignore all nine.
+The fourth row is the one worth keeping an eye on. A build can re-run for all
+sorts of reasons — a replayed webhook, a retried job, a later push to main —
+and the docs branch is named after the source MR id so all of them land on one
+merge request. Nine merge requests for one change would teach a reviewer to
+ignore all nine.
 
-`--dry-run` renders the record and the merge-request body to the terminal
-without writing anything, which is the fastest way to see what a reviewer would
-be shown.
+### 5.3 Why merged, and where the rule lives
+
+DocBot proposes nothing until the source merge request has actually landed.
+Work that is still being revised — or that ends up closed unmerged — would
+otherwise reach the manual's review queue as though it had shipped.
+
+This is foundation doc §8.3's second trigger, "push to main → drafting run that
+opens the docs PR", and it has a practical advantage over triggering earlier: a
+merge *is* a push to main, so the GitLab Branch Source plugin already produces
+that build cause. Nothing extra needs wiring.
+
+The one wrinkle is that a branch build has no merge request context —
+`CHANGE_ID` is unset, because no merge request is being built. The merge commit
+is the link back, and the endpoint exists on this instance:
+
+```
+GET /projects/:id/repository/commits/:sha/merge_requests
+```
+
+It returns the merge request a commit came from, or an empty list for a direct
+push — which doubles as the "was this actually a merge?" test.
+
+**The rule lives in `docbot propose`, not in a Jenkins `when {}`.** §8.5 says
+keep the logic out of Groovy, but there is a concrete payoff: the rule holds
+regardless of what started the build. A replayed delivery, someone pressing
+"Build now", a trigger added later — all of them find an unmerged source and
+defer.
+
+Three outcomes, all logged, all distinct:
+
+| Source MR state | Status | Meaning |
+|---|---|---|
+| open | `deferred` | not yet — a later run picks it up |
+| closed unmerged | `abandoned` | never — nothing to wait for |
+| merged | `created` / `updated` | the docs MR exists |
+
+The middle one matters more than it looks: a queue that cannot tell "not yet"
+from "never" fills up with entries nobody will ever clear.
 
 ### Two deviations from the foundation doc, on purpose
 
@@ -192,9 +235,11 @@ port this to the real CLI.
   two.
 - **No Docker agent.** Builds run on the Jenkins controller. §8.5 wants the
   DocBot CLI in a pinned image; that is the same change as the point above.
-- **No trigger #2.** §8.3's push-to-main drafting run is a stub in the
-  `Jenkinsfile`. `docbot propose` runs happily from either trigger, so which
-  one it lands on is still an open choice — see `docbot/README.md` §9.
+- **Trigger #2 is a stub.** §8.3's push-to-main run has a stage in the
+  `Jenkinsfile` and an `echo` in it. That stage is where `propose` belongs —
+  it fires on merge, which is the precondition `docbot propose` enforces
+  anyway — and filling it in is the same change as putting the CLI in the
+  image.
 - **Nothing validates the docs merge request.** §6.7 wants a build, a link
   check, a prose lint and a "no edits to `human-only` or `generated` paths"
   gate on it. The first three need the real build script (§12 question #3); the

@@ -124,6 +124,54 @@ def test_opened_merge_request_cannot_merge_itself():
     assert "merge_when_pipeline_succeeds" not in payload
 
 
+def test_merge_state_reads_a_merged_request():
+    recorder = Recorder(
+        routes={("GET", f"/projects/{ENCODED}/merge_requests/4"): {
+            "state": "merged",
+            "merged_by": {"username": "alice"},
+            "merged_at": "2026-08-13T10:00:00Z",
+            "merge_commit_sha": "abc123",
+            "target_branch": "main",
+        }}
+    )
+    state = build(recorder).merge_state(PROJECT, "4")
+
+    assert state.merged is True
+    assert (state.merged_by, state.merge_commit, state.target_branch) == ("alice", "abc123", "main")
+
+
+def test_squash_merges_report_the_squash_commit():
+    """Squash and fast-forward merges leave merge_commit_sha null. Recording
+    that verbatim hands the docs reviewer a sha that resolves to nothing."""
+    recorder = Recorder(
+        routes={("GET", f"/projects/{ENCODED}/merge_requests/4"): {
+            "state": "merged",
+            "merge_commit_sha": None,
+            "squash_commit_sha": "5quash3d",
+            "target_branch": "main",
+        }}
+    )
+    assert build(recorder).merge_state(PROJECT, "4").merge_commit == "5quash3d"
+
+
+def test_open_and_closed_are_both_not_merged_but_distinguishable():
+    for state_name in ("opened", "closed"):
+        recorder = Recorder(
+            routes={("GET", f"/projects/{ENCODED}/merge_requests/4"): {"state": state_name}}
+        )
+        state = build(recorder).merge_state(PROJECT, "4")
+        assert state.merged is False
+        assert state.state == state_name
+
+
+def test_unreadable_merge_request_raises_rather_than_reporting_unmerged():
+    """A forge that cannot answer must be distinguishable from a merge request
+    that has not landed: the caller defers on both, but only one is a bug."""
+    recorder = Recorder(routes={}, missing={f"/projects/{ENCODED}/merge_requests/4"})
+    with pytest.raises(ForgeError, match="404"):
+        build(recorder).merge_state(PROJECT, "4")
+
+
 def test_http_errors_surface_rather_than_pass_silently():
     """A proposal that quietly failed to open looks exactly like a gate that
     correctly said nothing."""

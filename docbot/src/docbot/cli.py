@@ -186,6 +186,9 @@ main.add_command(gate_cmd, name="gate")
 @click.option("--label", "labels", multiple=True, help="Label for the docs MR. Repeatable.")
 @click.option("--comment-source", is_flag=True,
               help="Also comment on the source MR with a link to the docs MR (§7 option A).")
+@click.option("--allow-unmerged", is_flag=True,
+              help="Propose even if the source MR has not been merged. Off by default: an "
+                   "unmerged MR may still change, or never ship at all.")
 @click.option("--dry-run", is_flag=True, help="Render everything, write nothing. Prints the MR body.")
 @click.option("--log-dir", default=None, help="Proposal log directory (default .docbot).")
 @click.option("--out", default=None, help="Write the proposal artifact here.")
@@ -201,6 +204,7 @@ def propose_cmd(
     record_dir: str,
     labels: tuple[str, ...],
     comment_source: bool,
+    allow_unmerged: bool,
     dry_run: bool,
     log_dir: str | None,
     out: str | None,
@@ -210,6 +214,10 @@ def propose_cmd(
 
     Silent when the verdict says `doc_impact: false` — that is the common and
     correct case (§14.3) and it never touches the forge.
+
+    Deferred until the source merge request has been merged: an open MR is a
+    draft of an intention, and the manual should not describe behaviour that
+    may still change or never ship. Pass --allow-unmerged to override.
     """
     verdict = json.loads(Path(verdict_path).read_text(encoding="utf-8"))
 
@@ -239,6 +247,7 @@ def propose_cmd(
             target_branch=target_branch,
             labels=list(labels) or None,
             comment_source=comment_source,
+            require_merged=not allow_unmerged,
             log_dir=log_dir,
         )
     except (ForgeError, ProposeError) as exc:
@@ -253,10 +262,23 @@ def propose_cmd(
         click.secho(f"no docs merge request — {result['reason']}", fg="green", bold=True)
         return
 
+    if result["status"] in {"deferred", "abandoned"}:
+        # Neither is an error, and neither is silence: the manual is affected.
+        # `deferred` means the change has not landed yet and a later run picks
+        # it up; `abandoned` means it never will.
+        click.secho(f"{result['status']} — {result['reason']}", fg="yellow", bold=True)
+        click.echo(f"  logged to    : {result['log_path']}")
+        return
+
     if dry_run:
         # The body is the part most likely to be wrong; show it rather than
-        # making someone read it in the forge afterwards.
-        record = propose.build_record(verdict, loaded_map, source_project)
+        # making someone read it in the forge afterwards. The fake forge
+        # reports itself merged, so this renders what a proposal *would* look
+        # like — it is not evidence that the source MR has landed.
+        record = propose.build_record(
+            verdict, loaded_map, source_project,
+            None if allow_unmerged else forge.merge_state(source_project, ""),
+        )
         click.secho(f"--- {result['record_path']} ---", fg="cyan", bold=True)
         click.echo(propose.render_record(record))
         click.secho(f"--- merge request: {propose.render_title(verdict)} ---", fg="cyan", bold=True)
@@ -271,6 +293,14 @@ def propose_cmd(
     )
     click.echo(f"  branch       : {result['branch']} -> {result['target_branch']}")
     click.echo(f"  record       : {result['record_path']}")
+    merge = result.get("merge")
+    if merge:
+        click.echo(
+            f"  merged       : {merge['merged_at'] or '(no timestamp)'}"
+            f" by {merge['merged_by'] or '(unnamed)'}"
+        )
+    else:
+        click.secho("  merge state  : not checked (--allow-unmerged)", fg="red")
     if result["pages"]:
         click.echo(f"  pages        : {', '.join(result['pages'])}")
     if result["source_comment"]:

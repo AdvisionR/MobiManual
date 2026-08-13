@@ -16,7 +16,7 @@ drafting agent; that is Phase 3.
 
 ```bash
 uv sync
-uv run pytest                                    # 68 tests, no network
+uv run pytest                                    # 80 tests, no network
 
 # deterministic, no model, no spend
 uv run docbot screenshots index --manual ../combined.html --out .docbot/image-index.json
@@ -131,6 +131,49 @@ why it opened, what the model said and how confident it was, which pages are
 implicated, and what to do — including that closing it is a correct outcome
 (§6.6 makes "no change needed" first-class, and §6.3 wants that data).
 
+### Nothing is proposed until the source MR has been merged
+
+An open merge request is a draft of an intention. Its branch gets rewritten,
+its scope changes, and some are closed unmerged. Documenting one puts a docs
+merge request in front of a reviewer describing behaviour that may never ship —
+and they have no way to tell which is which.
+
+So `propose` reads the source merge request's state first and writes nothing
+unless it has landed. This is §8.3's second trigger — "push to main → drafting
+run that opens the docs PR" — expressed as a *precondition* rather than a build
+condition, so it holds whatever fires the job: a replayed webhook, someone
+pressing "Build now", a trigger nobody has thought of yet.
+
+Merge is also the point at which the source stops moving. Everything the record
+says is final from then on, which is what makes one docs merge request per
+source merge request an honest summary rather than a snapshot of something
+still in flux.
+
+Four details that matter more than they look:
+
+- **`deferred` is not `skipped`.** Skipped means the manual is unaffected —
+  the 90% case. Deferred means it *is* affected and the change has not shipped
+  yet. Collapsing them would hide real doc impact behind the word used for
+  routine silence.
+- **`abandoned` is not `deferred`.** An open MR is "not yet"; one closed
+  unmerged is "never". A queue that cannot tell them apart accumulates entries
+  nobody will ever clear.
+- **It fails closed, and the gate fails open.** A tier-2 error makes the gate
+  return `doc_impact: true`, because its failure mode is a change nobody looked
+  at. A merge state it cannot read makes `propose` defer, because its failure
+  mode is documenting work that never shipped. Opposite defaults, each set by
+  what goes wrong when it guesses.
+- **The check is skipped entirely for silent verdicts**, so the vast majority
+  of merges still cost zero API calls.
+
+All four outcomes are logged. `--allow-unmerged` overrides the gate and says so
+in the merge-request body, so the docs reviewer knows they are looking at
+something that has not landed.
+
+**Squash and fast-forward merges** leave `merge_commit_sha` null and put the
+result in `squash_commit_sha`; the record follows, because handing a reviewer a
+sha that resolves to nothing is worse than handing them none.
+
 ### Rules it enforces
 
 - **Silent verdicts never reach the forge.** `doc_impact: false` exits before
@@ -148,6 +191,8 @@ implicated, and what to do — including that closing it is a correct outcome
 - **A failed courtesy comment does not fail the run.** `--comment-source` posts
   the §7-option-A advisory note back on the source MR; if the bot cannot, the
   proposal is still reported as created, with a warning.
+- **The record carries how the change landed** — who merged it, when, and as
+  which commit. The docs reviewer can go and read the thing being documented.
 
 Every proposal is logged to `.docbot/proposals.jsonl`, separately from
 `verdicts.jsonl` so that delivery records cannot contaminate the gate's
@@ -278,7 +323,7 @@ src/docbot/
   providers/       one-method interface: mistral, fake
   forge/           merge-request interface: gitlab, fake
 examples/doc-map.yaml
-tests/             68 tests, all offline
+tests/             80 tests, all offline
 ```
 
 `providers/fake.py` is a deterministic keyword stub. It is not good, and is not
@@ -301,9 +346,27 @@ What is left: install docbot into the Jenkins image, replace the jq block with
 rebuilding that image re-resolves all plugins, which are unpinned — see
 `devinfra/README.md` §7. Pin them in the same change.
 
-One decision to make when it is wired: §8.3 puts the drafting run on **push to
-main**, not on the merge request. Right now `propose` is happy to run at either
-point, and running it on the MR gives the source author the advisory comment
-while they can still act on it. Running it on merge gives one docs MR per
-merged change rather than per opened one. Both are defensible; the choice
-should be made deliberately rather than by whichever stage the code lands in.
+### The trigger
+
+§8.3's two triggers are MR opened/updated, and push to main. `propose` belongs
+to the second: a merge *is* a push to main, so the branch build is the stage
+that runs it. That is a build cause the GitLab Branch Source plugin already
+produces, so no extra plugin is needed to trigger it.
+
+The one wrinkle is that a branch build has no merge request context —
+`CHANGE_ID` is unset, because there is no merge request being built. The merge
+commit is the link back:
+
+```
+GET /projects/:id/repository/commits/:sha/merge_requests
+```
+
+Verified present on the local instance. It returns the merge request that
+produced a commit, or an empty list for a direct push — which doubles as the
+"was this actually a merge?" test.
+
+The check itself stays in the CLI rather than in a Jenkins `when {}`. That is
+§8.5, but the concrete payoff is that the rule holds no matter what starts the
+build: a replayed delivery, a manual "Build now", a trigger added later. All of
+them find an unmerged source and defer.
+

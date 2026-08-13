@@ -96,12 +96,45 @@ pipeline {
       }
     }
 
-    stage('Branch build') {
-      // Trigger #2 in §8.3. Left as a stub: this is where the drafting run
-      // would open the docs MR once Phase 3 starts.
-      when { not { changeRequest() } }
+    stage('Propose docs MR') {
+      // Trigger #2 in §8.3: "push to main -> drafting run that opens the docs
+      // PR". A merge *is* a push to main, so this is the stage that fires
+      // after one, and the merge request that caused it is recovered from the
+      // merge commit rather than from CHANGE_ID — a branch build has no merge
+      // request context at all.
+      //
+      // Not written yet: the controller has no `docbot` on it (see
+      // devinfra/README.md §6). What it becomes once the CLI is in the image:
+      //
+      //   sh '''
+      //     SHA=$(git rev-parse HEAD)
+      //     curl -sf -H "PRIVATE-TOKEN: $GL_TOKEN" \
+      //       "$GITLAB_API/projects/$PROJECT/repository/commits/$SHA/merge_requests" > mrs.json
+      //     IID=$(jq -r '.[0].iid // empty' mrs.json)
+      //     [ -n "$IID" ] || exit 0        # a direct push, not a merge
+      //     ...gate, then:
+      //     docbot propose --verdict verdict.json \
+      //       --docs-project root/mobivisor-manual \
+      //       --source-project root/mobivisor-console \
+      //       --doc-map docs/doc-map.yaml --comment-source --out proposal.json
+      //   '''
+      //
+      // There is deliberately no `when { ... merged ... }` condition. The
+      // merge check lives in `docbot propose`, which writes nothing and exits
+      // `deferred` until the source MR has landed. Keeping it there rather
+      // than in Groovy is §8.5, but it also means the rule survives whatever
+      // starts the build — a replayed webhook, someone pressing "Build now",
+      // or a future trigger nobody has thought of yet.
+      when { branch 'main' }
       steps {
-        echo "Push to ${env.BRANCH_NAME} — no merge request context. Nothing to do in Phase 1."
+        echo "Push to ${env.BRANCH_NAME} — this is where the docs MR gets opened (Phase 2)."
+      }
+    }
+
+    stage('Other branches') {
+      when { allOf { not { changeRequest() }; not { branch 'main' } } }
+      steps {
+        echo "Push to ${env.BRANCH_NAME} — not a merge request, not main. Nothing to do."
       }
     }
   }

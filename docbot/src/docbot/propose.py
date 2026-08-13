@@ -18,6 +18,30 @@ release-time drafting run consumes, and it is useful on its own the moment a
 human reads it: it converts "someone should check the manual" from a thing
 people remember into a thing with a queue and a reviewer.
 
+Merged, not merely proposed
+---------------------------
+By default nothing is proposed until the *source* merge request has actually
+landed on its target branch. An open merge request is a draft of an intention:
+its branch is rewritten, its scope changes, and some are closed unmerged.
+Documenting one puts a docs merge request in front of a reviewer describing
+behaviour that may never ship, and they have no way to tell which is which.
+
+This is §8.3's second trigger — "push to main → drafting run that opens the
+docs PR" — expressed as a precondition rather than as a build condition, so it
+holds whatever fires the job.
+
+Merged is also the point at which the source stops moving. Everything the
+record says about the change is final from then on, which is what makes a
+single docs merge request per source merge request an honest summary rather
+than a snapshot of something still in flux.
+
+Note the asymmetry with the gate. `gate.py` fails *open* — a tier-2 error
+returns `doc_impact: true`, because its failure mode is a change nobody looked
+at. This module fails *closed* — a merge state it cannot read is treated as not
+merged, because its failure mode is writing to the manual about work that has
+not shipped. Same system, opposite defaults, each set by what goes wrong when
+it is guessed at.
+
 What this module will never do
 ------------------------------
 Write to the docs default branch. §7 D (auto-merge to the published manual) is
@@ -35,7 +59,7 @@ import yaml
 
 from . import verdictlog
 from .docmap import DocMap
-from .forge import FileChange, Forge, ForgeError, MergeRequestRef
+from .forge import FileChange, Forge, ForgeError, MergeRequestRef, MergeState
 
 SCHEMA = "docbot.proposal/1"
 RECORD_SCHEMA = "docbot.doc-impact/1"
@@ -107,11 +131,22 @@ def _page_classes(verdict: dict[str, Any], doc_map: DocMap | None) -> dict[str, 
 
 
 def build_record(verdict: dict[str, Any], doc_map: DocMap | None = None,
-                 source_project: str = "") -> dict[str, Any]:
+                 source_project: str = "", merge: MergeState | None = None) -> dict[str, Any]:
     """The doc-impact record — the C-ledger entry that lands in the docs repo."""
     mr = verdict.get("merge_request") or {}
     tier2 = verdict.get("tier2") or {}
     classes = _page_classes(verdict, doc_map)
+
+    merge_block: dict[str, Any] = {"checked": merge is not None}
+    if merge is not None:
+        merge_block.update(
+            state=merge.state,
+            merged=merge.merged,
+            merged_by=merge.merged_by,
+            merged_at=merge.merged_at,
+            merge_commit=merge.merge_commit,
+            target_branch=merge.target_branch,
+        )
 
     return {
         "schema": RECORD_SCHEMA,
@@ -125,6 +160,8 @@ def build_record(verdict: dict[str, Any], doc_map: DocMap | None = None,
             "target": mr.get("target") or "",
             "url": mr.get("url") or "",
             "changed_files": list(verdict.get("changed_files") or []),
+            # Provenance: when the change actually landed, and as what commit.
+            "merge": merge_block,
         },
         "gate": {
             "decided_at": verdict.get("generated_at"),
@@ -194,9 +231,27 @@ def render_description(verdict: dict[str, Any], record: dict[str, Any], path: st
     link = f"[!{mr.get('id')}]({mr.get('url')})" if mr.get("url") else f"!{mr.get('id')}"
     project = f" in `{source['project']}`" if source["project"] else ""
 
+    merge = source.get("merge") or {}
+    if merge.get("merged"):
+        landed = f" It was **merged** into `{merge.get('target_branch') or 'the target branch'}`"
+        if merge.get("merged_by"):
+            landed += f" by `{merge['merged_by']}`"
+        if merge.get("merge_commit"):
+            landed += f" as `{merge['merge_commit'][:12]}`"
+        signoff = landed + ". The change has shipped; the manual is now behind it."
+    elif merge.get("checked"):
+        signoff = " It has **not been merged** — this merge request should not exist yet."
+    else:
+        # --allow-unmerged. Worth saying out loud: the docs reviewer is being
+        # asked about work that has not landed and might never.
+        signoff = (
+            " ⚠️ The merge state was **not checked**: the source change may still be in "
+            "flux, or may never ship."
+        )
+
     lines = [
         f"DocBot opened this because merge request {link}{project} changed something the "
-        "manual describes.",
+        f"manual describes.{signoff}",
         "",
         f"> {source['title']}",
         "",
@@ -293,6 +348,7 @@ def run(
     target_branch: str | None = None,
     labels: list[str] | None = None,
     comment_source: bool = False,
+    require_merged: bool = True,
     log_dir: str | None = None,
 ) -> dict[str, Any]:
     """Open (or update) the docs merge request for one gate verdict.
@@ -309,7 +365,39 @@ def run(
     if forge is None:
         raise ProposeError("doc_impact is true but no forge was given")
 
-    record = build_record(verdict, doc_map, source_project)
+    mr_id = (verdict.get("merge_request") or {}).get("id")
+    merge: MergeState | None = None
+    if require_merged:
+        if not source_project:
+            raise ProposeError("the merge check needs --source-project to ask about")
+        try:
+            merge = forge.merge_state(source_project, str(mr_id))
+        except ForgeError as exc:
+            # Fail closed. "I could not find out" is not "yes" — see the module
+            # docstring on why this module's default is the opposite of the
+            # gate's.
+            return _result(
+                verdict, status="deferred",
+                reason=f"could not read the merge state, so assuming not merged: {exc}",
+                docs_project=docs_project, source_project=source_project, log_dir=log_dir,
+            )
+        if not merge.merged:
+            # `closed` is terminal and `opened` is not, and the queue is
+            # useless if it cannot tell "waiting" from "will never happen".
+            closed = merge.state in {"closed", "locked"}
+            return _result(
+                verdict,
+                status="abandoned" if closed else "deferred",
+                reason=(
+                    "source merge request was closed without merging"
+                    if closed else
+                    f"source merge request has not been merged yet (state: {merge.state or 'unknown'})"
+                ),
+                docs_project=docs_project, source_project=source_project,
+                merge=merge, log_dir=log_dir,
+            )
+
+    record = build_record(verdict, doc_map, source_project, merge)
     path = record_path(verdict, record_dir)
     branch = branch_name(verdict)
     target = target_branch or forge.default_branch(docs_project)
@@ -317,7 +405,6 @@ def run(
         raise ProposeError(f"refusing to commit to the docs default branch ({target})")
 
     existing = forge.find_open_merge_request(docs_project, source_branch=branch)
-    mr_id = (verdict.get("merge_request") or {}).get("id")
     message = (
         f"Doc impact record for {source_project or 'source'}!{mr_id}"
         f"\n\n{verdict.get('merge_request', {}).get('title', '')}".rstrip()
@@ -367,13 +454,13 @@ def run(
                 verdict, status="updated" if existing else "created", record=record, path=path,
                 branch=branch, target=target, commit=commit, mr=mr_ref, docs_project=docs_project,
                 source_project=source_project, warning=f"could not comment on the source MR: {exc}",
-                log_dir=log_dir,
+                merge=merge, log_dir=log_dir,
             )
 
     return _result(
         verdict, status="updated" if existing else "created", record=record, path=path,
         branch=branch, target=target, commit=commit, mr=mr_ref, docs_project=docs_project,
-        source_project=source_project, note_url=note_url, log_dir=log_dir,
+        source_project=source_project, note_url=note_url, merge=merge, log_dir=log_dir,
     )
 
 
@@ -392,6 +479,7 @@ def _result(
     source_project: str = "",
     note_url: str = "",
     warning: str = "",
+    merge: MergeState | None = None,
     log_dir: str | None = None,
 ) -> dict[str, Any]:
     result: dict[str, Any] = {
@@ -412,6 +500,13 @@ def _result(
         "pages": [page["path"] for page in (record or {}).get("pages", [])],
         "areas": list(verdict.get("areas") or []),
         "source_comment": note_url,
+        "merge": None if merge is None else {
+            "state": merge.state,
+            "merged": merge.merged,
+            "merged_by": merge.merged_by,
+            "merged_at": merge.merged_at,
+            "merge_commit": merge.merge_commit,
+        },
     }
     if reason:
         result["reason"] = reason

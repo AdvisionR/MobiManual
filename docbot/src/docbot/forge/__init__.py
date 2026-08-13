@@ -53,6 +53,25 @@ class Note:
     url: str = ""
 
 
+@dataclass
+class MergeState:
+    """Whether a source merge request has actually landed.
+
+    `state` is the forge's own word — `opened`, `merged`, `closed`, `locked` —
+    and `merged` is the only one DocBot acts on. The distinction between the
+    other three matters for what it says afterwards: `opened` is "not yet",
+    while `closed` is "never", and a queue that cannot tell them apart
+    accumulates entries nobody will ever clear.
+    """
+
+    state: str = ""
+    merged: bool = False
+    merged_by: str = ""
+    merged_at: str = ""
+    merge_commit: str = ""
+    target_branch: str = ""
+
+
 class Forge(Protocol):
     name: str
 
@@ -94,6 +113,12 @@ class Forge(Protocol):
 
     def comment(self, project: str, merge_request: str, body: str) -> Note: ...
 
+    def merge_state(self, project: str, merge_request: str) -> MergeState:
+        """Has this merge request landed? Raise ForgeError when the forge
+        cannot say — callers must be able to tell "not merged" from "could not
+        find out"."""
+        ...
+
 
 def get(name: str, **kwargs: object) -> Forge:
     if name == "gitlab":
@@ -112,6 +137,7 @@ __all__ = [
     "Forge",
     "ForgeError",
     "MergeRequestRef",
+    "MergeState",
     "Note",
     "get",
 ]

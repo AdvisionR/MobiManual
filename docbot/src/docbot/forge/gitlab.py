@@ -20,7 +20,7 @@ from urllib.parse import quote
 import httpx
 
 from ..config import forge_token
-from . import FileChange, ForgeError, MergeRequestRef, Note
+from . import FileChange, ForgeError, MergeRequestRef, MergeState, Note
 
 TIMEOUT = 30.0
 
@@ -186,6 +186,26 @@ class GitLabForge:
             json={"body": body},
         )
         return Note(id=str(data.get("id", "")), url=str(data.get("web_url", "")))
+
+    def merge_state(self, project: str, merge_request: str) -> MergeState:
+        """`GET /merge_requests/:iid`.
+
+        A 404 means the merge request could not be read, not that it has not
+        landed — it propagates as a ForgeError so the caller can fail closed
+        rather than read silence as an answer either way.
+        """
+        data = self._request("GET", f"/projects/{_encode(project)}/merge_requests/{merge_request}")
+        return MergeState(
+            state=str(data.get("state") or ""),
+            merged=str(data.get("state") or "") == "merged",
+            merged_by=str((data.get("merged_by") or {}).get("username", "")),
+            merged_at=str(data.get("merged_at") or ""),
+            # Squash and fast-forward merges leave the merge_commit_sha null
+            # and put the result in squash_commit_sha instead. Recording the
+            # wrong one gives the docs reviewer a sha that resolves to nothing.
+            merge_commit=str(data.get("merge_commit_sha") or data.get("squash_commit_sha") or ""),
+            target_branch=str(data.get("target_branch") or ""),
+        )
 
     @staticmethod
     def _ref(data: dict[str, Any], *, created: bool) -> MergeRequestRef:
