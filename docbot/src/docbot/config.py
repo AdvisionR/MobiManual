@@ -48,3 +48,20 @@ def load_dotenv(path: Path | None = None) -> None:
 def api_key(provider: str) -> str | None:
     load_dotenv()
     return os.environ.get(f"{provider.upper()}_API_KEY")
+
+
+def forge_token() -> str | None:
+    """The bot account's forge token.
+
+    `FORGE_TOKEN` is the name §8.5 binds in the Jenkinsfile (credentialsId
+    `forge-bot-token`), so that is the primary. `GITLAB_TOKEN` is accepted
+    because it is what a laptop already has exported while the forge question
+    (§12 #1) is open.
+    """
+    load_dotenv()
+    return os.environ.get("FORGE_TOKEN") or os.environ.get("GITLAB_TOKEN")
+
+
+def forge_url() -> str | None:
+    load_dotenv()
+    return os.environ.get("FORGE_URL")

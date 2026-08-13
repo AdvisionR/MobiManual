@@ -20,18 +20,23 @@ from typing import Any
 DEFAULT_LOG_DIR = Path(".docbot")
 LOG_NAME = "verdicts.jsonl"
 
+#: "Log every verdict *and every draft*." A proposal is the first thing DocBot
+#: writes to another repository, so it gets its own stream rather than being
+#: mixed into the verdict dataset the gate's evaluation depends on.
+PROPOSAL_LOG_NAME = "proposals.jsonl"
 
-def append(verdict: dict[str, Any], log_dir: str | Path | None = None) -> Path:
+
+def append(verdict: dict[str, Any], log_dir: str | Path | None = None, name: str = LOG_NAME) -> Path:
     directory = Path(log_dir or os.environ.get("DOCBOT_LOG_DIR") or DEFAULT_LOG_DIR)
     directory.mkdir(parents=True, exist_ok=True)
-    path = directory / LOG_NAME
+    path = directory / name
     with path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(verdict, sort_keys=True) + "\n")
     return path
 
 
-def read(log_dir: str | Path | None = None) -> list[dict[str, Any]]:
-    path = Path(log_dir or DEFAULT_LOG_DIR) / LOG_NAME
+def read(log_dir: str | Path | None = None, name: str = LOG_NAME) -> list[dict[str, Any]]:
+    path = Path(log_dir or DEFAULT_LOG_DIR) / name
     if not path.is_file():
         return []
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
