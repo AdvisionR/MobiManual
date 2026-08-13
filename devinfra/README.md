@@ -23,13 +23,17 @@ Nothing else. `up.sh` starts OrbStack itself if it is not running.
 ## 2. Quick start
 
 ```bash
-./scripts/up.sh             # boot GitLab + Jenkins, seed credentials   (~3 min first run)
-./scripts/seed-project.sh   # create the fixture repo and the Jenkins job
+./scripts/up.sh              # boot GitLab + Jenkins, seed credentials   (~3 min first run)
+./scripts/seed-project.sh    # create the console fixture repo and the Jenkins job
+./scripts/seed-docs-repo.sh  # create the docs repo DocBot writes to
 ./scripts/open-test-mr.sh docs
+./scripts/docbot-run.sh 1    # <- the merge request number the previous line printed
 ```
 
-The last command opens a real merge request and prints the `verdict.json`
-Jenkins produced from it.
+`open-test-mr.sh` opens a real merge request and prints the `verdict.json`
+Jenkins produced from it. `docbot-run.sh` then runs the real CLI over the same
+merge request and, if the gate says the manual is affected, opens a merge
+request on the docs repository linked back to it.
 
 | | URL | Login |
 |---|---|---|
@@ -46,8 +50,10 @@ Credentials are in [.env](.env). They are local-only throwaways.
 |---|---|
 | `up.sh` | Start OrbStack, boot GitLab, wait for real readiness, seed it, build and boot Jenkins |
 | `seed-gitlab.sh` | Set root password, allow local-network webhooks, mint a Jenkins API token |
-| `seed-project.sh` | Create the fixture project, push it, register the webhook, create the Jenkins job |
+| `seed-project.sh` | Create the console fixture project, push it, register the webhook, create the Jenkins job |
+| `seed-docs-repo.sh` | Create the docs project, push the fixture manual, protect `main` |
 | `open-test-mr.sh [docs\|silent]` | Open a test MR and report what Jenkins decided |
+| `docbot-run.sh <iid>` | Run the real CLI over that MR: `gate`, then `propose` |
 | `status.sh` | Containers, memory, disk, and four-way reachability check |
 | `down.sh` | Stop everything, keep data |
 | `nuke.sh` | Remove everything this stack created |
@@ -92,7 +98,22 @@ would add `/etc/hosts` entries and publish ports instead.
 
 ## 5. The prototype
 
-`demo-repo/Jenkinsfile` is the Phase 1 detector. On every merge request it:
+Two fixture repositories, because the design needs two:
+
+| Directory | GitLab project | What it stands in for |
+|---|---|---|
+| `demo-repo/` | `root/mobivisor-console` | the product repository DocBot watches |
+| `docs-repo/` | `root/mobivisor-manual` | the manual repository DocBot writes to |
+
+The separation is the point of foundation doc §7 option B: the bot's write
+access reaches a repository that contains no product code, and everything it
+does there arrives as a merge request a human has to look at. `main` on the
+docs project is protected against direct pushes as well, so the rule does not
+depend on DocBot being correct.
+
+### 5.1 Detection — `demo-repo/Jenkinsfile`
+
+The Phase 1 detector. On every merge request it:
 
 1. confirms it is an MR (`when { changeRequest() }`) and prints the context
    variables the gate needs — `CHANGE_ID`, `CHANGE_TITLE`, `CHANGE_AUTHOR`,
@@ -112,6 +133,38 @@ The `silent` case matters as much as the other one. Per foundation doc §14.3,
 the gate's job is mostly to say nothing, so "correctly stays quiet" is a result
 worth testing rather than an absence of one.
 
+### 5.2 Delivery — `docbot-run.sh`
+
+The Jenkinsfile stops at a tier-1 verdict. `./scripts/docbot-run.sh <iid>` runs
+what the pipeline will actually run, from the laptop:
+
+```
+changed files (GitLab API)  ->  docbot gate  ->  docbot propose
+```
+
+and, on a positive verdict, opens the docs merge request. Same commands, same
+arguments, same artifacts as the eventual Jenkins stage — §8.5 wants the CLI to
+run identically in both places, and this is how that stays true rather than
+aspirational.
+
+Verified end to end against this stack:
+
+| Run | Result |
+|---|---|
+| `docbot-run.sh 4` (enrollment change) | tier 2 `mistral-small-latest`, confidence 0.98 → docs MR !1 opened, carrying `doc-impact/pending/mr-4.yaml` |
+| second push to the same source MR | record recommitted, MR body rewritten, **still one docs MR** |
+| `docbot-run.sh 5` (push transport) | `doc_impact: false` at tier 1 — no model call, no docs MR, nothing written |
+| both directions | source MR carries a DocBot comment linking to the docs MR; GitLab cross-references it back |
+
+The middle row is the one worth keeping an eye on. A source merge request is
+pushed to repeatedly and the gate re-runs each time; the docs branch is named
+after the source MR id so all of them land on one merge request. Nine merge
+requests for one change would teach a reviewer to ignore all nine.
+
+`--dry-run` renders the record and the merge-request body to the terminal
+without writing anything, which is the fastest way to see what a reviewer would
+be shown.
+
 ### Two deviations from the foundation doc, on purpose
 
 **Changed files come from the API, not `git merge-base`.** §8.4 gives a
@@ -130,10 +183,23 @@ port this to the real CLI.
 
 ## 6. What is deliberately not set up
 
+- **DocBot does not run inside Jenkins yet.** The controller has no Python and
+  no `docbot`, so `docbot-run.sh` drives the pipeline from the laptop instead.
+  This is a deliberate ordering, not an oversight: installing the CLI means
+  rebuilding the Jenkins image, and that re-resolves every plugin in
+  `plugins.txt`, which is unpinned (§7 below). Pin the plugins in the same
+  change that adds the CLI, so a broken controller has one suspect rather than
+  two.
 - **No Docker agent.** Builds run on the Jenkins controller. §8.5 wants the
-  DocBot CLI in a pinned image; that starts mattering when there is a CLI.
+  DocBot CLI in a pinned image; that is the same change as the point above.
 - **No trigger #2.** §8.3's push-to-main drafting run is a stub in the
-  `Jenkinsfile`.
+  `Jenkinsfile`. `docbot propose` runs happily from either trigger, so which
+  one it lands on is still an open choice — see `docbot/README.md` §9.
+- **Nothing validates the docs merge request.** §6.7 wants a build, a link
+  check, a prose lint and a "no edits to `human-only` or `generated` paths"
+  gate on it. The first three need the real build script (§12 question #3); the
+  fourth needs only the content classes already in the fixture's front matter,
+  and is the obvious next thing to write.
 - **No commit-status reporting.** `gitlab-plugin` is installed but unwired, so
   the MR page shows no Jenkins status. Detection does not depend on it.
 - **No fallback branch indexing.** The multibranch job has no

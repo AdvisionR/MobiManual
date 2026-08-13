@@ -169,6 +169,16 @@ class GitLabForge:
         data = self._request("POST", f"/projects/{_encode(project)}/merge_requests", json=payload)
         return self._ref(data, created=True)
 
+    def update_merge_request(
+        self, project: str, iid: str, *, title: str, description: str
+    ) -> MergeRequestRef:
+        data = self._request(
+            "PUT",
+            f"/projects/{_encode(project)}/merge_requests/{iid}",
+            json={"title": title, "description": description},
+        )
+        return self._ref(data, created=False)
+
     def comment(self, project: str, merge_request: str, body: str) -> Note:
         data = self._request(
             "POST",

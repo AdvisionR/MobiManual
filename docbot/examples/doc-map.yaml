@@ -11,6 +11,11 @@
 # This is an illustrative map covering the fixture repository in devinfra/ plus
 # a few realistic MobiVisor areas. The real one is hand-maintained against the
 # real repository layout.
+#
+# `pages` are paths in the docs repository (devinfra/docs-repo/ locally). They
+# are `.md`, not the `.adoc` of the §6.5 sample: §3.1 established from the
+# Pandoc metadata in combined.html that the manual source is already Markdown,
+# and the sample predates that finding.
 
 version: 1
 
@@ -38,7 +43,7 @@ areas:
       - "^src/enrollment/ios/"
       - "^src/protocol/dep/"
     pages:
-      - "pages/enrollment/ios-abm.adoc"
+      - "pages/enrollment/ios-abm.md"
     class: ai-drafted
 
   - id: users-and-roles
@@ -49,8 +54,8 @@ areas:
       - "^src/console/users/"
       - "^src/console/roles/"
     pages:
-      - "pages/users.adoc"
-      - "pages/roles.adoc"
+      - "pages/users.md"
+      - "pages/roles.md"
     class: ai-drafted
 
   - id: kiosk-modes
@@ -61,7 +66,7 @@ areas:
       - "^src/console/kiosk/"
       - "^src/policies/kiosk/"
     pages:
-      - "pages/policies/kiosk-modes.adoc"
+      - "pages/policies/kiosk-modes.md"
     class: ai-drafted
 
   - id: policy-schema
@@ -71,7 +76,7 @@ areas:
     code:
       - "^schema/policies/"
     pages:
-      - "pages/reference/policy-settings.adoc"
+      - "pages/reference/policy-settings.md"
     class: generated
 
   - id: security-statements
@@ -81,7 +86,7 @@ areas:
     code:
       - "^docs/security/"
     pages:
-      - "pages/intro/security.adoc"
+      - "pages/intro/security.md"
     class: human-only
 
   # ---- explicit silence ----------------------------------------------------

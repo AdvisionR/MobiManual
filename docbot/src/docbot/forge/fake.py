@@ -85,6 +85,19 @@ class FakeForge:
             source_branch=source_branch, created=True,
         )
 
+    def update_merge_request(
+        self, project: str, iid: str, *, title: str, description: str
+    ) -> MergeRequestRef:
+        for mr in self.merge_requests:
+            if mr["project"] == project and mr["iid"] == iid:
+                mr["title"] = title
+                mr["description"] = description
+                return MergeRequestRef(
+                    iid=iid, url=mr["url"], title=title, state=mr["state"],
+                    source_branch=mr["source_branch"], created=False,
+                )
+        raise KeyError(f"no merge request {iid} in {project}")
+
     def comment(self, project: str, merge_request: str, body: str) -> Note:
         self.notes.append({"project": project, "merge_request": merge_request, "body": body})
         return Note(id=str(len(self.notes)), url=f"{self._base_url}/{project}/-/merge_requests/{merge_request}")

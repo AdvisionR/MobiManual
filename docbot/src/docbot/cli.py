@@ -5,6 +5,7 @@ artifact. Jenkins stays thin (§8.5): it collects context, runs one of these, an
 archives the result. Every command here runs identically on a laptop.
 
     docbot gate              # is this user-facing? which areas?
+    docbot propose           # open the docs merge request for a verdict
     docbot screenshots ...   # which images changed / are stale?
     docbot eval              # replay a labelled corpus, score the gate
 
@@ -12,6 +13,11 @@ Not yet implemented, and named in §8.6 for when they are:
     docbot render-reference  # schema -> generated tables (needs the schemas)
     docbot draft             # agentic docs edit (Phase 3)
     docbot validate          # build + lint + link check (needs the sources)
+
+`propose` is not in the §8.6 list. It is delivery, not analysis: §7 chose
+option B (a bot-authored docs merge request linked back to the source one) and
+`gate` deliberately stops at a verdict artifact. Splitting the two keeps the
+gate runnable — and evaluable offline — without write access to anything.
 """
 
 from __future__ import annotations
@@ -23,9 +29,11 @@ from typing import Any
 
 import click
 
-from . import docmap, evalharness, gate, screenshots
-from .config import DEFAULT_MODEL, DEFAULT_PROVIDER
+from . import docmap, evalharness, gate, propose, screenshots
+from .config import DEFAULT_MODEL, DEFAULT_PROVIDER, forge_url
 from .docmap import DocMapError
+from .forge import ForgeError, get as get_forge
+from .propose import ProposeError
 from .providers import ProviderError, get as get_provider
 
 
@@ -154,6 +162,122 @@ def gate_cmd(
 
 
 main.add_command(gate_cmd, name="gate")
+
+
+# ---------------------------------------------------------------------------
+# propose
+# ---------------------------------------------------------------------------
+
+
+@main.command(name="propose")
+@click.option("--verdict", "verdict_path", required=True, type=click.Path(exists=True),
+              help="Verdict artifact from `docbot gate`.")
+@click.option("--docs-project", required=True, help="Docs repository, e.g. root/mobivisor-manual.")
+@click.option("--source-project", default="", envvar="DOCBOT_SOURCE_PROJECT",
+              help="Project the source merge request lives in. Recorded, and required by --comment-source.")
+@click.option("--doc-map", default=None, type=click.Path(exists=True),
+              help="Doc map, for per-page content classes (§6.4).")
+@click.option("--forge", "forge_name", default="gitlab", type=click.Choice(["gitlab", "fake"]),
+              show_default=True)
+@click.option("--forge-url", "url", default=None, envvar="FORGE_URL", help="Forge base URL.")
+@click.option("--target-branch", default=None, help="Docs branch to target (default: its default branch).")
+@click.option("--record-dir", default=propose.DEFAULT_RECORD_DIR, show_default=True,
+              help="Where the doc-impact record lands in the docs repo.")
+@click.option("--label", "labels", multiple=True, help="Label for the docs MR. Repeatable.")
+@click.option("--comment-source", is_flag=True,
+              help="Also comment on the source MR with a link to the docs MR (§7 option A).")
+@click.option("--dry-run", is_flag=True, help="Render everything, write nothing. Prints the MR body.")
+@click.option("--log-dir", default=None, help="Proposal log directory (default .docbot).")
+@click.option("--out", default=None, help="Write the proposal artifact here.")
+@click.option("--json", "as_json", is_flag=True)
+def propose_cmd(
+    verdict_path: str,
+    docs_project: str,
+    source_project: str,
+    doc_map: str | None,
+    forge_name: str,
+    url: str | None,
+    target_branch: str | None,
+    record_dir: str,
+    labels: tuple[str, ...],
+    comment_source: bool,
+    dry_run: bool,
+    log_dir: str | None,
+    out: str | None,
+    as_json: bool,
+) -> None:
+    """Open the docs merge request for a gate verdict (§7, delivery model B).
+
+    Silent when the verdict says `doc_impact: false` — that is the common and
+    correct case (§14.3) and it never touches the forge.
+    """
+    verdict = json.loads(Path(verdict_path).read_text(encoding="utf-8"))
+
+    loaded_map = None
+    if doc_map:
+        try:
+            loaded_map = docmap.load(doc_map)
+        except DocMapError as exc:
+            raise click.ClickException(str(exc)) from exc
+
+    try:
+        # Built only when there is something to propose. A silent verdict is
+        # the common case (§14.3) and must not need a forge URL or a token —
+        # otherwise every uneventful merge fails the build.
+        forge = None
+        if verdict.get("doc_impact"):
+            forge = (
+                get_forge("fake") if dry_run
+                else get_forge(forge_name, url=url or forge_url() or "")
+            )
+        result = propose.run(
+            verdict, forge,
+            docs_project=docs_project,
+            doc_map=loaded_map,
+            source_project=source_project,
+            record_dir=record_dir,
+            target_branch=target_branch,
+            labels=list(labels) or None,
+            comment_source=comment_source,
+            log_dir=log_dir,
+        )
+    except (ForgeError, ProposeError) as exc:
+        raise click.ClickException(str(exc)) from exc
+
+    _write(out, result)
+    if as_json:
+        _echo_json(result)
+        return
+
+    if result["status"] == "skipped":
+        click.secho(f"no docs merge request — {result['reason']}", fg="green", bold=True)
+        return
+
+    if dry_run:
+        # The body is the part most likely to be wrong; show it rather than
+        # making someone read it in the forge afterwards.
+        record = propose.build_record(verdict, loaded_map, source_project)
+        click.secho(f"--- {result['record_path']} ---", fg="cyan", bold=True)
+        click.echo(propose.render_record(record))
+        click.secho(f"--- merge request: {propose.render_title(verdict)} ---", fg="cyan", bold=True)
+        click.echo(propose.render_description(verdict, record, result["record_path"]))
+        click.secho("dry run — nothing was written", fg="yellow", bold=True)
+        return
+
+    mr = result["merge_request"] or {}
+    click.secho(
+        f"docs merge request {result['status']}: {mr.get('url', '(no url)')}",
+        fg="yellow", bold=True,
+    )
+    click.echo(f"  branch       : {result['branch']} -> {result['target_branch']}")
+    click.echo(f"  record       : {result['record_path']}")
+    if result["pages"]:
+        click.echo(f"  pages        : {', '.join(result['pages'])}")
+    if result["source_comment"]:
+        click.echo("  commented on the source merge request")
+    if result.get("warning"):
+        click.secho(f"  warning      : {result['warning']}", fg="red")
+    click.echo(f"  logged to    : {result['log_path']}")
 
 
 # ---------------------------------------------------------------------------

@@ -84,6 +84,14 @@ class Forge(Protocol):
         labels: list[str] = ...,
     ) -> MergeRequestRef: ...
 
+    def update_merge_request(
+        self, project: str, iid: str, *, title: str, description: str
+    ) -> MergeRequestRef:
+        """Refresh an existing proposal. A source MR pushed to twice keeps one
+        docs MR, so the body has to be rewritten or it describes the first
+        verdict forever."""
+        ...
+
     def comment(self, project: str, merge_request: str, body: str) -> Note: ...
 
 

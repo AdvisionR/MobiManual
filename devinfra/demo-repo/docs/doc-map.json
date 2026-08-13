@@ -12,13 +12,13 @@
     {
       "id": "enrollment-ios",
       "code": ["^src/enrollment/ios/", "^src/protocol/dep/"],
-      "pages": ["pages/enrollment/ios-abm.adoc"],
+      "pages": ["pages/enrollment/ios-abm.md"],
       "class": "ai-drafted"
     },
     {
       "id": "policy-schema",
       "code": ["^schema/policies/"],
-      "pages": ["pages/reference/policy-settings.adoc"],
+      "pages": ["pages/reference/policy-settings.md"],
       "class": "generated"
     },
     {

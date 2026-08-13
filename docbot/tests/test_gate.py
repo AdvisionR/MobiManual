@@ -73,7 +73,7 @@ def test_model_positive_yields_pages_and_a_draft_action(doc_map, tmp_path):
     verdict = run(doc_map, ["src/enrollment/ios/EnrollmentWizard.tsx"], tmp_path, provider)
     assert verdict["doc_impact"] is True
     assert verdict["areas"] == ["enrollment-ios"]
-    assert verdict["pages"] == ["pages/enrollment/ios-abm.adoc"]
+    assert verdict["pages"] == ["pages/enrollment/ios-abm.md"]
     assert "draft" in verdict["actions"]
 
 
