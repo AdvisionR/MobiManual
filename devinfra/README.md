@@ -37,6 +37,9 @@ OrbStack-specific feature (§6). `up.sh` starts it if it is not running.
 ./scripts/open-test-mr.sh    # open a merge request, watch the bot see it
 ```
 
+[RUNBOOK.md](RUNBOOK.md) covers the same ground in more detail, plus how to
+inspect each stage afterwards and what to check when one of them is silent.
+
 The last line prints the `detection.json` the bot produced, which looks like:
 
 ```json
