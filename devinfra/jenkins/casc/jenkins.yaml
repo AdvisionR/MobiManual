@@ -58,15 +58,20 @@ unclassified:
       - name: "local-gitlab"
         serverUrl: "${GITLAB_SERVER_URL}"
         credentialsId: "gitlab-pat"
-        # Jenkins does NOT manage the project webhook, despite the valid
-        # credentialsId above. Registration aborts with "No Item credentials
-        # added, cannot create web hook" because GitLabSCMSource.credentials()
-        # resolves to null in this context (README §7.5). seed-project.sh
-        # registers the hook via the GitLab API against /gitlab-webhook/post
-        # instead — the same endpoint the plugin would have used.
+        # Jenkins registers and maintains the project webhook itself. This flag
+        # is the only thing gating it: GitLabHookCreator.register() reads the
+        # source's webhook mode, which defaults to SYSTEM, and the SYSTEM branch
+        # begins `if (!server.isManageWebHooks()) return;`. With it false the
+        # method returns before it ever looks at a credential (README §7.5).
         #
-        # This flag only controls whether the plugin creates and maintains
-        # hooks on the GitLab side. Receiving them is unaffected: the endpoint
-        # is served by GitLabWebHookAction regardless.
-        manageWebHooks: false
+        # SYSTEM mode resolves the token via GitLabServer.getCredentials(owner),
+        # which reads the credential above. It does not go through
+        # GitLabSCMSource.credentials() — that is the ITEM path, and it is
+        # broken in this plugin version (it passes the logged-in user's
+        # authentication to a system-store lookup, which by design only answers
+        # under ACL.SYSTEM). Do not add a HookRegistrationTrait with
+        # webHookMode: ITEM unless that is fixed upstream.
+        manageWebHooks: true
+        # Left off deliberately. System hooks are instance-wide and need an
+        # admin-scoped token; the project webhook is all detection requires.
         manageSystemHooks: false

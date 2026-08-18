@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Create the demo GitLab project, push the fixture repo, register the webhook,
-# and create the Jenkins multibranch job that discovers merge requests.
+# Create the demo GitLab project, push the fixture repo, and create the Jenkins
+# multibranch job that discovers merge requests. Jenkins registers the webhook
+# itself when the job's SCM source is saved; this script verifies that it did.
 #
 # Idempotent: deletes and recreates the project, so it is safe to re-run to get
 # back to a known-good state.
@@ -14,7 +15,6 @@ API="http://${GITLAB_HOST}/api/v4"
 PROJECT_PATH="root/mobivisor-console"
 PROJECT_ENC="root%2Fmobivisor-console"
 JOB_NAME="docbot-mr-probe"
-HOOK_URL="http://${JENKINS_HOST}:${JENKINS_PORT}/gitlab-webhook/post"
 
 say() { printf '\n\033[1;36m==>\033[0m %s\n' "$*"; }
 ok()  { printf '    \033[0;32mok\033[0m  %s\n' "$*"; }
@@ -52,21 +52,10 @@ rm -rf "$WORK"; cp -R demo-repo "$WORK"
 )
 ok "main pushed"
 
-say "Registering webhook -> Jenkins"
-# Registered explicitly rather than letting the GitLab Branch Source plugin
-# manage it. The plugin's own registration aborts with "No Item credentials
-# added, cannot create web hook": its GitLabSCMSource.credentials() resolves to
-# null even with a valid credentialsId. The endpoint below is exactly the one
-# the plugin would have registered, so runtime behaviour is identical.
-for id in $(gl "$API/projects/$PROJECT_ENC/hooks" | python3 -c 'import sys,json;[print(h["id"]) for h in json.load(sys.stdin)]'); do
-  gl -X DELETE "$API/projects/$PROJECT_ENC/hooks/$id" >/dev/null
-done
-gl -X POST --data-urlencode "url=${HOOK_URL}" \
-   --data "push_events=true&merge_requests_events=true&note_events=true&enable_ssl_verification=false" \
-   "$API/projects/$PROJECT_ENC/hooks" >/dev/null
-ok "webhook -> ${HOOK_URL}"
-
 say "Creating Jenkins multibranch job '${JOB_NAME}'"
+# The webhook is NOT registered here. Jenkins does it, on save of the SCM
+# source below, because casc/jenkins.yaml sets manageWebHooks: true. It is
+# verified rather than assumed a few lines further down.
 ./scripts/jenkins-groovy.sh - <<GROOVY | sed 's/^/    /'
 import jenkins.model.Jenkins
 import jenkins.branch.BranchSource
@@ -89,10 +78,40 @@ src.setTraits([
 ])
 mbp.getSourcesList().add(new BranchSource(src))
 mbp.save()
+
+// Registers the GitLab webhook. Needed because this job is built
+// programmatically: SCMSource.afterSave() is what triggers hook registration,
+// and branch-api only calls it from the UI's form-submit path —
+// WorkflowMultiBranchProject has no afterSave() of its own, so mbp.save() does
+// not reach the sources. Read back from the project rather than reusing the
+// local \`src\`, so the source's owner is set and GitLabServer.getCredentials()
+// has an item to resolve against.
+mbp.SCMSources.each { it.afterSave() }
+
 mbp.scheduleBuild2(0)
-println "job created, indexing scheduled"
+println "job created, webhook registered, indexing scheduled"
 GROOVY
 ok "job created"
+
+say "Waiting for Jenkins to register the webhook"
+# Registration happens on the SCM source's afterSave
+HOOK_OK=""
+for _ in $(seq 1 30); do
+  if gl "$API/projects/$PROJECT_ENC/hooks" \
+     | python3 -c 'import sys,json;sys.exit(0 if any("/gitlab-webhook/post" in h["url"] for h in json.load(sys.stdin)) else 1)'; then
+    HOOK_OK=1; break
+  fi
+  sleep 2
+done
+if [ -n "$HOOK_OK" ]; then
+  gl "$API/projects/$PROJECT_ENC/hooks" \
+    | python3 -c 'import sys,json;[print("    ok  webhook -> %s  (merge_requests=%s push=%s)" % (h["url"], h["merge_requests_events"], h["push_events"])) for h in json.load(sys.stdin)]'
+else
+  printf '\n    \033[0;31mFAILED\033[0m  Jenkins did not register a webhook within 60s.\n' >&2
+  printf '            Check manageWebHooks in casc/jenkins.yaml, then the Jenkins log:\n' >&2
+  printf '            docker logs jenkins 2>&1 | grep -i "web hook"\n\n' >&2
+  exit 1
+fi
 
 cat <<EOF
 

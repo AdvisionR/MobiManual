@@ -32,9 +32,11 @@ import click
 from . import docmap, evalharness, gate, propose, screenshots
 from .config import DEFAULT_MODEL, DEFAULT_PROVIDER, forge_url
 from .docmap import DocMapError
-from .forge import ForgeError, get as get_forge
+from .forge import ForgeError
+from .forge import get as get_forge
 from .propose import ProposeError
-from .providers import ProviderError, get as get_provider
+from .providers import ProviderError
+from .providers import get as get_provider
 
 
 def _echo_json(data: Any) -> None:

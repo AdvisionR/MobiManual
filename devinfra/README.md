@@ -54,7 +54,7 @@ Credentials are in [.env](.env). They are local-only throwaways.
 |---|---|
 | `up.sh` | Start OrbStack, boot GitLab, wait for real readiness, seed it, build and boot Jenkins |
 | `seed-gitlab.sh` | Set root password, allow local-network webhooks, mint a Jenkins API token |
-| `seed-project.sh` | Create the console fixture project, push it, register the webhook, create the Jenkins job |
+| `seed-project.sh` | Create the console fixture project, push it, create the Jenkins job, verify Jenkins registered the webhook |
 | `seed-docs-repo.sh` | Create the docs project, push the fixture manual, protect `main` |
 | `open-test-mr.sh [docs\|silent]` | Open a test MR and report what Jenkins decided |
 | `merge-test-mr.sh <iid>` | Merge an MR, as a maintainer would |
@@ -292,22 +292,37 @@ message alone.
 
    (`export` is POST-only; GET returns "Method Not Allowed".)
 
-5. **The Branch Source plugin cannot register its own webhook here.** With
-   `manageWebHooks: true` and a valid `credentialsId`, registration aborts:
-   `WARNING: No Item credentials added, cannot create web hook`.
-   `GitLabSCMSource.credentials()` returns null even though
-   `CredentialsProvider.lookupCredentials(PersonalAccessToken, ...)` finds the
-   credential in the same context. `seed-project.sh` therefore registers the
-   hook via the GitLab API against `/gitlab-webhook/post` — the same endpoint
-   the plugin would have used, so runtime behaviour is identical.
+5. **Webhook registration needs two things, and one of them is not obvious.**
+   Jenkins now registers and maintains the project webhook itself. Getting
+   there took `manageWebHooks: true` *plus* an explicit `afterSave()` call, and
+   only the first is discoverable from the config.
 
-   The JCasC file consequently sets **`manageWebHooks: false`**. It said `true`
-   for a while, which was misleading in a way worth avoiding: the config read
-   as though Jenkins owned the webhook while the hook that actually existed was
-   the one `seed-project.sh` created. The flag governs only hook *creation* on
-   the GitLab side — inbound deliveries are served by `GitLabWebHookAction`
-   whatever it is set to. Flip it back to `true` if a plugin upgrade fixes the
-   credential lookup, and drop the API call from `seed-project.sh` when you do.
+   `GitLabHookCreator.register()` switches on the source's webhook mode, which
+   defaults to `SYSTEM`. That branch opens with
+   `if (!server.isManageWebHooks()) return;`, so with the flag false it returns
+   before it ever looks at a credential — silently, no log line. Set the flag
+   and the same branch resolves the token through
+   `GitLabServer.getCredentials(owner)`, which works fine.
+
+   The second half: registration is triggered by `SCMSource.afterSave()`, and
+   `branch-api` only calls that from the UI's form-submit path.
+   `WorkflowMultiBranchProject` has no `afterSave()` of its own, so the
+   `mbp.save()` in `seed-project.sh` does not reach the sources. A job built
+   programmatically must call it — hence `mbp.SCMSources.each { it.afterSave() }`.
+   The script then *verifies* the hook exists rather than assuming it, because
+   a missing hook means merge requests are never detected and the failure looks
+   exactly like Jenkins being slow.
+
+   An earlier version of this note blamed `GitLabSCMSource.credentials()`
+   returning null. That is a real bug but an unrelated one: it is the `ITEM`
+   webhook mode's lookup, which the default never takes. It returns null
+   because system-store credentials only resolve under `ACL.SYSTEM`, while the
+   plugin passes `Jenkins.getAuthentication()` — the logged-in user. Do not add
+   a `HookRegistrationTrait` with `webHookMode: ITEM` until that is fixed
+   upstream.
+
+   `manageSystemHooks` stays **false**: system hooks are instance-wide and need
+   an admin-scoped token, and the project webhook is all detection requires.
 
 ---
 
