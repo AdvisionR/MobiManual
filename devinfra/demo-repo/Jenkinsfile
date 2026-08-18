@@ -1,149 +1,25 @@
-// MobiManual DocBot — Phase 1 prototype: detect a merge request and collect
-// the context a doc-impact gate would need.
-//
-// Deliberately thin, per foundation doc §8.5: this file collects context and
-// emits a JSON artifact. It contains no gate logic — that belongs in the
-// standalone `docbot` CLI so it can be run and tested on a laptop.
+// Merge request detection.
+// discovers every open merge request as an `MR-<iid>` branch job and fills the environment
 
 pipeline {
   agent any
 
-  options {
-    timestamps()
-    buildDiscarder(logRotator(numToKeepStr: '20'))
-  }
-
   environment {
-    GITLAB_API = 'http://gitlab.orb.local/api/v4'
-    // Hardcoded for the prototype. The real DocBot resolves this from the
-    // branch-source server config rather than carrying it in the Jenkinsfile.
-    GITLAB_PROJECT_PATH = 'root/mobivisor-console'
+    GITLAB_URL     = 'http://gitlab.orb.local'
+    GITLAB_PROJECT = 'root/mobivisor-console'
   }
 
   stages {
-
-    stage('Merge request detected') {
-      // `changeRequest()` is true only for MR-* branches discovered by the
-      // GitLab Branch Source plugin. Pushes to main skip this entirely, which
-      // is trigger #1 of the two in §8.3.
+    stage('DocBot') {
       when { changeRequest() }
       steps {
-        script {
-          echo """
-          ┌─ MERGE REQUEST DETECTED ─────────────────────────────────
-          │ CHANGE_ID      ${env.CHANGE_ID}
-          │ CHANGE_TITLE   ${env.CHANGE_TITLE}
-          │ CHANGE_AUTHOR  ${env.CHANGE_AUTHOR}
-          │ CHANGE_BRANCH  ${env.CHANGE_BRANCH}
-          │ CHANGE_TARGET  ${env.CHANGE_TARGET}
-          │ CHANGE_URL     ${env.CHANGE_URL}
-          │ BRANCH_NAME    ${env.BRANCH_NAME}
-          └──────────────────────────────────────────────────────────
-          """.stripIndent()
-        }
-
         withCredentials([usernamePassword(credentialsId: 'gitlab-http',
-                                          usernameVariable: 'GL_USER',
-                                          passwordVariable: 'GL_TOKEN')]) {
-          // Changed files come from the forge API rather than a local
-          // merge-base. §8.4 warns that multibranch checks out a merge commit
-          // over a shallow clone, which makes `git merge-base` silently wrong;
-          // the API is authoritative and needs no clone depth tuning.
-          sh '''
-            set -eu
-            PROJECT=$(printf '%s' "$GITLAB_PROJECT_PATH" | sed 's|/|%2F|g')
-            curl -sf -H "PRIVATE-TOKEN: $GL_TOKEN" \
-              "$GITLAB_API/projects/$PROJECT/merge_requests/$CHANGE_ID/changes" \
-              > mr.json
-            jq -r '.changes[].new_path' mr.json | sort -u > changed_files.txt
-            echo "--- changed files ---"
-            cat changed_files.txt
-          '''
+                                          usernameVariable: 'GITLAB_USER',
+                                          passwordVariable: 'GITLAB_TOKEN')]) {
+          sh 'docbot'
         }
-
-        // Tier 1 of the three-tier gate (§6.3): a pure path lookup against the
-        // doc map. Costs nothing, drops most merges, and needs no model.
-        sh '''
-          set -eu
-          jq -n \
-            --arg mr      "$CHANGE_ID" \
-            --arg title   "$CHANGE_TITLE" \
-            --arg author  "$CHANGE_AUTHOR" \
-            --arg branch  "$CHANGE_BRANCH" \
-            --arg target  "$CHANGE_TARGET" \
-            --arg url     "$CHANGE_URL" \
-            --slurpfile map docs/doc-map.json \
-            --rawfile files changed_files.txt \
-            '($files | split("\\n") | map(select(length > 0))) as $changed
-             | ($map[0].areas
-                 | map(. as $a
-                       | ($changed | map(select(. as $f
-                           | $a.code | any(. as $g | $f | test($g))))) as $hits
-                       | select($hits | length > 0)
-                       | {id: $a.id, class: $a.class, pages: $a.pages, matched: $hits})
-               ) as $areas
-             | {merge_request: {id: $mr, title: $title, author: $author,
-                                branch: $branch, target: $target, url: $url},
-                changed_files: $changed,
-                areas: $areas,
-                doc_impact: ($areas | map(select(.class != "no-doc-impact")) | length > 0),
-                tier: "path-filter",
-                note: "Tier 1 only. Tiers 2 and 3 live in the docbot CLI."}' \
-            > verdict.json
-          echo "--- verdict.json ---"
-          cat verdict.json
-        '''
+        archiveArtifacts artifacts: 'detection.json,mr.json', fingerprint: true
       }
-    }
-
-    stage('Propose docs MR') {
-      // Trigger #2 in §8.3: "push to main -> drafting run that opens the docs
-      // PR". A merge *is* a push to main, so this is the stage that fires
-      // after one, and the merge request that caused it is recovered from the
-      // merge commit rather than from CHANGE_ID — a branch build has no merge
-      // request context at all.
-      //
-      // Not written yet: the controller has no `docbot` on it (see
-      // devinfra/README.md §6). What it becomes once the CLI is in the image:
-      //
-      //   sh '''
-      //     SHA=$(git rev-parse HEAD)
-      //     curl -sf -H "PRIVATE-TOKEN: $GL_TOKEN" \
-      //       "$GITLAB_API/projects/$PROJECT/repository/commits/$SHA/merge_requests" > mrs.json
-      //     IID=$(jq -r '.[0].iid // empty' mrs.json)
-      //     [ -n "$IID" ] || exit 0        # a direct push, not a merge
-      //     ...gate, then:
-      //     docbot propose --verdict verdict.json \
-      //       --docs-project root/mobivisor-manual \
-      //       --source-project root/mobivisor-console \
-      //       --doc-map docs/doc-map.yaml --comment-source --out proposal.json
-      //   '''
-      //
-      // There is deliberately no `when { ... merged ... }` condition. The
-      // merge check lives in `docbot propose`, which writes nothing and exits
-      // `deferred` until the source MR has landed. Keeping it there rather
-      // than in Groovy is §8.5, but it also means the rule survives whatever
-      // starts the build — a replayed webhook, someone pressing "Build now",
-      // or a future trigger nobody has thought of yet.
-      when { branch 'main' }
-      steps {
-        echo "Push to ${env.BRANCH_NAME} — this is where the docs MR gets opened (Phase 2)."
-      }
-    }
-
-    stage('Other branches') {
-      when { allOf { not { changeRequest() }; not { branch 'main' } } }
-      steps {
-        echo "Push to ${env.BRANCH_NAME} — not a merge request, not main. Nothing to do."
-      }
-    }
-  }
-
-  post {
-    always {
-      archiveArtifacts artifacts: 'verdict.json,changed_files.txt,mr.json',
-                       allowEmptyArchive: true, fingerprint: true
-      cleanWs()
     }
   }
 }

@@ -1,38 +1,16 @@
-# Transitive dependencies are resolved automatically by jenkins-plugin-cli,
-# so this list stays intentionally short and readable.
+# Transitive dependencies are resolved by jenkins-plugin-cli, so this list is
+# only the four plugins the integration actually needs.
 
-# Declarative configuration — no click-ops, so the controller is reproducible.
+# Declarative configuration, so the controller is reproducible (casc/).
 configuration-as-code
 
-# Pipeline suite (declarative pipeline, stage view, multibranch).
+# Declarative pipeline + multibranch.
 workflow-aggregator
-pipeline-stage-view
 
-# GitLab integration.
-#   gitlab-branch-source : discovers merge requests as MR-<iid> jobs and exposes
-#                          CHANGE_ID / CHANGE_TARGET / CHANGE_BRANCH / CHANGE_TITLE
-#                          / CHANGE_AUTHOR / CHANGE_URL. This is the path the
-#                          foundation doc (§8.2) selects for production.
-#   gitlab-plugin        : commit-status reporting back onto the MR, plus the
-#                          classic push/MR webhook trigger for freestyle jobs.
-#                          Currently inert — kept for the commit-status step
-#                          Phase 2 will need. It is not a dependency of
-#                          gitlab-branch-source, and nothing wires it up: no
-#                          gitLabConnectionConfig in casc/jenkins.yaml, no
-#                          gitlabCommitStatus in the Jenkinsfile. It also owns a
-#                          different endpoint (/project/...) than the one MR
-#                          detection uses.
+# Discovers merge requests as MR-<iid> jobs, exposes CHANGE_ID / CHANGE_TITLE /
+# CHANGE_AUTHOR / CHANGE_BRANCH / CHANGE_TARGET / CHANGE_URL, and registers the
+# GitLab webhook. This is the plugin the template is about.
 gitlab-branch-source
-gitlab-plugin
 
-# SCM + credentials.
-git
+# withCredentials() in the Jenkinsfile.
 credentials-binding
-plain-credentials
-
-# Job seeding, so the demo job is code rather than a wizard.
-job-dsl
-
-# Quality-of-life for reading prototype logs.
-timestamper
-ws-cleanup

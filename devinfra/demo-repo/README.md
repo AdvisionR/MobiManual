@@ -1,15 +1,11 @@
 # mobivisor-console (fixture)
 
-Not the real MobiVisor console. This is a throwaway repository used to exercise
-the DocBot prototype end to end: it exists so merge requests can be opened
-against paths that the doc map classifies differently.
+Not the real MobiVisor console — a throwaway repository that exists so merge
+requests can be opened against something.
 
-| Path | Doc-map area | Class | Expected gate behaviour |
-|---|---|---|---|
-| `src/enrollment/ios/**` | `enrollment-ios` | `ai-drafted` | flag doc impact |
-| `src/protocol/apns/**` | `push-transport` | `no-doc-impact` | stay silent |
-| `Jenkinsfile`, `tests/**` | `ci-and-tests` | `no-doc-impact` | stay silent |
+`Jenkinsfile` is the whole integration on this side: when Jenkins builds a
+merge request, it runs `docbot`. The bot itself lives in the Jenkins image
+(`devinfra/jenkins/docbot`), not here, because it watches this repository
+rather than belonging to it.
 
-`Jenkinsfile` is the Phase 1 prototype: it detects the merge request, pulls the
-changed-file list from the GitLab API, applies the tier-1 path filter, and
-archives `verdict.json`.
+This directory is pushed to GitLab by `scripts/seed-project.sh`.

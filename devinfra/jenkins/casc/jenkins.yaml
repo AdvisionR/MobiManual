@@ -1,22 +1,19 @@
-# Jenkins Configuration as Code.
-# Everything here is applied at boot, so the controller can be rebuilt from
-# scratch at any time. Secrets come from the environment (see docker-compose.yml
-# and .runtime/gitlab.env), never from this file.
+# Jenkins Configuration as Code — applied at boot, so the controller can be
+# rebuilt from scratch at any time. Secrets come from the environment
+# (docker-compose.yml + .runtime/gitlab.env), never from this file.
 #
-# The symbol names below were not guessed: they were read back from a running
-# instance via POST /configuration-as-code/export after configuring the same
-# objects programmatically. Several differ from the obvious spelling — notably
-# `loggedInUsersCanDoAnything` and `gitlabPersonalAccessToken` (lowercase "l",
-# unlike `gitLabServers`). Re-verify the same way after any plugin upgrade.
+# The symbol names were read back from a running instance via
+# POST /configuration-as-code/export, not guessed. Several are not the obvious
+# spelling — `loggedInUsersCanDoAnything`, and `gitlabPersonalAccessToken`
+# (lowercase "l") next to `gitLabServers` (capital "L"). A wrong symbol
+# crash-loops Jenkins at boot, so re-verify the same way after a plugin upgrade.
 
 jenkins:
   systemMessage: |
-    MobiManual DocBot — local prototype environment.
+    DocBot template — local GitLab + Jenkins.
     GitLab: http://gitlab.orb.local   Jenkins: http://jenkins.orb.local:8080
   numExecutors: 2
   mode: NORMAL
-  # Builds run on the controller. Fine for a prototype; the production design
-  # (foundation doc §8.5) runs the DocBot CLI in a pinned container agent.
   securityRealm:
     local:
       allowsSignup: false
@@ -29,27 +26,27 @@ credentials:
   system:
     domainCredentials:
       - credentials:
-          # Consumed by the GitLab Branch Source plugin for API calls, MR
-          # discovery and webhook registration.
+          # Used by the Branch Source plugin: merge request discovery and
+          # webhook registration.
           - gitlabPersonalAccessToken:
               scope: GLOBAL
               id: "gitlab-pat"
               description: "GitLab PAT (root) — MR discovery + webhook management"
               token: "${GITLAB_PAT}"
-          # Same secret as an HTTP username/password pair, for plain `git`
-          # operations inside a pipeline (e.g. the merge-base fetch in §8.4).
+          # Same secret as a username/password pair, which is what the
+          # Jenkinsfile binds to hand the bot a token.
           - usernamePassword:
               scope: GLOBAL
               id: "gitlab-http"
-              description: "GitLab HTTP clone credentials"
+              description: "GitLab HTTP credentials — used by the pipeline"
               username: "root"
               password: "${GITLAB_PAT}"
 
 unclassified:
   location:
-    # Must be an address GitLab can reach, because the Branch Source plugin
-    # derives the webhook callback URL from it. jenkins.orb.local resolves
-    # from inside the GitLab container as well as from the browser.
+    # Must be an address GitLab can reach: the Branch Source plugin derives the
+    # webhook callback URL from it. jenkins.orb.local resolves from inside the
+    # GitLab container as well as from the browser.
     url: "${JENKINS_URL_EXTERNAL}"
     adminAddress: "docbot@mobimanual.local"
 
@@ -58,20 +55,13 @@ unclassified:
       - name: "local-gitlab"
         serverUrl: "${GITLAB_SERVER_URL}"
         credentialsId: "gitlab-pat"
-        # Jenkins registers and maintains the project webhook itself. This flag
-        # is the only thing gating it: GitLabHookCreator.register() reads the
-        # source's webhook mode, which defaults to SYSTEM, and the SYSTEM branch
-        # begins `if (!server.isManageWebHooks()) return;`. With it false the
-        # method returns before it ever looks at a credential (README §7.5).
-        #
-        # SYSTEM mode resolves the token via GitLabServer.getCredentials(owner),
-        # which reads the credential above. It does not go through
-        # GitLabSCMSource.credentials() — that is the ITEM path, and it is
-        # broken in this plugin version (it passes the logged-in user's
-        # authentication to a system-store lookup, which by design only answers
-        # under ACL.SYSTEM). Do not add a HookRegistrationTrait with
-        # webHookMode: ITEM unless that is fixed upstream.
+        # Jenkins registers and maintains the project webhook itself, and this
+        # flag is the only thing gating it: GitLabHookCreator.register() opens
+        # its default (SYSTEM) branch with `if (!server.isManageWebHooks())
+        # return;`. With it false, registration returns before it ever looks at
+        # a credential — silently, no log line, and no merge request is ever
+        # detected. See README §6.3.
         manageWebHooks: true
-        # Left off deliberately. System hooks are instance-wide and need an
-        # admin-scoped token; the project webhook is all detection requires.
+        # System hooks are instance-wide and need an admin-scoped token. The
+        # project webhook is all detection requires.
         manageSystemHooks: false

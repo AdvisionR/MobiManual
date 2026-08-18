@@ -1,43 +1,57 @@
-# DocBot prototype infrastructure — local GitLab + Jenkins
+# DocBot template — GitLab + Jenkins merge-request detection
 
-A disposable stand-in for the real MobiVisor CI environment, for building and
-testing the DocBot merge-request detector before it touches anything real.
+A local GitLab and a local Jenkins, wired together so that **opening a merge
+request runs your bot**, with the merge request's context already in its hands.
 
-Everything lives in this one directory and in Docker volumes. Nothing is
-installed on macOS — no Java, no Ruby, no `brew services`, no `/etc/hosts`
-edits, no `sudo`. Removal is one command.
+There is no bot here. `jenkins/docbot` is a stub that reports what it was given
+and exits; replacing it is the entire job. Everything else in this directory
+exists to get it called at the right moment.
+
+```
+  git push  ->  merge request  ->  GitLab webhook  ->  Jenkins discovers MR-<iid>
+                                                            |
+                                       when { changeRequest() } in the Jenkinsfile
+                                                            |
+                                                          docbot
+                                                (CHANGE_ID, CHANGE_TITLE, ...)
+```
+
+Nothing is installed on macOS — no Java, no Ruby, no `brew services`, no
+`/etc/hosts` edits, no `sudo`. Everything lives in this directory and in Docker
+volumes, and removal is one command.
 
 ---
 
 ## 1. Prerequisites
 
-**OrbStack**, already installed here. It is the container runtime; the stack
-uses one OrbStack-specific feature, explained in §4.
-
-    open -a OrbStack
-
-Nothing else. `up.sh` starts OrbStack itself if it is not running.
+**OrbStack.** It is the container runtime, and the stack uses one
+OrbStack-specific feature (§6). `up.sh` starts it if it is not running.
 
 ---
 
 ## 2. Quick start
 
 ```bash
-./scripts/up.sh              # boot GitLab + Jenkins, seed credentials   (~3 min first run)
-./scripts/seed-project.sh    # create the console fixture repo and the Jenkins job
-./scripts/seed-docs-repo.sh  # create the docs repo DocBot writes to
-./scripts/open-test-mr.sh docs
-./scripts/docbot-run.sh 1     # <- the MR number the previous line printed; defers
-./scripts/merge-test-mr.sh 1  # merge it, the way a maintainer would
-./scripts/docbot-run.sh 1     # now it proposes
+./scripts/up.sh              # boot GitLab + Jenkins, seed credentials  (~5 min first run)
+./scripts/seed-project.sh    # create the GitLab project and the Jenkins job
+./scripts/open-test-mr.sh    # open a merge request, watch the bot see it
 ```
 
-`open-test-mr.sh` opens a real merge request and prints the `verdict.json`
-Jenkins produced from it. `docbot-run.sh` then runs the real CLI over the same
-merge request and, if the gate says the manual is affected **and the merge
-request has actually been merged**, opens a merge request on the docs
-repository linked back to it. Run it twice, either side of `merge-test-mr.sh`,
-to see both halves of that condition.
+The last line prints the `detection.json` the bot produced, which looks like:
+
+```json
+{
+  "merge_request": {
+    "id": "1",
+    "title": "A change the bot should notice (143022)",
+    "author": "root",
+    "branch": "feature/change-143022",
+    "target": "main",
+    "url": "http://gitlab.orb.local/root/mobivisor-console/-/merge_requests/1"
+  },
+  "changed_files": ["src/console.ts"]
+}
+```
 
 | | URL | Login |
 |---|---|---|
@@ -48,17 +62,71 @@ Credentials are in [.env](.env). They are local-only throwaways.
 
 ---
 
-## 3. What the scripts do
+## 3. How the detection works
+
+Four moving parts, one per file.
+
+**`jenkins/casc/jenkins.yaml`** registers the GitLab server with the Branch
+Source plugin and hands it a token. `manageWebHooks: true` is what makes
+Jenkins install the project webhook itself, rather than you clicking it in.
+
+**`scripts/seed-project.sh`** creates a *multibranch* job pointing at the
+project, with `OriginMergeRequestDiscoveryTrait`. From then on Jenkins treats
+every open merge request as a branch called `MR-<iid>` and builds it.
+
+**`demo-repo/Jenkinsfile`** is 25 lines. `when { changeRequest() }` is true
+only for those `MR-*` builds. A push to an ordinary branch still gets built —
+the job discovers branches too — but the stage is skipped and the build does
+nothing. For a merge request, the plugin has already filled the environment:
+
+| Variable | Example |
+|---|---|
+| `CHANGE_ID` | `1` — the merge request iid |
+| `CHANGE_TITLE` | `A change the bot should notice` |
+| `CHANGE_AUTHOR` | `root` |
+| `CHANGE_BRANCH` | `feature/change-143022` |
+| `CHANGE_TARGET` | `main` |
+| `CHANGE_URL` | link back to the merge request |
+
+**`jenkins/docbot`** is then run, in the workspace, with those variables plus a
+GitLab token bound from the `gitlab-http` credential. It asks the API which
+files the merge request touches, writes `detection.json`, and stops.
+
+### Why the changed files come from the API
+
+A multibranch job checks out the *merge result* over a shallow clone, so
+`git diff` and `git merge-base` against the target branch are quietly wrong in
+this context. Asking GitLab is authoritative and needs no clone-depth tuning.
+
+---
+
+## 4. Where your bot goes
+
+Edit [jenkins/docbot](jenkins/docbot) — replace the marked block at the bottom,
+or the whole file — and rebuild:
+
+```bash
+docker compose up -d --build jenkins
+```
+
+It is baked into the image at `/usr/local/bin/docbot` rather than living in the
+watched repository, because a bot that reviews a repo should not be edited by
+the merge requests it reviews. The Jenkinsfile only ever calls `docbot`, so a
+real CLI in a pinned image is a drop-in replacement for the stub.
+
+Keep the decisions in there and out of the `Jenkinsfile`: a script can be run
+and tested on a laptop, and Groovy inside a pipeline cannot.
+
+---
+
+## 5. Scripts
 
 | Script | Purpose |
 |---|---|
 | `up.sh` | Start OrbStack, boot GitLab, wait for real readiness, seed it, build and boot Jenkins |
 | `seed-gitlab.sh` | Set root password, allow local-network webhooks, mint a Jenkins API token |
-| `seed-project.sh` | Create the console fixture project, push it, create the Jenkins job, verify Jenkins registered the webhook |
-| `seed-docs-repo.sh` | Create the docs project, push the fixture manual, protect `main` |
-| `open-test-mr.sh [docs\|silent]` | Open a test MR and report what Jenkins decided |
-| `merge-test-mr.sh <iid>` | Merge an MR, as a maintainer would |
-| `docbot-run.sh <iid>` | Run the real CLI over that MR: `gate`, then `propose` |
+| `seed-project.sh` | Create the project, push `demo-repo/`, create the Jenkins job, verify the webhook |
+| `open-test-mr.sh` | Open a merge request and print what the bot detected |
 | `status.sh` | Containers, memory, disk, and four-way reachability check |
 | `down.sh` | Stop everything, keep data |
 | `nuke.sh` | Remove everything this stack created |
@@ -66,222 +134,53 @@ Credentials are in [.env](.env). They are local-only throwaways.
 
 ---
 
-## 4. Why `*.orb.local` and not `localhost`
+## 6. Why `*.orb.local` and not `localhost`
 
-This is the design decision that makes the rest simple, so it is worth
-understanding before changing anything.
+Three parties must agree on what to call each service: your **browser** on
+macOS, **Jenkins** calling the GitLab API from inside a container, and
+**GitLab** POSTing webhooks to Jenkins from a different container. `localhost`
+cannot satisfy all three — inside the Jenkins container, `localhost` is
+Jenkins.
 
-Three parties need to agree on what to call each service:
+OrbStack publishes `<container-name>.orb.local` and resolves it both from macOS
+and from inside other containers, so one name is correct everywhere: no
+published ports, no `/etc/hosts` edits, no `sudo`, and the URLs GitLab
+generates are right for everyone.
 
-- your **browser**, on macOS
-- **Jenkins**, cloning and calling the GitLab API from inside a container
-- **GitLab**, POSTing webhooks to Jenkins from inside a different container
-
-`localhost` cannot satisfy all three: inside the Jenkins container, `localhost`
-is Jenkins. The usual workarounds are `/etc/hosts` entries (needs `sudo`,
-leaves residue) or `host.docker.internal` (does not work from the browser).
-
-OrbStack publishes `<container-name>.orb.local` and resolves it **both** from
-macOS and from inside other containers. One name is correct everywhere, so:
-
-- no ports are published — nothing is claimed on the macOS side, and this stack
-  cannot collide with the `req-eng-*` containers already on this machine
-- no `/etc/hosts` edits, no `sudo`
-- GitLab's `external_url` is the same URL the browser uses, so the clone URLs
-  and MR links it generates are correct for everyone
-
-This is also load-bearing for a reason that is not obvious: the GitLab Branch
+This is also load-bearing in a way that is not obvious: the GitLab Branch
 Source plugin **rejects** a Jenkins URL starting with `http://localhost` when
 registering webhooks (`IllegalStateException: Jenkins URL cannot start with
 http://localhost`). A localhost-based setup fails at exactly the step this
-prototype exists to exercise.
+template exists to demonstrate.
 
 **Trade-off:** this ties the stack to OrbStack. On plain Docker Desktop you
 would add `/etc/hosts` entries and publish ports instead.
 
 ---
 
-## 5. The prototype
+## 7. Things that cost time to discover
 
-Two fixture repositories, because the design needs two:
-
-| Directory | GitLab project | What it stands in for |
-|---|---|---|
-| `demo-repo/` | `root/mobivisor-console` | the product repository DocBot watches |
-| `docs-repo/` | `root/mobivisor-manual` | the manual repository DocBot writes to |
-
-The separation is the point of foundation doc §7 option B: the bot's write
-access reaches a repository that contains no product code, and everything it
-does there arrives as a merge request a human has to look at. `main` on the
-docs project is protected against direct pushes as well, so the rule does not
-depend on DocBot being correct.
-
-### 5.1 Detection — `demo-repo/Jenkinsfile`
-
-The Phase 1 detector. On every merge request it:
-
-1. confirms it is an MR (`when { changeRequest() }`) and prints the context
-   variables the gate needs — `CHANGE_ID`, `CHANGE_TITLE`, `CHANGE_AUTHOR`,
-   `CHANGE_BRANCH`, `CHANGE_TARGET`, `CHANGE_URL`
-2. pulls the changed-file list from the **GitLab API**
-3. applies the tier-1 path filter from `demo-repo/docs/doc-map.json`
-4. writes and archives `verdict.json`
-
-Verified working end to end. Two scenarios:
-
-```bash
-./scripts/open-test-mr.sh docs     # -> "doc_impact": true,  area enrollment-ios
-./scripts/open-test-mr.sh silent   # -> "doc_impact": false, area push-transport
-```
-
-The `silent` case matters as much as the other one. Per foundation doc §14.3,
-the gate's job is mostly to say nothing, so "correctly stays quiet" is a result
-worth testing rather than an absence of one.
-
-### 5.2 Delivery — `docbot-run.sh`
-
-The Jenkinsfile stops at a tier-1 verdict. `./scripts/docbot-run.sh <iid>` runs
-what the pipeline will actually run, from the laptop:
-
-```
-changed files (GitLab API)  ->  docbot gate  ->  docbot propose
-```
-
-and, on a positive verdict, opens the docs merge request. Same commands, same
-arguments, same artifacts as the eventual Jenkins stage — §8.5 wants the CLI to
-run identically in both places, and this is how that stays true rather than
-aspirational.
-
-Verified end to end against this stack:
-
-| Run | Result |
-|---|---|
-| `docbot-run.sh 4`, MR **still open** | `deferred` — nothing committed, no docs MR, no comment |
-| MR closed unmerged | `abandoned` — the queue can tell "not yet" from "never" |
-| `merge-test-mr.sh 4`, then re-run | tier 2 `mistral-small-latest`, confidence 0.98 → docs MR !1 opened, carrying `doc-impact/pending/mr-4.yaml`, recording the merge commit `05fd685e87a5` |
-| re-run after the merge | record recommitted, MR body rewritten, **still one docs MR** |
-| `docbot-run.sh 5` (push transport) | `doc_impact: false` at tier 1 — no model call, no merge-state call, nothing written |
-| both directions | source MR carries a DocBot comment linking to the docs MR; GitLab cross-references it back |
-
-The fourth row is the one worth keeping an eye on. A build can re-run for all
-sorts of reasons — a replayed webhook, a retried job, a later push to main —
-and the docs branch is named after the source MR id so all of them land on one
-merge request. Nine merge requests for one change would teach a reviewer to
-ignore all nine.
-
-### 5.3 Why merged, and where the rule lives
-
-DocBot proposes nothing until the source merge request has actually landed.
-Work that is still being revised — or that ends up closed unmerged — would
-otherwise reach the manual's review queue as though it had shipped.
-
-This is foundation doc §8.3's second trigger, "push to main → drafting run that
-opens the docs PR", and it has a practical advantage over triggering earlier: a
-merge *is* a push to main, so the GitLab Branch Source plugin already produces
-that build cause. Nothing extra needs wiring.
-
-The one wrinkle is that a branch build has no merge request context —
-`CHANGE_ID` is unset, because no merge request is being built. The merge commit
-is the link back, and the endpoint exists on this instance:
-
-```
-GET /projects/:id/repository/commits/:sha/merge_requests
-```
-
-It returns the merge request a commit came from, or an empty list for a direct
-push — which doubles as the "was this actually a merge?" test.
-
-**The rule lives in `docbot propose`, not in a Jenkins `when {}`.** §8.5 says
-keep the logic out of Groovy, but there is a concrete payoff: the rule holds
-regardless of what started the build. A replayed delivery, someone pressing
-"Build now", a trigger added later — all of them find an unmerged source and
-defer.
-
-Three outcomes, all logged, all distinct:
-
-| Source MR state | Status | Meaning |
-|---|---|---|
-| open | `deferred` | not yet — a later run picks it up |
-| closed unmerged | `abandoned` | never — nothing to wait for |
-| merged | `created` / `updated` | the docs MR exists |
-
-The middle one matters more than it looks: a queue that cannot tell "not yet"
-from "never" fills up with entries nobody will ever clear.
-
-### Two deviations from the foundation doc, on purpose
-
-**Changed files come from the API, not `git merge-base`.** §8.4 gives a
-`merge-base` snippet and warns that multibranch checks out a *merge commit* over
-a shallow clone. That warning is correct — the build log confirms Jenkins
-checks out `cd0e0f3...` merged with `main`, not the branch head. Rather than
-tune clone depth, the prototype asks GitLab which files changed. That is
-authoritative and needs no checkout behaviour tuning.
-
-**Gate logic is jq, not Groovy.** §8.5 says keep Jenkins thin. The jq filter is
-a placeholder standing exactly where `docbot gate` will be dropped in; the doc
-map is JSON only because jq reads it. Keep the YAML shape from §6.5 when you
-port this to the real CLI.
-
----
-
-## 6. What is deliberately not set up
-
-- **DocBot does not run inside Jenkins yet.** The controller has no Python and
-  no `docbot`, so `docbot-run.sh` drives the pipeline from the laptop instead.
-  This is a deliberate ordering, not an oversight: installing the CLI means
-  rebuilding the Jenkins image, and that re-resolves every plugin in
-  `plugins.txt`, which is unpinned (§7 below). Pin the plugins in the same
-  change that adds the CLI, so a broken controller has one suspect rather than
-  two.
-- **No Docker agent.** Builds run on the Jenkins controller. §8.5 wants the
-  DocBot CLI in a pinned image; that is the same change as the point above.
-- **Trigger #2 is a stub.** §8.3's push-to-main run has a stage in the
-  `Jenkinsfile` and an `echo` in it. That stage is where `propose` belongs —
-  it fires on merge, which is the precondition `docbot propose` enforces
-  anyway — and filling it in is the same change as putting the CLI in the
-  image.
-- **Nothing validates the docs merge request.** §6.7 wants a build, a link
-  check, a prose lint and a "no edits to `human-only` or `generated` paths"
-  gate on it. The first three need the real build script (§12 question #3); the
-  fourth needs only the content classes already in the fixture's front matter,
-  and is the obvious next thing to write.
-- **No commit-status reporting.** `gitlab-plugin` is installed but unwired, so
-  the MR page shows no Jenkins status. Detection does not depend on it.
-- **No fallback branch indexing.** The multibranch job has no
-  `PeriodicFolderTrigger`, so discovery is webhook-only: a dropped delivery
-  means the MR is never seen. Acceptable here because `open-test-mr.sh` times
-  out visibly; production wants a slow periodic scan behind the webhook.
-- **No HTTPS.** Plain HTTP throughout.
-- **The forge is assumed to be GitLab.** This is open question #1 in §12. If it
-  turns out to be Bitbucket or GitHub Enterprise, this stack's GitLab half is
-  wrong, but the Jenkins half and the whole `docbot` CLI shape carry over.
-
----
-
-## 7. Gotchas found while building this
-
-Recorded because each one cost time and none is discoverable from an error
-message alone.
+Each of these fails silently. None is discoverable from an error message.
 
 1. **GitLab's bundled healthcheck lies.** `/opt/gitlab/bin/gitlab-healthcheck`
    exits 0 while nginx is still down, so `depends_on: service_healthy` releases
    Jenkins minutes early. The compose file probes `/-/readiness?all=1` instead.
-   Also, `/-/health` is not a GitLab endpoint — use `/-/readiness` internally
-   and `/users/sign_in` from outside.
+   (`/-/health` is not a GitLab endpoint; use `/-/readiness` internally and
+   `/users/sign_in` from outside.)
 
 2. **`gitlab-rails runner -` needs `docker exec -i`.** Without `-i` the runner
-   gets an empty script and exits 0, producing silent no-ops.
+   reads an empty script and exits 0 — a silent no-op.
 
 3. **GitLab blocks webhooks to private-network addresses by default.** Jenkins
-   is on an RFC1918 address, so every delivery is dropped with the hook looking
+   is on an RFC1918 address, so every delivery is dropped while the hook looks
    correctly configured. `seed-gitlab.sh` sets
-   `allow_local_requests_from_web_hooks_and_services`. This is a database
+   `allow_local_requests_from_web_hooks_and_services`. It is a database
    setting, not an omnibus one.
 
 4. **JCasC symbol names are not guessable.** `loggedInAuthorizationStrategy`
-   does not exist — it is `loggedInUsersCanDoAnything`. The credential symbol is
-   `gitlabPersonalAccessToken` (lowercase L) while the server block is
-   `gitLabServers` (capital L). A wrong symbol crash-loops Jenkins at boot.
+   does not exist — it is `loggedInUsersCanDoAnything`. The credential symbol
+   is `gitlabPersonalAccessToken` (lowercase "l") while the server block is
+   `gitLabServers` (capital "L"). A wrong symbol crash-loops Jenkins at boot.
    To get ground truth, configure the object via the script console, then:
 
    ```bash
@@ -292,98 +191,57 @@ message alone.
 
    (`export` is POST-only; GET returns "Method Not Allowed".)
 
-5. **Webhook registration needs two things, and one of them is not obvious.**
-   Jenkins now registers and maintains the project webhook itself. Getting
-   there took `manageWebHooks: true` *plus* an explicit `afterSave()` call, and
-   only the first is discoverable from the config.
+5. **Webhook registration needs two things, and one is not in the config.**
+   `manageWebHooks: true` *plus* an explicit `afterSave()` call.
 
    `GitLabHookCreator.register()` switches on the source's webhook mode, which
    defaults to `SYSTEM`. That branch opens with
    `if (!server.isManageWebHooks()) return;`, so with the flag false it returns
-   before it ever looks at a credential — silently, no log line. Set the flag
-   and the same branch resolves the token through
-   `GitLabServer.getCredentials(owner)`, which works fine.
+   before it ever looks at a credential — silently, no log line.
 
    The second half: registration is triggered by `SCMSource.afterSave()`, and
    `branch-api` only calls that from the UI's form-submit path.
    `WorkflowMultiBranchProject` has no `afterSave()` of its own, so the
    `mbp.save()` in `seed-project.sh` does not reach the sources. A job built
    programmatically must call it — hence `mbp.SCMSources.each { it.afterSave() }`.
-   The script then *verifies* the hook exists rather than assuming it, because
-   a missing hook means merge requests are never detected and the failure looks
+   The script then *verifies* the hook exists rather than assuming it: a
+   missing hook means merge requests are never detected, and the failure looks
    exactly like Jenkins being slow.
 
-   An earlier version of this note blamed `GitLabSCMSource.credentials()`
-   returning null. That is a real bug but an unrelated one: it is the `ITEM`
-   webhook mode's lookup, which the default never takes. It returns null
-   because system-store credentials only resolve under `ACL.SYSTEM`, while the
-   plugin passes `Jenkins.getAuthentication()` — the logged-in user. Do not add
-   a `HookRegistrationTrait` with `webHookMode: ITEM` until that is fixed
-   upstream.
-
-   `manageSystemHooks` stays **false**: system hooks are instance-wide and need
-   an admin-scoped token, and the project webhook is all detection requires.
+   Do not switch to `webHookMode: ITEM` to work around this. That path calls
+   `GitLabSCMSource.credentials()`, which returns null because system-store
+   credentials only resolve under `ACL.SYSTEM` while the plugin passes
+   `Jenkins.getAuthentication()`.
 
 ---
 
-## 8. Resource use
+## 8. Deliberately not here
 
-Measured with both services idle after a full MR build:
+Everything past detection. No build agent — jobs run on the controller — no
+HTTPS, and no periodic branch indexing, so discovery is webhook-only: a dropped
+delivery means the merge request is never seen. `open-test-mr.sh` times out
+visibly when that happens; production wants a slow periodic scan behind the
+webhook.
 
-| | Memory | Disk |
-|---|---|---|
-| GitLab | ~3.5 GB | ~500 MB volumes |
-| Jenkins | ~750 MB | ~330 MB volume |
-| Images | | ~4 GB |
-
-GitLab is tuned down in `docker-compose.yml` (2 Puma workers, reduced Sidekiq
-concurrency, Prometheus/KAS/registry off). Stock settings assume a dedicated
-8 GB host and will not leave room for Jenkins.
-
-The OrbStack VM is capped at 8 GB, comfortable for both on a 16 GB machine.
-Raise it in OrbStack → Settings if you add services.
-
-Both images are **native arm64** — no Rosetta emulation. GitLab boots in about
-90 seconds on this M5, not the several minutes an x86 image would take.
+One thing you get for free and may not expect: the Branch Source plugin posts a
+commit status back to the merge request by itself (`jenkinsci/mr-merge`), so the
+MR page turns green when the bot finishes. Nothing in this repository wires
+that up.
 
 ---
 
-## 9. Uninstall
+## 9. Resource use and removal
 
-Stop for the day, keep everything:
-
-```bash
-./scripts/down.sh
-```
-
-Remove everything this stack created:
+Measured with both services idle after a build: GitLab ~3.5 GB RSS and ~500 MB
+of volumes, Jenkins ~750 MB and ~330 MB, images ~4 GB. GitLab is tuned down in
+`docker-compose.yml` (2 Puma workers, reduced Sidekiq concurrency,
+Prometheus/KAS/registry off); stock settings assume a dedicated 8 GB host and
+leave no room for Jenkins.
 
 ```bash
-./scripts/nuke.sh
+./scripts/down.sh    # stop, keep all data
+./scripts/nuke.sh    # remove containers, volumes, network, built image
 ```
 
-It prompts, then removes the two containers, all four volumes, the network, and
-the locally built Jenkins image, and prints a count of anything left over.
-
-**Scope is enforced by Docker labels, not by matching names.** Every resource
-carries `com.docker.compose.project=mobimanual`, and `docker compose down` only
-touches its own project. Verified on this machine: the `req-eng-*` and
-`req2code-tracer` containers and their networks are untouched.
-
-To go all the way back to nothing:
-
-```bash
-./scripts/nuke.sh
-docker rmi gitlab/gitlab-ce:19.2.2-ce.0 jenkins/jenkins:lts-jdk21   # ~4 GB
-rm -rf "$(pwd)"                                                      # this directory
-```
-
-And if you want the runtime gone too — note this removes **all** your
-containers, including the `req-eng-*` ones:
-
-```
-OrbStack → Settings → Uninstall
-```
-
-There is nothing else. No launch agents, no `/usr/local` files, no PATH
-entries, no `/etc/hosts` lines.
+Scope is enforced by the `com.docker.compose.project=mobimanual` label, not by
+matching names, so neither touches anything else you run.

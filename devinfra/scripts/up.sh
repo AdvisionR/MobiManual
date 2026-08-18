@@ -64,7 +64,7 @@ cat <<EOF
   GitLab    http://${GITLAB_HOST}          root / ${GITLAB_ROOT_PASSWORD}
   Jenkins   http://${JENKINS_HOST}:${JENKINS_PORT}     ${JENKINS_ADMIN_ID} / ${JENKINS_ADMIN_PASSWORD}
 
-  Next:  ./scripts/seed-project.sh   # create the demo repo and open a test MR
+  Next:  ./scripts/seed-project.sh   # create the GitLab project and the Jenkins job
   Stop:  ./scripts/down.sh           # keeps all data
   Wipe:  ./scripts/nuke.sh           # removes everything this stack created
 

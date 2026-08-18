@@ -1,0 +1,68 @@
+#!/usr/bin/env sh
+#
+# DocBot — the stub.
+#
+# This file is the extension point of the whole template. Jenkins runs it once
+# per merge request, from the job workspace, with the merge request already in
+# the environment:
+#
+#   CHANGE_ID      merge request iid     CHANGE_BRANCH  source branch
+#   CHANGE_TITLE   title                 CHANGE_TARGET  target branch
+#   CHANGE_AUTHOR  who opened it         CHANGE_URL     link back to the MR
+#
+# Those come from the GitLab Branch Source plugin. GITLAB_URL, GITLAB_PROJECT
+# and GITLAB_TOKEN come from the Jenkinsfile.
+#
+# All this stub does is prove the wiring: report what it was handed, ask GitLab
+# which files the merge request touches, and leave detection.json behind as a
+# build artifact. Replace it with a real bot; nothing else has to change.
+
+set -eu
+
+# A branch build has no merge request context. Exit quietly rather than fail:
+# "nothing to look at" is a normal outcome, not an error.
+[ -n "${CHANGE_ID:-}" ] || { echo "docbot: not a merge request — nothing to do"; exit 0; }
+
+# The API rather than a local diff. A multibranch job checks out the merge
+# *result* over a shallow clone, so git-side diffing is quietly wrong here;
+# GitLab is authoritative and needs no clone-depth tuning.
+project=$(printf '%s' "$GITLAB_PROJECT" | sed 's|/|%2F|g')
+curl -sf -H "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+  "$GITLAB_URL/api/v4/projects/$project/merge_requests/$CHANGE_ID/changes" > mr.json
+
+jq -n \
+  --arg  id     "$CHANGE_ID" \
+  --arg  title  "$CHANGE_TITLE" \
+  --arg  author "$CHANGE_AUTHOR" \
+  --arg  branch "$CHANGE_BRANCH" \
+  --arg  target "$CHANGE_TARGET" \
+  --arg  url    "$CHANGE_URL" \
+  --slurpfile mr mr.json \
+  '{merge_request: {id: $id, title: $title, author: $author,
+                    branch: $branch, target: $target, url: $url},
+    changed_files: ($mr[0].changes | map(.new_path) | unique)}' \
+  > detection.json
+
+cat <<EOF
+
+  ┌─ merge request detected ────────────────────────────────
+  │  !$CHANGE_ID  $CHANGE_TITLE
+  │  $CHANGE_AUTHOR: $CHANGE_BRANCH -> $CHANGE_TARGET
+  │  $CHANGE_URL
+  └─────────────────────────────────────────────────────────
+
+  changed files:
+EOF
+jq -r '.changed_files[] | "    " + .' detection.json
+
+# ---------------------------------------------------------------------------
+#  Your bot goes here.
+#
+#  Everything above is context-gathering; this is where the decisions live.
+#  Keep them here rather than in the Jenkinsfile — a shell script (or a real
+#  CLI) can be run and tested on a laptop, and Groovy in a pipeline cannot.
+# ---------------------------------------------------------------------------
+
+echo
+echo "  (stub: a real DocBot would decide something about this. Wrote detection.json.)"
+echo
