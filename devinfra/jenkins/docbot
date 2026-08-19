@@ -1,59 +1,75 @@
 #!/usr/bin/env sh
 #
-# DocBot — the stub.
+# This file is the extension point of the whole template. Jenkins runs it from
+# the job workspace once a merge request has landed on main, and it works out
+# for itself which merge request that was — nothing about the merge request is
+# read from the environment.
 #
-# This file is the extension point of the whole template. Jenkins runs it once
-# per merge request, from the job workspace, with the merge request already in
-# the environment:
-#
-#   CHANGE_ID      merge request iid     CHANGE_BRANCH  source branch
-#   CHANGE_TITLE   title                 CHANGE_TARGET  target branch
-#   CHANGE_AUTHOR  who opened it         CHANGE_URL     link back to the MR
-#
-# Those come from the GitLab Branch Source plugin. GITLAB_URL, GITLAB_PROJECT
-# and GITLAB_TOKEN come from the Jenkinsfile.
-#
-# All this stub does is prove the wiring: report what it was handed, ask GitLab
-# which files the merge request touches, and leave detection.json behind as a
-# build artifact.
+# GITLAB_URL, GITLAB_PROJECT and GITLAB_TOKEN come from the Jenkinsfile.
 
 set -eu
 
-# A branch build has no merge request context. Exit quietly rather than fail:
-# "nothing to look at" is a normal outcome, not an error.
-[ -n "${CHANGE_ID:-}" ] || { echo "docbot: not a merge request — nothing to do"; exit 0; }
+# Which merge request produced the commit in the workspace?
+#
+# Asking GitLab which merge request a commit belongs to derives the answer from
+# repository state rather than from the event that started the build, so a
+# forced rebuild, a replay and a re-index all resolve to the same merge request
+# — and a direct push to main resolves to none. What it deliberately does not
+# answer is which merge requests have landed since the last run; see the note
+# at the foot of this file.
+#
+# Named up front so a misconfigured pipeline fails here, with the name of what
+# is missing, rather than further down inside a command substitution — where
+# `set -eu` would abort only the subshell and the script would carry on and
+# report "nothing to do".
+: "${GITLAB_URL:?}" "${GITLAB_PROJECT:?}" "${GITLAB_TOKEN:?}"
+
+target_branch=main
+project=$(printf '%s' "$GITLAB_PROJECT" | sed 's|/|%2F|g')
+sha=$(git rev-parse HEAD)
+
+# The status code is inspected rather than delegated to `curl -f`, because two
+# failure modes must not collapse into one: a 404 means GitLab has never seen
+# this commit — an MR-<iid> build checks out a merge *result* built locally and
+# never pushed — which is a legitimate "nothing to do"; a 401 from a stale
+# credential must fail the build instead of resolving to the same answer.
+status=$(curl -s -o commit-mrs.json -w '%{http_code}' \
+           -H "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+           "$GITLAB_URL/api/v4/projects/$project/repository/commits/$sha/merge_requests")
+
+case "$status" in
+  200) iid=$(jq -r --arg t "$target_branch" \
+               '[.[] | select(.state == "merged" and .target_branch == $t)][0].iid // empty' \
+               commit-mrs.json) ;;
+  404) iid='' ;;
+  *)   echo "docbot: GitLab returned HTTP $status for $sha" >&2; exit 1 ;;
+esac
+rm -f commit-mrs.json
+
+[ -n "$iid" ] || { echo "docbot: $sha is not a merge to $target_branch — nothing to do"; exit 0; }
 
 # The API rather than a local diff. A multibranch job checks out the merge
 # *result* over a shallow clone, so git-side diffing is quietly wrong here;
 # GitLab is authoritative and needs no clone-depth tuning.
-project=$(printf '%s' "$GITLAB_PROJECT" | sed 's|/|%2F|g')
 curl -sf -H "PRIVATE-TOKEN: $GITLAB_TOKEN" \
-  "$GITLAB_URL/api/v4/projects/$project/merge_requests/$CHANGE_ID/changes" > mr.json
+  "$GITLAB_URL/api/v4/projects/$project/merge_requests/$iid/changes" > mr.json
 
-jq -n \
-  --arg  id     "$CHANGE_ID" \
-  --arg  title  "$CHANGE_TITLE" \
-  --arg  author "$CHANGE_AUTHOR" \
-  --arg  branch "$CHANGE_BRANCH" \
-  --arg  target "$CHANGE_TARGET" \
-  --arg  url    "$CHANGE_URL" \
-  --slurpfile mr mr.json \
-  '{merge_request: {id: $id, title: $title, author: $author,
-                    branch: $branch, target: $target, url: $url},
-    changed_files: ($mr[0].changes | map(.new_path) | unique)}' \
-  > detection.json
+# /changes returns the merge request itself alongside the diff, so detection.json
+# is a straight projection of mr.json — no unpacking into shell variables.
+jq '{merge_request: {id: (.iid | tostring), title, author: .author.username,
+                     branch: .source_branch, target: .target_branch, url: .web_url},
+     changed_files: (.changes | map(.new_path) | unique)}' mr.json > detection.json
 
-cat <<EOF
-
-  ┌─ merge request detected ────────────────────────────────
-  │  !$CHANGE_ID  $CHANGE_TITLE
-  │  $CHANGE_AUTHOR: $CHANGE_BRANCH -> $CHANGE_TARGET
-  │  $CHANGE_URL
-  └─────────────────────────────────────────────────────────
-
-  changed files:
-EOF
-jq -r '.changed_files[] | "    " + .' detection.json
+jq -r '.merge_request as $m |
+       "",
+       "  ┌─ merge request detected ────────────────────────────────",
+       "  │  !\($m.id)  \($m.title)",
+       "  │  \($m.author): \($m.branch) -> \($m.target)",
+       "  │  \($m.url)",
+       "  └─────────────────────────────────────────────────────────",
+       "",
+       "  changed files:",
+       (.changed_files[] | "    " + .)' detection.json
 
 # ---------------------------------------------------------------------------
 #  Your bot goes here.
@@ -66,3 +82,34 @@ jq -r '.changed_files[] | "    " + .' detection.json
 echo
 echo "  (stub: a real DocBot would decide something about this. Wrote detection.json.)"
 echo
+
+# ---------------------------------------------------------------------------
+#  Known gap: one build can cover several merges.
+#
+#  The resolution at the top of this file answers "which merge request produced
+#  HEAD". That is exactly one merge request, which is what makes it robust —
+#  but it is not the same question as "which merge requests have landed since
+#  the last run", and that is the question a documentation bot actually has.
+#
+#  Jenkins coalesces queued builds for a branch. Merge two merge requests in
+#  quick succession and main may be built once, with HEAD at the second merge
+#  commit; the first is then never any build's HEAD and this script never sees
+#  it. There is no error and no artifact — nothing that reads as a failure.
+#  For a bot that only reports, that is a missing line in a log. For one that
+#  writes documentation, it is a docs update dropped in silence.
+#
+#  Walking GIT_PREVIOUS_SUCCESSFUL_COMMIT..HEAD would close it cheaply, and
+#  costs the property that makes the resolution above worth having: that
+#  variable is unset on a first build and unchanged on a rebuild, so the answer
+#  would once again depend on what started the build rather than on the state
+#  of the repository.
+#
+#  The version that holds is a work queue. Ask GitLab for the merge requests
+#  merged into the target branch that do not yet carry a processed marker — a
+#  label, or a note on the merge request — handle each one, then mark it. The
+#  state lives in GitLab, so it survives coalesced builds, replays, a restart
+#  and a wiped jenkins-home alike, and processing becomes idempotent rather
+#  than depending on being run exactly once.
+#
+#  That is a design change, not a patch, and it belongs in the real CLI.
+# ---------------------------------------------------------------------------
