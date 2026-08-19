@@ -15,7 +15,7 @@
 #
 # All this stub does is prove the wiring: report what it was handed, ask GitLab
 # which files the merge request touches, and leave detection.json behind as a
-# build artifact. Replace it with a real bot; nothing else has to change.
+# build artifact.
 
 set -eu
 

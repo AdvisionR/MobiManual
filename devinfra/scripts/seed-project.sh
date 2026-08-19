@@ -54,8 +54,7 @@ ok "main pushed"
 
 say "Creating Jenkins multibranch job '${JOB_NAME}'"
 # The webhook is NOT registered here. Jenkins does it, on save of the SCM
-# source below, because casc/jenkins.yaml sets manageWebHooks: true. It is
-# verified rather than assumed a few lines further down.
+# source below, because casc/jenkins.yaml sets manageWebHooks: true. 
 ./scripts/jenkins-groovy.sh - <<GROOVY | sed 's/^/    /'
 import jenkins.model.Jenkins
 import jenkins.branch.BranchSource

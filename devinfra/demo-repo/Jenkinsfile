@@ -11,7 +11,9 @@ pipeline {
 
   stages {
     stage('DocBot') {
-      when { changeRequest() }
+      when { 
+        branch 'main'
+      }
       steps {
         withCredentials([usernamePassword(credentialsId: 'gitlab-http',
                                           usernameVariable: 'GITLAB_USER',
