@@ -1,0 +1,20 @@
+{
+  "_comment": [
+    "Stand-in for the policy schema the reference tables are rendered from.",
+    "Doc-map area: policy-schema, class `generated` — a change here must",
+    "regenerate docs/pages/reference/policy-settings.md, never be drafted by a",
+    "model. Foundation doc §6.4 puts this class in the 'no AI, no hallucination",
+    "risk' bucket precisely because readers trust reference data literally."
+  ],
+  "platform": "android-enterprise",
+  "settings": [
+    { "key": "camera_enabled", "type": "boolean", "default": true,
+      "label": "Allow camera", "applies_to": ["fully-managed", "work-profile"] },
+    { "key": "screen_capture_enabled", "type": "boolean", "default": true,
+      "label": "Allow screen capture", "applies_to": ["fully-managed"] },
+    { "key": "usb_file_transfer_enabled", "type": "boolean", "default": false,
+      "label": "Allow USB file transfer", "applies_to": ["fully-managed"] },
+    { "key": "passcode_minimum_length", "type": "integer", "default": 6,
+      "label": "Minimum passcode length", "applies_to": ["fully-managed", "work-profile"] }
+  ]
+}

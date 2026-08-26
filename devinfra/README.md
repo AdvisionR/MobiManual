@@ -1,19 +1,20 @@
-# DocBot template — GitLab + Jenkins merge-request detection
+# DocBot template — GitLab + Jenkins merge detection
 
-A local GitLab and a local Jenkins, wired together so that **opening a merge
-request runs your bot**, with the merge request's context already in its hands.
+A local GitLab and a local Jenkins, wired together so that **a merge request
+landing on `main` runs your bot**, with that merge request's context already in
+its hands.
 
-There is no bot here. `jenkins/docbot` is a stub that reports what it was given
+There is no bot here. `jenkins/docbot` is a stub that reports what it worked out
 and exits; replacing it is the entire job. Everything else in this directory
 exists to get it called at the right moment.
 
 ```
-  git push  ->  merge request  ->  GitLab webhook  ->  Jenkins discovers MR-<iid>
-                                                            |
-                                       when { changeRequest() } in the Jenkinsfile
-                                                            |
-                                                          docbot
-                                                (CHANGE_ID, CHANGE_TITLE, ...)
+  merge request merged  ->  GitLab webhook  ->  Jenkins builds main
+                                                       |
+                                    when { branch 'main' } in the Jenkinsfile
+                                                       |
+                                                     docbot
+                                       (git rev-parse HEAD -> which merge request?)
 ```
 
 Nothing is installed on macOS — no Java, no Ruby, no `brew services`, no
@@ -34,11 +35,14 @@ OrbStack-specific feature (§6). `up.sh` starts it if it is not running.
 ```bash
 ./scripts/up.sh              # boot GitLab + Jenkins, seed credentials  (~5 min first run)
 ./scripts/seed-project.sh    # create the GitLab project and the Jenkins job
-./scripts/open-test-mr.sh    # open a merge request, watch the bot see it
+./scripts/open-test-mr.sh code --merge   # open a merge request, merge it, watch the bot
 ```
 
-[RUNBOOK.md](RUNBOOK.md) covers the same ground in more detail, plus how to
-inspect each stage afterwards and what to check when one of them is silent.
+`demo-repo/` is the fixture that gets pushed: a **monorepo**, with the console
+code under `src/` and the user manual under `docs/`, so a merge request can
+touch either half or both. `open-test-mr.sh` takes the kind of change you want
+(`code`, `docs`, `internal`, `both`, …); [demo-repo/README.md](demo-repo/README.md)
+lists them against what the gate is expected to do with each.
 
 The last line prints the `detection.json` the bot produced, which looks like:
 
@@ -46,13 +50,13 @@ The last line prints the `detection.json` the bot produced, which looks like:
 {
   "merge_request": {
     "id": "1",
-    "title": "A change the bot should notice (143022)",
+    "title": "A code change the bot should judge (143022)",
     "author": "root",
-    "branch": "feature/change-143022",
+    "branch": "feature/code-143022",
     "target": "main",
     "url": "http://gitlab.orb.local/root/mobivisor-console/-/merge_requests/1"
   },
-  "changed_files": ["src/console.ts"]
+  "changed_files": ["src/enrollment/ios/EnrollmentWizard.tsx"]
 }
 ```
 
@@ -74,32 +78,85 @@ Source plugin and hands it a token. `manageWebHooks: true` is what makes
 Jenkins install the project webhook itself, rather than you clicking it in.
 
 **`scripts/seed-project.sh`** creates a *multibranch* job pointing at the
-project, with `OriginMergeRequestDiscoveryTrait`. From then on Jenkins treats
-every open merge request as a branch called `MR-<iid>` and builds it.
+project, with `BranchDiscoveryTrait` and `OriginMergeRequestDiscoveryTrait`. So
+Jenkins builds `main`, and also builds every open merge request as a branch
+called `MR-<iid>`.
 
-**`demo-repo/Jenkinsfile`** is 25 lines. `when { changeRequest() }` is true
-only for those `MR-*` builds. A push to an ordinary branch still gets built —
-the job discovers branches too — but the stage is skipped and the build does
-nothing. For a merge request, the plugin has already filled the environment:
+**`demo-repo/Jenkinsfile`** guards its one stage on `when { branch 'main' }`.
+The `MR-*` builds still run — they just skip the stage and do nothing. The bot
+fires **after** a merge request lands, not while it is open.
 
-| Variable | Example |
-|---|---|
-| `CHANGE_ID` | `1` — the merge request iid |
-| `CHANGE_TITLE` | `A change the bot should notice` |
-| `CHANGE_AUTHOR` | `root` |
-| `CHANGE_BRANCH` | `feature/change-143022` |
-| `CHANGE_TARGET` | `main` |
-| `CHANGE_URL` | link back to the merge request |
+That is a deliberate move away from the obvious `when { changeRequest() }`. A
+documentation bot describes what the product does, and an open merge request may
+still be force-pushed, reworked or closed — drafting against one means drafting
+against a moving target and discarding the draft each time the branch changes.
 
-**`jenkins/docbot`** is then run, in the workspace, with those variables plus a
-GitLab token bound from the `gitlab-http` credential. It asks the API which
-files the merge request touches, writes `detection.json`, and stops.
+It is also the choice foundation doc §7 already made. Model **A**, an advisory
+comment on the open merge request, is the `changeRequest()` shape and a good
+pilot; model **B**, a bot-authored docs merge request on merge linked back to
+the source one, is the destination — and `branch 'main'` is what B needs. The
+cost is that the bot can no longer put the documentation *into* the merge
+request that changed the code, which is the one thing the monorepo would
+otherwise make easy.
+
+**`jenkins/docbot`** is then run in the workspace with a GitLab token bound from
+the `gitlab-http` credential — and with no merge-request context at all. It
+works that out for itself.
+
+### Why the merge request is derived, not received
+
+`CHANGE_ID` and friends exist only on `MR-*` builds; a `main` build has none of
+them. So docbot starts from the commit in the workspace and asks GitLab what
+produced it:
+
+```
+GET /projects/:id/repository/commits/:sha/merge_requests
+```
+
+then keeps the one that is `merged`, targets `main`, and whose
+`merge_commit_sha` or `squash_commit_sha` is that commit. The match is exact
+because that endpoint also returns merge requests that merely *contain* the
+commit, which is a different question.
+
+Deriving the answer from repository state rather than from the event that
+started the build is the property worth having: a forced rebuild, a replay and a
+re-index all resolve to the same merge request, and a direct push to `main`
+resolves to none — which is a correct answer, not an error.
+
+Two failure modes must not collapse into one, so the HTTP status is inspected
+rather than left to `curl -f`:
+
+| Status | Meaning | docbot |
+|---|---|---|
+| 200 | GitLab knows the commit | resolve the merge request, or find none |
+| 404 | GitLab has never seen it — an `MR-*` build checks out a merge *result* built locally and never pushed | exit 0, nothing to do |
+| anything else | usually 401 from a stale `gitlab-http` credential | **fail the build** |
+
+A stale credential that resolved to "nothing to do" would look exactly like a
+quiet, working bot.
 
 ### Why the changed files come from the API
 
-A multibranch job checks out the *merge result* over a shallow clone, so
-`git diff` and `git merge-base` against the target branch are quietly wrong in
-this context. Asking GitLab is authoritative and needs no clone-depth tuning.
+Once docbot has the iid, `/merge_requests/:iid/changes` returns the diff
+*alongside* the merge request, so `detection.json` is a straight projection of a
+single response — one source of truth, and nothing unpacked into shell
+variables on the way.
+
+A local `git diff HEAD^ HEAD` would agree on the `main` build, which is a full
+clone of an ordinary branch. It would stop agreeing the moment the stage is
+moved or the job gains a clone-depth trait, and it cannot answer the other two
+questions docbot has to ask anyway: who opened the merge request, and what
+labels does it carry.
+
+### The bot's own merge requests
+
+DocBot's output is a merge request against the repository it watches, so merging
+it builds `main`, which runs DocBot. The stub cuts the loop by skipping any
+merge request labelled `docbot-generated`.
+
+The fixture cuts it a second time, in `doc-map.json`, which classifies `^docs/`
+as `no-doc-impact`. That one covers what a label cannot: a human editing the
+manual by hand.
 
 ---
 
@@ -118,7 +175,22 @@ the merge requests it reviews. The Jenkinsfile only ever calls `docbot`, so a
 real CLI in a pinned image is a drop-in replacement for the stub.
 
 Keep the decisions in there and out of the `Jenkinsfile`: a script can be run
-and tested on a laptop, and Groovy inside a pipeline cannot.
+and tested on a laptop, and Groovy inside a pipeline cannot. That is not a
+stylistic preference — it is what makes this loop possible, with no build, no
+webhook and no waiting:
+
+```bash
+docker exec -e GITLAB_URL=http://gitlab.orb.local \
+            -e GITLAB_PROJECT=root/mobivisor-console jenkins sh -c '
+  rm -rf /tmp/hand
+  git clone -q http://root:$GITLAB_PAT@gitlab.orb.local/root/mobivisor-console.git /tmp/hand
+  cd /tmp/hand && GITLAB_TOKEN=$GITLAB_PAT docbot'
+```
+
+The token is already in the container's environment as `GITLAB_PAT`, so nothing
+needs to be passed in. Against a `main` whose HEAD is a merge commit this prints
+the same banner Jenkins would; against one that is not, it prints
+`docbot: <sha> is not a merge to main — nothing to do`. Both are worth seeing.
 
 ---
 
@@ -129,7 +201,7 @@ and tested on a laptop, and Groovy inside a pipeline cannot.
 | `up.sh` | Start OrbStack, boot GitLab, wait for real readiness, seed it, build and boot Jenkins |
 | `seed-gitlab.sh` | Set root password, allow local-network webhooks, mint a Jenkins API token |
 | `seed-project.sh` | Create the project, push `demo-repo/`, create the Jenkins job, verify the webhook |
-| `open-test-mr.sh` | Open a merge request and print what the bot detected |
+| `open-test-mr.sh` | Open a merge request touching a chosen part of the monorepo; `--merge` lands it and prints what the bot detected |
 | `status.sh` | Containers, memory, disk, and four-way reachability check |
 | `down.sh` | Stop everything, keep data |
 | `nuke.sh` | Remove everything this stack created |
@@ -228,8 +300,29 @@ webhook.
 
 One thing you get for free and may not expect: the Branch Source plugin posts a
 commit status back to the merge request by itself (`jenkinsci/mr-merge`), so the
-MR page turns green when the bot finishes. Nothing in this repository wires
-that up.
+MR page turns green on its own. Nothing in this repository wires that up — and
+note it says nothing about the bot, which does not run on that build. It is the
+`MR-*` build going green with the DocBot stage skipped.
+
+**One build can cover several merges.** Jenkins coalesces queued builds for a
+branch. Merge two merge requests in quick succession and `main` may build once,
+with HEAD at the second merge commit; the first is then never any build's HEAD,
+and docbot never sees it. There is no error and no artifact — nothing that reads
+as a failure. For a bot that only reports, that is a missing line in a log; for
+one that writes documentation, a docs update dropped in silence.
+
+The fix is not a cleverer diff. Walking `GIT_PREVIOUS_SUCCESSFUL_COMMIT..HEAD`
+would close it cheaply and cost exactly the property §3 is built on: that
+variable is unset on a first build and unchanged on a rebuild, so the answer
+would once again depend on what started the build rather than on the state of
+the repository.
+
+What holds is a work queue whose state lives in GitLab: ask for the merged merge
+requests that do not yet carry a processed marker, handle each, then mark it.
+Processing becomes idempotent instead of depending on being run exactly once, so
+it survives coalesced builds, replays, a restart and a wiped `jenkins-home`
+alike. The full argument is at the foot of [jenkins/docbot](jenkins/docbot); it
+is a design change, and it belongs in the real CLI.
 
 ---
 

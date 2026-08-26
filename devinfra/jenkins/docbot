@@ -58,9 +58,11 @@ fi
 
 iid=$(printf '%s' "$mr" | jq -r '.iid')
 
-# The API rather than a local diff. A multibranch job checks out the merge
-# *result* over a shallow clone, so git-side diffing is quietly wrong here;
-# GitLab is authoritative and needs no clone-depth tuning.
+# The API rather than a local diff. /changes returns the diff alongside the
+# merge request, so one response answers every question below — including who
+# opened it and what labels it carries, which no local diff can. A `git diff
+# HEAD^ HEAD` would agree on this build and stop agreeing the moment the stage
+# moves to an MR-* build, where the workspace is a merge *result* built locally.
 curl -sf -H "PRIVATE-TOKEN: $GITLAB_TOKEN" \
   "$GITLAB_URL/api/v4/projects/$project/merge_requests/$iid/changes" > mr.json
 
