@@ -25,6 +25,7 @@ set -eu
 : "${GITLAB_URL:?}" "${GITLAB_PROJECT:?}" "${GITLAB_TOKEN:?}"
 
 target_branch=main
+skip_label=docbot-generated
 project=$(printf '%s' "$GITLAB_PROJECT" | sed 's|/|%2F|g')
 sha=$(git rev-parse HEAD)
 
@@ -38,15 +39,24 @@ status=$(curl -s -o commit-mrs.json -w '%{http_code}' \
            "$GITLAB_URL/api/v4/projects/$project/repository/commits/$sha/merge_requests")
 
 case "$status" in
-  200) iid=$(jq -r --arg t "$target_branch" \
-               '[.[] | select(.state == "merged" and .target_branch == $t)][0].iid // empty' \
-               commit-mrs.json) ;;
-  404) iid='' ;;
+  200) mr=$(jq -c --arg t "$target_branch" --arg sha "$sha" \
+              '[.[] | select(.state == "merged" and .target_branch == $t
+                             and (.merge_commit_sha == $sha
+                                  or .squash_commit_sha == $sha))][0] // empty' \
+              commit-mrs.json) ;;
+  404) mr='' ;;
   *)   echo "docbot: GitLab returned HTTP $status for $sha" >&2; exit 1 ;;
 esac
 rm -f commit-mrs.json
 
-[ -n "$iid" ] || { echo "docbot: $sha is not a merge to $target_branch — nothing to do"; exit 0; }
+[ -n "$mr" ] || { echo "docbot: $sha is not a merge to $target_branch — nothing to do"; exit 0; }
+
+# skip docbot mrs
+if printf '%s' "$mr" | jq -e --arg l "$skip_label" '.labels | index($l)' >/dev/null; then
+  echo "docbot: $sha came from a $skip_label merge request - nothing to do"; exit 0
+fi
+
+iid=$(printf '%s' "$mr" | jq -r '.iid')
 
 # The API rather than a local diff. A multibranch job checks out the merge
 # *result* over a shallow clone, so git-side diffing is quietly wrong here;

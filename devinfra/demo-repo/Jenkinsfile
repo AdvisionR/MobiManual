@@ -1,8 +1,13 @@
-// Merge request detection.
-// discovers every open merge request as an `MR-<iid>` branch job and fills the environment
+// Runs docbot once a merge request has landed on main. docbot works out which
+// merge request that was from the commit under build; this file only decides
+// when to run it.
 
 pipeline {
   agent any
+
+  options {
+    disableConcurrentBuilds()
+  }
 
   environment {
     GITLAB_URL     = 'http://gitlab.orb.local'
@@ -20,7 +25,8 @@ pipeline {
                                           passwordVariable: 'GITLAB_TOKEN')]) {
           sh 'docbot'
         }
-        archiveArtifacts artifacts: 'detection.json,mr.json', fingerprint: true
+        archiveArtifacts artifacts: 'detection.json,mr.json',
+                         fingerprint: true, allowEmptyArchive: true
       }
     }
   }

@@ -60,7 +60,7 @@ unclassified:
         # its default (SYSTEM) branch with `if (!server.isManageWebHooks())
         # return;`. With it false, registration returns before it ever looks at
         # a credential — silently, no log line, and no merge request is ever
-        # detected. See README §6.3.
+        # detected.
         manageWebHooks: true
         # System hooks are instance-wide and need an admin-scoped token. The
         # project webhook is all detection requires.
