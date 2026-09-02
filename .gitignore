@@ -11,3 +11,4 @@ __pycache__/
 # DocBot run artifacts: verdict logs, generated indexes, scratch output.
 .docbot/
 .vscode/settings.json
+current-state.md
