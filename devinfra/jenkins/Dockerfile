@@ -1,10 +1,12 @@
 ARG JENKINS_BASE_VERSION=lts-jdk21
 FROM jenkins/jenkins:${JENKINS_BASE_VERSION}
 
-# jq and curl are what the docbot stub is written against.
+# jq and curl are what the docbot stub is written against. pandoc builds the
+# manual and node runs the completeness check, so the validation gates can be
+# exercised in the same container as the bot.
 USER root
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends jq curl ca-certificates \
+    && apt-get install -y --no-install-recommends jq curl ca-certificates pandoc nodejs \
     && rm -rf /var/lib/apt/lists/*
 USER jenkins
 

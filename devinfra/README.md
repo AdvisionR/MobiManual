@@ -38,9 +38,9 @@ OrbStack-specific feature (§6). `up.sh` starts it if it is not running.
 ./scripts/open-test-mr.sh code --merge   # open a merge request, merge it, watch the bot
 ```
 
-`demo-repo/` is the fixture that gets pushed: a **monorepo**, with the console
-code under `src/` and the user manual under `docs/`, so a merge request can
-touch either half or both. `open-test-mr.sh` takes the kind of change you want
+`demo-repo/` is the fixture that gets pushed: a **monorepo**, with the
+console under `public/app/` and the user manual under `public/doc/`, so a merge
+request can touch either half or both. `open-test-mr.sh` takes the kind of change you want
 (`code`, `docs`, `internal`, `both`, …); [demo-repo/README.md](demo-repo/README.md)
 lists them against what the gate is expected to do with each.
 
@@ -56,7 +56,7 @@ The last line prints the `detection.json` the bot produced, which looks like:
     "target": "main",
     "url": "http://gitlab.orb.local/root/mobivisor-console/-/merge_requests/1"
   },
-  "changed_files": ["src/enrollment/ios/EnrollmentWizard.tsx"]
+  "changed_files": ["public/app/enrollment/ios/enrollment-wizard.controller.js"]
 }
 ```
 
@@ -91,7 +91,7 @@ documentation bot describes what the product does, and an open merge request may
 still be force-pushed, reworked or closed — drafting against one means drafting
 against a moving target and discarding the draft each time the branch changes.
 
-It is also the choice foundation doc §7 already made. Model **A**, an advisory
+It is also the delivery model the foundation doc chose. Model **A**, an advisory
 comment on the open merge request, is the `changeRequest()` shape and a good
 pilot; model **B**, a bot-authored docs merge request on merge linked back to
 the source one, is the destination — and `branch 'main'` is what B needs. The
@@ -154,9 +154,9 @@ DocBot's output is a merge request against the repository it watches, so merging
 it builds `main`, which runs DocBot. The stub cuts the loop by skipping any
 merge request labelled `docbot-generated`.
 
-The fixture cuts it a second time, in `doc-map.json`, which classifies `^docs/`
-as `no-doc-impact`. That one covers what a label cannot: a human editing the
-manual by hand.
+The fixture cuts it a second time, in `doc-map.json`, which classifies
+`^public/doc/` as `no-doc-impact`. That one covers what a label cannot: a human
+editing the manual by hand.
 
 ---
 

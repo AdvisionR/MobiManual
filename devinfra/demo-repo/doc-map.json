@@ -1,76 +1,86 @@
 {
   "_comment": [
-    "Doc map — foundation doc §6.5. Maps code areas to manual sections.",
+    "Maps code areas to manual pages. It is the contract between the two halves",
+    "of the repository and belongs to neither, so it sits at the root.",
     "",
-    "It sits at the repo root rather than under docs/ because it is the contract",
-    "*between* the two halves of the monorepo, and belongs to neither. Both `code`",
-    "and `pages` are therefore repo-root-relative; see README.md.",
+    "`code` entries are regexes matched against changed file paths as GitLab",
+    "reports them, repo-root-relative. `pages` are filenames inside",
+    "<docRoot>/<language>/, so one entry covers all three languages.",
     "",
-    "JSON rather than YAML only because the prototype matches it with jq inside",
-    "the Jenkins container. The real docbot CLI reads YAML (§6.5); keep that",
-    "shape when porting. `code` entries are regexes matched against changed",
-    "file paths as GitLab reports them.",
+    "Console routes do not need entries here: _<route>.md is derived from the",
+    "route table by scripts/check-missing-doc.js. This file covers what that",
+    "convention cannot reach.",
     "",
-    "Explicit no-doc-impact entries matter as much as positive ones: they record",
-    "why the gate stays silent so nobody rediscovers it later."
+    "no-doc-impact entries matter as much as the others. They record why the",
+    "gate stays silent."
   ],
+  "docRoot": "public/doc",
+  "languages": ["en", "tr", "de"],
   "areas": [
     {
+      "id": "users",
+      "code": ["^public/app/users/", "^server/ldap/"],
+      "pages": ["_users.md"],
+      "class": "ai-drafted"
+    },
+    {
+      "id": "devices",
+      "code": ["^public/app/devices/"],
+      "pages": ["_devices.md", "_devices_id.md"],
+      "class": "ai-drafted"
+    },
+    {
       "id": "enrollment-ios",
-      "code": ["^src/enrollment/ios/", "^src/protocol/dep/"],
-      "pages": ["docs/pages/enrollment/ios-abm.md"],
+      "code": ["^public/app/enrollment/ios/", "^server/protocol/dep/"],
+      "pages": ["_enrollment_ios.md"],
       "class": "ai-drafted"
     },
     {
       "id": "kiosk-modes",
-      "code": ["^src/console/kiosk/"],
-      "pages": ["docs/pages/policies/kiosk-modes.md"],
-      "class": "ai-drafted"
-    },
-    {
-      "id": "users-and-roles",
-      "code": ["^src/console/settings/Ldap", "^src/console/users/", "^src/console/roles/"],
-      "pages": ["docs/pages/users.md", "docs/pages/roles.md"],
+      "code": ["^public/app/policies/kiosk/"],
+      "pages": ["_policies_kiosk.md"],
       "class": "ai-drafted"
     },
     {
       "id": "policy-schema",
       "code": ["^schema/policies/"],
-      "pages": ["docs/pages/reference/policy-settings.md"],
+      "pages": ["_policies_restrictions.md"],
       "class": "generated"
     },
     {
-      "id": "security-statements",
+      "id": "general-information",
       "code": [],
-      "pages": ["docs/pages/intro/security.md", "docs/pages/intro/general.md"],
+      "pages": ["cover_page.md", "chapter1.md"],
       "class": "human-only"
     },
     {
+      "id": "build-machinery",
+      "_comment": "Not pages. search.md is injected into combined.html, break.md into the PDF.",
+      "code": [],
+      "pages": ["search.md", "break.md"],
+      "class": "build-machinery"
+    },
+    {
       "id": "push-transport",
-      "code": ["^src/protocol/apns/", "^src/protocol/fcm/"],
+      "code": ["^server/protocol/apns/", "^server/protocol/fcm/"],
       "pages": [],
       "class": "no-doc-impact"
     },
     {
       "id": "ci-and-tests",
-      "code": ["^\\.gitlab-ci\\.yml$", "^Jenkinsfile$", "^tests?/", "\\.spec\\.(ts|js)$"],
+      "code": ["^\\.gitlab-ci\\.yml$", "^Jenkinsfile$", "^e2e/", "\\.spec\\.js$"],
       "pages": [],
       "class": "no-doc-impact"
     },
     {
       "id": "manual-source",
       "_comment": [
-        "The monorepo entry. With docs and code in one repository, DocBot's own",
-        "output merges into the same main branch that triggers DocBot — so the",
-        "manual is an input to the gate unless something says otherwise. This",
-        "entry says otherwise: docs/ is the destination, never the trigger.",
-        "",
-        "It is a second line of defence, not the first. docbot already skips",
-        "merge requests carrying the `docbot-generated` label, which stops the",
-        "loop at the source. This entry additionally covers the case that label",
-        "cannot: a human editing the manual by hand."
+        "The manual is DocBot's destination, never its trigger. Without this",
+        "entry a bot-authored merge request would trigger the next run.",
+        "docbot also skips merge requests labelled docbot-generated; this entry",
+        "covers what that label cannot, a human editing the manual by hand."
       ],
-      "code": ["^docs/"],
+      "code": ["^public/doc/"],
       "pages": [],
       "class": "no-doc-impact"
     }

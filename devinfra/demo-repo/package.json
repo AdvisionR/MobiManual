@@ -1,0 +1,13 @@
+{
+  "name": "mobivisor-console",
+  "version": "4.2.0",
+  "private": true,
+  "scripts": {
+    "check-missing-doc": "node scripts/check-missing-doc.js"
+  },
+  "devDependencies": {
+    "grunt": "^1.6.1",
+    "protractor": "^7.0.0",
+    "protractor-screenshot-reporter": "^0.1.4"
+  }
+}

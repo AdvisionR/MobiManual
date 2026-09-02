@@ -1,27 +1,52 @@
 # MobiManual DocBot — Project Foundation
 
-**Status:** pre-implementation. Design agreed in outline; several inputs still missing.
-**Last updated:** 2026-08-06
+**Status:** pre-implementation. Design agreed in outline; a working CI prototype exists; several inputs still missing.
+**Last updated:** 2026-09-02
 **Audience:** the next agent or engineer picking this up.
 
 ---
 
-## 0. How to read this document
+## How to read this document
 
 Every claim below is tagged:
 
 - **[DECIDED]** — settled, do not relitigate without a reason.
-- **[EVIDENCE]** — observed directly from an uploaded artifact. Trustworthy.
+- **[EVIDENCE]** — observed directly from a provided artifact or from the working prototype. Trustworthy.
 - **[PROPOSED]** — recommended but not yet confirmed by the team.
 - **[UNKNOWN]** — genuinely open; needs an answer before dependent work starts.
+- **[CORRECTED]** — this document previously claimed something else. The old claim and why it was wrong are in [What changed on 2 September 2026](#what-changed-on-2-september-2026).
 
 If you contradict a **[DECIDED]** item, say so explicitly and explain why.
 
 ---
 
-## 1. Goal
+## What changed on 2 September 2026
 
-Build an internal R&D application ("DocBot") that watches merge/pull requests in the
+A description of the real MobiVisor documentation system arrived
+(`Help_File_Creation_Description.md`, written against the actual gruntfile, screenshot
+helper and checking scripts). It corrects several claims this document previously made
+with confidence. They are listed here rather than silently overwritten, because anyone
+who read the earlier version is carrying the old versions around.
+
+| Was | Is | Why it was wrong |
+|---|---|---|
+| Manual is **English only**, no localisation in scope **[DECIDED]** | **en / tr / de**, parallel Markdown files *and* per-language screenshot trees | Never verified; assumed from an English-only `combined.html` |
+| Console frontend is **TypeScript/React** | **AngularJS** — `#!/` hashbang routes, Protractor, Grunt | The `.tsx` paths were invented for the prototype fixture and then read back as evidence about the real repo |
+| Manual source layout unknown; assumed `docs/pages/**.md` with a `manual.yaml` chapter order | `public/doc/<lang>/_<route>.md`; order lives in `htmlDocPages` in `gruntfile.js` | Inferred from Pandoc metadata alone |
+| The doc map is entirely hand-maintained | A large part is **derivable** — route-to-filename is an enforced convention | The convention was not known |
+| ~40% of screenshots are hand-captured orphans with ad-hoc names (`_apn_add_form_1.png`) | Those are **generated** by `helper.screenshot()`. The genuine orphans live in a separate `img/` directory | Two different test-driven naming mechanisms were conflated into "tests" versus "humans" |
+| E2E suite follows a Cypress/Playwright convention | **Protractor**, and the framework is **being replaced** | Guessed from filename shape |
+| Open question: has the PDF source diverged from HTML? | **No.** Same ordered `htmlDocPages` feeds both. **Closed.** | Now answered |
+| No existing documentation tooling assumed | `grunt check-missing-doc` already performs route-to-doc and doc-to-`htmlDocPages` checks | Not known |
+
+Separately, the CI prototype in `devinfra/` established how merge detection actually
+behaves on GitLab plus Jenkins. See [CI integration](#ci-integration).
+
+---
+
+## Goal
+
+Build an internal R&D application ("DocBot") that watches merge requests in the
 MobiVisor repository and keeps the MobiVisor user manual up to date, using an LLM to
 draft changes and a human to approve them.
 
@@ -33,32 +58,114 @@ or source annotations, never written by a model. **[DECIDED]**
 
 ---
 
-## 2. Product context
+## Product context
 
 - Product: **MobiVisor**, a Mobile Device Management (MDM) platform. **[DECIDED]**
 - Repository: internal company repository. Not public.
-- Console frontend is TypeScript/React — inferred from `EnrollmentWizard.tsx`-style
-  paths discussed and from E2E test artifact names. **[EVIDENCE, partial]**
-- Manual language: **English only** for now. No localisation in scope. **[DECIDED]**
+- **Monorepo.** The manual lives in the same repository as the console, under
+  `public/doc/`. **[EVIDENCE]** This is what makes a merge request able to touch code and
+  documentation together — and it is also why DocBot's own output merges into the same
+  branch that triggers DocBot. See [Delivery model](#delivery-model).
+- Console frontend is **AngularJS**: hashbang routes (`#!/devices`), Protractor E2E,
+  Grunt build. **[EVIDENCE] [CORRECTED]**
+- Manual languages: **English, Turkish, German**. Parallel Markdown files per language,
+  plus a per-language screenshot tree. **[EVIDENCE] [CORRECTED]**
+  Whether DocBot drafts one language or three is **[UNKNOWN]** and blocks the drafting
+  design — see [Open questions](#open-questions).
 - Versioning: old manual versions are **archived as-is** for supporting older releases.
   No requirement to back-port doc changes into older versions. **[DECIDED]**
 
 ---
 
-## 3. Current state of the manual
+## The manual as it exists today
 
-### 3.1 Format
+### Format and location
 
-The uploaded `combined.html` (165,947 bytes) is a **Pandoc-generated artifact**.
-`<meta name="generator" content="pandoc">`, `<title>cover_page</title>`, and links to
-`../seperate.css` and `../combined.css` indicate a chapter-per-file source set
-concatenated at build time. **[EVIDENCE]**
+Markdown, in language-specific folders inside the console repository: **[EVIDENCE]**
 
-**Implication: no format migration is needed.** The source is almost certainly Markdown
-already. This removes what was originally assumed to be the largest cost in the project.
-**[EVIDENCE]**
+```
+public/doc/en/_devices.md
+public/doc/tr/_devices.md
+public/doc/de/_devices.md
+public/doc/en/screenshots/_apn_add_form_1.png     generated by the E2E suite
+public/doc/en/img/commands_for_ios_devices.png    not generated; see Screenshots
+```
 
-### 3.2 Structure (measured from the uploaded HTML)
+**No format migration is needed.** The source is Markdown and the published
+`combined.html` is a Pandoc artifact. This removes what was originally assumed to be the
+largest cost in the project. **[EVIDENCE]**
+
+Two files in the tree are build machinery rather than content, and DocBot must never
+treat them as pages: **[EVIDENCE]**
+
+- `search.md` — injected into `combined.html`; provides the filter input over the
+  generated table of contents and the link to the PDF. It is a table-of-contents filter,
+  not a full-text search.
+- `break.md` — contains `\pagebreak`, inserted between pages when building the PDF.
+
+### How the manual is built
+
+Grunt drives Pandoc. **[EVIDENCE]**
+
+```
+htmlDocPages  (ordered array in gruntfile.js)
+      |
+      +--> Pandoc --> index.html
+      +--> Pandoc --> combined.html      (with a Pandoc-generated table of contents)
+      +--> Pandoc --> mobivisor.pdf
+```
+
+The developer-facing commands are:
+
+| Command | Does |
+|---|---|
+| `grunt web_docs` | Regenerates HTML and PDF |
+| `grunt screenshot_en` / `_tr` / `_de` | Recaptures documentation screenshots for one language |
+| `grunt check-missing-doc` | Checks documentation completeness |
+
+**Ordering is manual and load-bearing.** `htmlDocPages` is a JavaScript array in
+`gruntfile.js`. A Markdown file that is not listed there exists on disk and appears in
+*neither* the combined HTML nor the PDF. Creating a page therefore has two steps, and
+the second is easy to forget. **[EVIDENCE]**
+
+**Recommendation:** extract `htmlDocPages` into a JSON or YAML file that `gruntfile.js`
+reads. **[PROPOSED]** DocBot has to register every new page, and having it edit
+executable build config is a needless risk — the same argument made for exporting JSON
+Schema under [Implementation language](#implementation-language).
+
+`grunt check-missing-doc` already performs two checks worth reusing rather than
+reinventing: **[EVIDENCE]**
+
+1. application routes against `_*.md` files — a route with no documentation page;
+2. Markdown files against `htmlDocPages` — a page missing from the combined manual, or an
+   entry whose file no longer exists.
+
+`search.md` and `break.md` are excluded from that comparison.
+
+### The route-to-filename convention
+
+The most useful thing in the new information. **[EVIDENCE]**
+
+```
+#!/devices           ->  _devices.md
+route slashes        ->  underscores
+dynamic parameters   ->  an id form
+```
+
+The project already ships a script that performs this comparison, which means the
+convention is enforced rather than aspirational. Consequences:
+
+- **A large part of the doc map is derivable, not hand-written.** Changed route file to
+  expected page filename is a pure lookup. See [The doc map](#the-doc-map).
+- **A deterministic gate is possible with no model at all.** For a merged MR: which
+  routes changed, does each expected `_<route>.md` exist, was it touched, is it
+  registered in `htmlDocPages`. That is the whole of the advisory pilot without an LLM.
+- End users reach page-specific documentation from the page they are on, which is why
+  the convention exists at all.
+
+### Structure
+
+Measured from the uploaded `combined.html`:
 
 | Element | Count |
 |---|---|
@@ -81,7 +188,9 @@ policy/restriction reference tables. Either they don't exist yet, or they live o
 this document. **[UNKNOWN]** — worth checking, because generated-from-schema reference
 tables are the highest-value, zero-hallucination-risk part of the plan.
 
-### 3.3 Chapter list (as of the uploaded build)
+### Chapter list
+
+As of the uploaded build:
 
 ```
 1  General information about MobiVisor
@@ -95,94 +204,136 @@ tables are the highest-value, zero-hallucination-risk part of the plan.
         shared devices, SIM card numbers, wallpapers, WiFi configs, mobile apps)
 ```
 
-### 3.4 Prose register
+Note that `cover_page.md` and `chapter1.md` appear in `htmlDocPages` alongside the
+`_*.md` route pages. Not every page is route-derived, so the derivable doc map has a
+hand-maintained remainder.
+
+### Prose register
 
 Third-person, passive, "the user should…", with some non-native English patterns.
 Example: *"Users >> Add, opens the interface which supports the logged in user to add
 new user."* **[EVIDENCE]**
 
-**Action:** extract an explicit style guide + terminology glossary from the existing
+**Action:** extract an explicit style guide and terminology glossary from the existing
 text and feed it to the drafting agent. Without it, AI-drafted sections will read as
 visibly foreign against surrounding text. Estimated half a day; high return.
 **[PROPOSED]**
 
 ---
 
-## 4. Known defects in the manual — fix BEFORE the agent touches it
+## Known defects to fix first
 
 These will cause an agent to make plausible-looking edits in the wrong place.
 **[EVIDENCE]**
 
 1. **Chapter numbers baked into heading text** (`CHAPTER 5: POLICIES`). Inserting a
    chapter invalidates every subsequent heading, anchor, and cross-reference. Move to
-   automatic numbering.
+   automatic numbering. Note that the *order* already lives outside the text, in
+   `htmlDocPages` — it is only the numbering that is duplicated into the prose.
 2. **Hierarchy breaks after chapter 5.** `Call Blacklists`, `Permission Grant States`
-   and others sit at chapter level with no number — chapters 6+ have lost their
+   and others sit at chapter level with no number — chapters 6 and up have lost their
    container.
 3. **An empty heading** produces the anchor `#section`.
 4. **Duplicate headings**: `Edit Role` appears twice under `Roles`, generating duplicate
    anchors.
 5. **`../seperate.css`** — misspelled path that presumably works only because a matching
    misspelling exists on disk.
+6. **Registration drift.** Anything `grunt check-missing-doc` currently reports —
+   undocumented routes, unregistered pages, `htmlDocPages` entries with no file — should
+   be at zero before the gate starts reporting, or its first run buries real findings in
+   pre-existing debt.
 
 ---
 
-## 5. The screenshot finding (most important discovery)
+## Screenshots
 
-~60% of manual screenshots are **already produced by the E2E test suite**. Filenames
-follow `<spec file>-<test name>.png`, a Cypress/Playwright convention. **[EVIDENCE]**
+### Two mechanisms, both driven by tests
 
-Examples:
+There are **two separate screenshot systems**, and they were previously conflated.
+**[EVIDENCE] [CORRECTED]**
 
-```
-settings_password_page-Should_not_save_when_current_pass_is_wrong.png
-mobileapps_create_android_page-Should_add_a_new_app_from_google_play_for_android.png
-roles_page-should_start_with_admin_role_only.png
-users_create_page-Should_add_user_from_ldap.png
-```
+**1. `helper.screenshot()` / `helper.docshot()`** in `helper.js`, calling
+`browser.takeScreenshot()` and writing into `public/doc/<language>/screenshots/`.
 
-This inverts the original assumption that screenshots were the hardest unsolved problem.
-The staleness signal is **fully deterministic**, no model required:
+- With an explicit name — `helper.screenshot('apn_add_form')` — the helper prefixes an
+  underscore and appends a numeric index: `_apn_add_form_1.png`, `_apn_add_form_2.png`.
+- With no name, the current application URL is used: the part after `#!` becomes the
+  base filename, slashes to underscores, so `#!/devices` yields `_devices_1.png`.
+- `screenshot()` captures whenever it runs; `docshot()` captures only when
+  `NODE_ENV === 'screenshot'`. Intended usage: `docshot()` for images needed only by the
+  manual, `screenshot()` when the capture is also useful during testing.
 
-1. PR changes UI code.
-2. E2E suite runs in CI and re-captures the screenshot.
-3. Perceptual-diff the new capture against the copy in the docs repo
-   (`odiff` or `pixelmatch`, small threshold — byte equality is too noisy because of
-   font rendering and timing).
-4. On difference, the affected manual pages are known exactly via a filename→page index.
+**2. `protractor-screenshot-reporter`**, configured in `screenshot_protractor.js`,
+writing to the same language-specific directory but naming files from Jasmine test
+descriptions: `roles_page-should_start_with_admin_role_only.png`.
 
-**Phase 1 deliverable:** comment on the *source* PR — "this change alters 4 screenshots
-used in chapters 3 and 7." Zero false positives.
-**Phase 2:** bot commits regenerated images directly into the docs PR, since the E2E
+Both are test-generated. The staleness signal is therefore **fully deterministic** for
+both families, with no model required:
+
+1. An MR changes UI code.
+2. The E2E suite runs in CI and re-captures the screenshot.
+3. Perceptual-diff the new capture against the copy in the repository (`odiff` or
+   `pixelmatch`, small threshold — byte equality is too noisy because of font rendering
+   and timing).
+4. On difference, the affected manual pages are known exactly via a filename-to-page
+   index built by parsing the Markdown image references.
+
+**Pilot deliverable:** comment on the source MR — "this change alters 4 screenshots used
+in chapters 3 and 7." Zero false positives.
+**Later:** the bot commits regenerated images directly into the docs MR, since the E2E
 capture is authoritative.
 
-### 5.1 The orphan set
+One behaviour of the `grunt screenshot_*` pipeline matters to DocBot: it prunes
+screenshots not referenced from Markdown, and merges useful existing ones back in. So a
+Markdown image reference is what keeps an image alive. Removing a reference deletes the
+file on the next capture run; adding a reference before the corresponding capture exists
+produces a broken link. **[EVIDENCE]**
 
-The remaining ~40% are hand-captured with ad-hoc names and no test behind them:
-`_ldapSettings_1.png`, `_samsung_kiosk_Mode_1.png`, `_wifiConfigs_add_2.png`,
-`_apn_add_form_1.png`. **[EVIDENCE]**
+### The real orphans
 
-These need the manual registry approach (below), **or** — better — treat "manual
-screenshot with no E2E test" as a backlog item. Every conversion improves both the
-manual and the test suite.
+Not every image is generated. Some pages reference an `img/` directory directly:
 
-Registry format for orphans only: **[PROPOSED]**
-
-```yaml
-- file: images/_ldapSettings_1.png
-  renders: ["src/console/settings/LdapSettings.tsx"]
-  captured: "2025-11-14"
-  version: "4.2"
+```markdown
+![](screenshots/_apn_add_form_1.png)     generated
+![](img/commands_for_ios_devices.png)    not generated
 ```
 
-Add a CI lint that fails on any manual image with neither a test-derived name nor a
-registry entry — otherwise the registry rots within two releases.
+**This replaces the previous "40% hand-captured orphans" analysis.** Orphans are
+identified by **directory**, not by filename shape — `img/` versus `screenshots/`. That
+is a far better boundary than the proposed registry file, because a path cannot drift
+out of sync the way a hand-maintained registry does. **[CORRECTED]**
+
+The registry approach is therefore **withdrawn unless `img/` turns out to be
+heterogeneous**. What remains worth keeping from it: treat "a manual image with no test
+behind it" as a backlog item, since every conversion improves the manual and the test
+suite at once. **[PROPOSED]**
+
+### Language multiplies everything
+
+Screenshot language is read from `SCREENSHOT_LANGUAGE`, defaulting to English, and
+captures land in `public/doc/<language>/screenshots/`. **[EVIDENCE]**
+
+So a single UI change invalidates the same screenshot **three times**, and a complete
+capture means running the E2E suite once per language. Any staleness reporting must say
+which languages are affected, and any "the bot commits regenerated images" step is three
+commits or none.
+
+### The framework migration risk
+
+The E2E framework is **being replaced**; the Protractor screenshot flow is explicitly
+described as needing revisiting. **[EVIDENCE]**
+
+The entire mechanism above is filename-convention parsing. If the replacement framework
+names captures differently, the filename-to-page index and the two-family analysis have
+to be redone. **Do not build deeply on Protractor specifics.** Ask what it is moving to,
+and whether `docshot()` and the naming conventions survive the migration — this is now an
+open question and it gates the screenshot work.
 
 ---
 
-## 6. Architecture
+## Architecture
 
-### 6.1 Core principle
+### Core principle
 
 The manual is **plain text in version control**; HTML and PDF are build artifacts.
 Already true here. **[DECIDED]**
@@ -191,34 +342,37 @@ Rationale: a model can produce a reviewable diff against text, CI can validate i
 a human approves it in the same flow they use for code. Against a binary you get
 "regenerate everything and hope."
 
-### 6.2 Pipeline
+### Pipeline
 
 ```
-Merge / PR event
-  → gather context (diff, PR title/body, linked ticket, labels)
+Merge request event
+  → gather context (diff, MR title/body, linked ticket, labels)
   → doc-impact gate   ── no impact ──▶ exit silently
   → agent drafts patch to docs source
-  → automated validation (build, links, style lint, image existence)
-  → open docs PR, linked back to the source PR
+  → automated validation (build, links, style lint, image existence, registration)
+  → open docs MR, linked back to the source MR
   → human review
-  → merge → build HTML + PDF → publish
+  → merge → grunt web_docs → publish
 ```
 
 **The gate matters more than the writing.** Most merges touch tests, CI, or internals
 and must produce nothing. Otherwise you generate noise, burn budget, and train
 reviewers to rubber-stamp. **[DECIDED]**
 
-### 6.3 Three-tier gate
+### The three-tier gate
 
-1. **Path filter** against the doc map — pure lookup, drops most merges, costs nothing.
-2. **Cheap model, structured verdict** — small model, JSON out:
+1. **Deterministic tier** - path filter against the doc map, plus the route-to-filename
+   lookup and the `htmlDocPages` registration check. Pure lookup, drops most merges,
+   costs nothing, and thanks to the route convention it now answers more than a path
+   filter alone could. **[EVIDENCE]**
+2. **Cheap model, structured verdict** - small model, JSON out:
    `{user_facing: bool, areas: [...], confidence: float, reason: str}`.
    **Log every verdict from day one.** After a few weeks this is a labelled dataset
-   showing exactly where the gate is wrong — the real research output of phase 1.
-3. **Drafting agent** — full model with file-editing tools, scoped to the docs
+   showing exactly where the gate is wrong — the real research output of the pilot.
+3. **Drafting agent** - full model with file-editing tools, scoped to the docs
    directory. `human-only` and `generated` pages read-only at the filesystem level.
 
-### 6.4 Content classification
+### Content classification
 
 Every manual area is tagged with one of: **[PROPOSED]**
 
@@ -228,61 +382,84 @@ Every manual area is tagged with one of: **[PROPOSED]**
 | `ai-drafted` | Agent drafts, human reviews. | Enrollment walkthroughs, configuration procedures, troubleshooting |
 | `human-only` | Agent must never edit. | Intro, architecture overview, security statements, anything contractual |
 | `no-doc-impact` | Code area explicitly excluded. | Internal plumbing (APNS/FCM transport, etc.) |
+| `build-machinery` | Not a page. Never edited, never counted. | `search.md`, `break.md` |
 
 Explicit `no-doc-impact` entries matter as much as positive ones — they document *why*
 the gate stays silent so nobody rediscovers it later.
 
-### 6.5 Doc map
+### The doc map
 
-Hand-maintained file mapping code areas to manual sections. **Highest-leverage cheap
-thing in the whole design** — deterministic retrieval beats embeddings here, and stale
-entries surface as review friction rather than silent wrong edits. **[DECIDED]**
+Maps code areas to manual sections. **Highest-leverage cheap thing in the whole
+design** — deterministic retrieval beats embeddings here, and stale entries surface as
+review friction rather than silent wrong edits. **[DECIDED]**
+
+**It is now part-derived rather than fully hand-maintained. [CORRECTED]** The
+route-to-filename convention answers the console-route half by computation. The
+hand-maintained file covers what the convention cannot:
+
+- backend and non-route code areas,
+- schema-to-page links for the `generated` class,
+- pages that are not route pages (`cover_page.md`, `chapter1.md`),
+- explicit `no-doc-impact` exclusions.
 
 ```yaml
 areas:
   - id: enrollment-ios
     code: ["src/enrollment/ios/**", "src/protocol/dep/**"]
-    pages: ["pages/enrollment/ios-abm.adoc"]
+    pages: ["public/doc/en/_enrollment.md"]
     class: ai-drafted
   - id: policy-schema
     code: ["schema/policies/**"]
-    pages: ["pages/reference/policy-settings.adoc"]
+    pages: ["public/doc/en/_policies.md"]
     class: generated
   - id: push-transport
     code: ["src/protocol/apns/**", "src/protocol/fcm/**"]
     pages: []
     class: no-doc-impact
+  - id: manual-source
+    code: ["public/doc/**"]
+    pages: []
+    class: no-doc-impact     # the docs are the destination, never the trigger
 ```
 
-### 6.6 Agent behaviour rules
+Open design point: whether `pages` names one language or all three. See
+[Open questions](#open-questions).
+
+### Agent behaviour rules
 
 - Give the agent **"no change needed"** and **"needs a human — screenshot stale"** as
   first-class permitted outputs.
-- Instruct it to raise uncertainty in the PR description rather than invent behaviour.
+- Instruct it to raise uncertainty in the MR description rather than invent behaviour.
 - Prefer **minimal edits** to existing sections over regenerating them.
 - The drafting step must be an **agentic loop with file access and a build it must
   pass** — not one prompt returning prose. The model needs to grep for existing
   terminology, verify cross-references resolve, and iterate on build failure. **[DECIDED]**
+- A new page is **not finished** until it is registered in `htmlDocPages`. Make that an
+  explicit step in the agent's contract, not an implicit one.
 
-### 6.7 Validation gates
+### Validation gates
 
-- Docs build succeeds, failing on broken cross-references.
+- `grunt web_docs` succeeds, failing on broken cross-references.
+- `grunt check-missing-doc` reports nothing new relative to the base commit.
 - Prose linter (Vale) against the extracted terminology glossary.
-- Every referenced image file exists.
-- No edits to `human-only` or `generated` paths.
+- Every referenced image file exists, in every language touched.
+- No edits to `human-only`, `generated` or `build-machinery` paths.
+- Language parity: either all three language files were updated, or the untouched ones
+  are recorded as tracked translation debt rather than silently skipped.
 
 ---
 
-## 7. Delivery model
+## Delivery model
 
-Four options were considered. **[DECIDED]** to pursue A → B, with C worth revisiting.
+Four options were considered. **[DECIDED]** to pursue A then B, with C worth revisiting.
 
-- **A — advisory comment** on the source PR. No writes to docs. Days to build. Natural
-  pilot; use it to learn where the gate is wrong.
-- **B — bot-authored docs PR** on merge, linked back to the source PR. The destination.
+- **A — advisory comment** on the source MR. No writes to docs. Days to build. Natural
+  pilot; use it to learn where the gate is wrong. With the route convention, the first
+  version of this needs no model at all.
+- **B — bot-authored docs MR** on merge, linked back to the source MR. The destination.
 - **C — ledger, batched at release.** Each merge writes a structured "doc impact record"
   to a pending queue; at release tag, one agent run processes the whole queue into a
-  single coherent PR. **Worth serious consideration** — a manual is a narrative
+  single coherent MR. **Worth serious consideration** — a manual is a narrative
   document, and forty independent nudges produce forty inconsistent voices. Also yields
   release notes for free. B and C combine: B detects, C writes.
 - **D — auto-merge to published manual.** Rejected. The manual is customer-facing and
@@ -290,38 +467,126 @@ Four options were considered. **[DECIDED]** to pursue A → B, with C worth revi
 
 Note: without a named human reviewer, B silently degrades into D. **[RISK]**
 
+**Monorepo consequence.** Because the manual lives in the console repository, a
+bot-authored docs MR merges into the same `main` that triggers the bot. The loop must be
+cut in two independent places, and the prototype does both: **[EVIDENCE]**
+
+1. skip merge requests carrying a `docbot-generated` label — stops the loop at source;
+2. classify the docs path itself as `no-doc-impact` — covers what a label cannot, namely
+   a human editing the manual by hand.
+
 ---
 
-## 8. CI integration
+## CI integration
 
-### 8.1 Executor vs. detector
+A working prototype lives in `devinfra/`: a local GitLab and Jenkins, wired so that a
+merge request landing on `main` runs a bot with that merge request's context in hand.
+Everything in this section marked **[EVIDENCE]** was established there.
 
-Jenkins is the **executor**. The merge/PR event comes from the forge. **[DECIDED]**
+### Executor versus detector
 
-**[UNKNOWN] — which forge?** GitLab, Bitbucket, or GitHub Enterprise. This decides the
-plugin and nothing else.
+Jenkins is the **executor**. The merge request event comes from the forge. **[DECIDED]**
 
-### 8.2 Plugin choice
+**Forge: GitLab.** The prototype is built on GitLab plus the `gitlab-branch-source`
+plugin. Confirm this is the forge for the real MobiVisor repository before the plugin
+choice is treated as settled — it decides the plugin and nothing else. **[PROPOSED]**
 
-- **Multibranch Pipeline + matching branch source plugin** (GitLab / Bitbucket / GitHub
-  Branch Source) is the default. Auto-discovers MRs as `PR-123` jobs and exposes
-  `CHANGE_ID`, `CHANGE_TARGET`, `CHANGE_BRANCH`, `CHANGE_TITLE`, `CHANGE_AUTHOR`,
-  `CHANGE_URL`. **[PROPOSED]**
-- **Generic Webhook Trigger plugin** only if you need fields branch source doesn't
-  expose — MR labels and linked issue are the usual reasons, and both matter to the gate.
-- **Recommended hybrid:** branch source for discovery, plus direct forge API calls from
-  DocBot for labels and linked tickets. Simpler than maintaining JSONPath bindings.
+The recommended shape is **branch source for discovery, plus direct forge API calls from
+DocBot** for labels and linked tickets. Simpler than maintaining Generic Webhook Trigger
+JSONPath bindings, and it is what the prototype does.
 
-### 8.3 Two triggers, not one
+### Two triggers, not one
 
-| Trigger | Action |
+| Trigger | Jenkins condition | Action |
+|---|---|---|
+| MR opened/updated | `when { changeRequest() }` | Gate verdict and screenshot warnings, posted as a comment on that MR |
+| Merge landed on `main` | `when { branch 'main' }` | Drafting run that opens the docs MR |
+
+Both are needed, and they use **different mechanisms** — that distinction is the main CI
+finding of the prototype.
+
+### Detecting the merge
+
+`CHANGE_ID`, `CHANGE_TITLE`, `CHANGE_AUTHOR`, `CHANGE_BRANCH`, `CHANGE_TARGET` and
+`CHANGE_URL` exist **only on `MR-<iid>` builds** — that is, only while the merge request
+is open. A `main` build is triggered by a push hook carrying commits, not merge-request
+identity, so all of them are unset. **There is no "an MR merged" trigger with context
+attached.** **[EVIDENCE]**
+
+The advisory trigger can therefore use the plugin's variables directly. The drafting
+trigger cannot, and instead derives the merge request from repository state:
+
+```
+sha = git rev-parse HEAD
+GET /projects/:id/repository/commits/:sha/merge_requests
+  → keep the one that is merged, targets main, and whose
+    merge_commit_sha or squash_commit_sha is that commit
+```
+
+The match must be exact, because that endpoint also returns merge requests that merely
+*contain* the commit.
+
+Deriving the answer from repository state rather than from the event that started the
+build is the property worth having: a forced rebuild, a replay and a re-index all resolve
+to the same merge request, and a direct push to `main` resolves to none — a correct
+answer, not an error. Alternatives rejected: **[EVIDENCE]**
+
+| Alternative | Why not |
 |---|---|
-| MR opened/updated | Gate verdict + screenshot warnings, posted as a comment on that MR |
-| Push to main | Drafting run that opens the docs PR |
+| `when { changeRequest() }` for the drafting run | The open-MR moment. An open MR may still be force-pushed, reworked or closed, so drafting against one means discarding the draft each time the branch changes. Its workspace is also a merge result built locally and never pushed. |
+| Read the trigger event or the `GITLAB_*` push variables | Ties the answer to what started the build. A rebuild, replay or re-index gives a different answer or none. |
+| `git diff HEAD^ HEAD` | Agrees only on a full-clone `main` build; breaks on `MR-*` builds or a clone-depth trait, and cannot answer who opened the MR or what labels it carries. |
 
-### 8.4 Diff computation gotcha
+Also worth knowing: the branch source plugin posts a commit status back to the merge
+request by itself, so the MR page turns green with nothing wiring it up — and that says
+nothing about the bot, which does not run on that build.
 
-Multibranch often does a shallow clone, and PR jobs may check out a merge commit rather
+### The coalescing gap and the work queue
+
+**One build can cover several merges.** Jenkins coalesces queued builds for a branch:
+queue items are deduplicated per task, so triggers arriving while a build runs fold into
+a single pending item. Merge two merge requests in quick succession and `main` may build
+once, with `HEAD` at the second merge commit; the first is then never any build's `HEAD`
+and the bot never sees it. There is no error and no artifact. For a bot that only
+reports, that is a missing line in a log; for one that writes documentation, it is a docs
+update dropped in silence. **[EVIDENCE]**
+
+Jenkins' own queue does not solve this. It guarantees "at least one build will run after
+your event", not "one build per event". Allowing concurrent builds does not help either —
+each build checks out the branch head at checkout time, so two builds can both land on
+the second merge commit, trading a dropped merge for a duplicated one.
+
+**The fix is a work queue whose state lives in GitLab. [DECIDED]**
+
+```
+ask GitLab for merge requests merged into main that do not carry `docbot-processed`
+  → sort by merged_at ascending
+  → handle the oldest
+  → mark it
+  → repeat until empty
+```
+
+The queue is **derived, not stored** — the query *is* the queue, recomputed from
+repository state on every run. That keeps the property the detection above rests on:
+processing becomes idempotent rather than depending on being run exactly once, so it
+survives coalesced builds, replays, a restart and a wiped `jenkins-home` alike.
+
+Two things it does not give for free:
+
+- The marker write can fail after the work is done, so the work itself must be
+  idempotent: check for an existing docs MR for that source MR before opening one. The
+  marker reduces repeats; it does not eliminate them.
+- Order is not implied by the query. Sort by `merged_at` ascending, or two merges handled
+  in one build get documented out of sequence.
+
+Rejected as the fix: walking `GIT_PREVIOUS_SUCCESSFUL_COMMIT..HEAD`. It closes the gap
+cheaply and costs exactly the property this design is built on — that variable is unset
+on a first build and unchanged on a rebuild, so the answer would again depend on what
+started the build.
+
+### Diff computation
+
+Multibranch often does a shallow clone, and MR jobs may check out a merge commit rather
 than the branch head. **Disable shallow clone in the checkout behaviours**, or
 `merge-base` silently fails.
 
@@ -332,36 +597,55 @@ sh '''
 '''
 ```
 
-### 8.5 Keep Jenkins thin
+On the `main` side, prefer the forge API — `/merge_requests/:iid/changes` returns the
+diff alongside the merge request, so one response answers the changed-files question and
+the author and label questions together. **[EVIDENCE]**
+
+### Keep Jenkins thin
 
 **No logic in Groovy.** The `Jenkinsfile` collects context, runs a container, publishes
 artifacts. Everything else lives in a standalone CLI that runs identically on a laptop.
-**[DECIDED]**
+**[DECIDED]** This is not stylistic: a shell script or a real CLI can be run and tested
+without a build, a webhook and a wait; Groovy inside a pipeline cannot.
 
 ```groovy
 pipeline {
   agent { docker { image 'registry.internal/docbot:1.4.2' } }
+  options { disableConcurrentBuilds() }
   stages {
-    stage('Doc impact') {
+    stage('Doc impact (advisory)') {
       when { changeRequest() }
       steps {
-        withCredentials([string(credentialsId: 'llm-api-key',    variable: 'LLM_API_KEY'),
-                         string(credentialsId: 'forge-bot-token', variable: 'FORGE_TOKEN')]) {
+        withCredentials([string(credentialsId: 'forge-bot-token', variable: 'FORGE_TOKEN')]) {
           sh 'docbot gate --changed-files changed_files.txt --mr $CHANGE_ID --out verdict.json'
           sh 'docbot screenshots --changed-files changed_files.txt --comment --mr $CHANGE_ID'
         }
       }
     }
+    stage('Draft (on merge)') {
+      when { branch 'main' }
+      steps {
+        withCredentials([string(credentialsId: 'llm-api-key',     variable: 'LLM_API_KEY'),
+                         string(credentialsId: 'forge-bot-token', variable: 'FORGE_TOKEN')]) {
+          sh 'docbot process-queue --out processed.json'
+        }
+      }
+    }
   }
-  post { always { archiveArtifacts 'verdict.json' } }
+  post { always { archiveArtifacts artifacts: 'verdict.json,processed.json', allowEmptyArchive: true } }
 }
 ```
 
-Pin DocBot as a **versioned container image** — it needs Pandoc, a model SDK, and a docs
-build at fixed versions, and Jenkins agents drift. Move the wrapper into a Jenkins Shared
-Library once a second repo needs it.
+Pin DocBot as a **versioned container image**. Note what the image now has to contain to
+run the validation gates: **Node and Grunt, Pandoc, ImageMagick and pngquant**, all at
+fixed versions, because `grunt web_docs` and the screenshot pipeline depend on them and
+Jenkins agents drift. **[EVIDENCE]** Move the wrapper into a Jenkins Shared Library once
+a second repository needs it.
 
-### 8.6 CLI shape
+Bake the bot into the image rather than into the watched repository: a bot that reviews a
+repository should not be editable by the merge requests it reviews.
+
+### CLI shape
 
 Composable subcommands, each independently testable, each emitting a JSON artifact:
 
@@ -370,15 +654,16 @@ docbot gate              # is this user-facing? which areas?
 docbot screenshots       # which images changed / are stale?
 docbot render-reference  # schema → generated tables
 docbot draft             # agentic docs edit
-docbot validate          # build + lint + link check
+docbot validate          # build + lint + link check + registration
+docbot process-queue     # merged-but-unmarked MRs, oldest first
 ```
 
-This also gives the evaluation harness for free: replay a corpus of historical MRs
-through `gate` offline and score verdicts without touching Jenkins.
+This also gives the evaluation harness for free: replay a corpus of historical merge
+requests through `gate` offline and score verdicts without touching Jenkins.
 
 ---
 
-## 9. Implementation language
+## Implementation language
 
 **Python**, with one dependency. **[PROPOSED]**
 
@@ -390,9 +675,13 @@ reference tables; fast edit-run loop, which prompt work rewards. `click`/`typer`
 **The dependency — [UNKNOWN]: where do the policy/restriction schemas live?**
 
 - If they are backend-side or already JSON Schema → **Python**, no complications.
-- If they are TypeScript types or Zod schemas → parsing them from Python is miserable.
-  Two clean options: write DocBot in **TypeScript**, or **export JSON Schema as a build
-  step in the console repo** and stay in Python.
+- If they are frontend TypeScript types → parsing them from Python is miserable. Two
+  clean options: write DocBot in **TypeScript**, or **export JSON Schema as a build step
+  in the console repo** and stay in Python.
+
+An AngularJS frontend makes backend-side schemas the more likely case, which points to
+Python — but confirm rather than assume; the same inference about the frontend is what
+produced the React error corrected above.
 
 **Recommendation:** the JSON Schema export regardless. It is a useful artifact in its own
 right, decouples docs from console internals, and means a console refactor doesn't break
@@ -401,16 +690,24 @@ the manual.
 Go is defensible if single-binary distribution matters, but the doc-tooling gap and
 slower iteration make it a poor fit for the research phase.
 
-Note: the screenshot filename→page index is pure string parsing and is language-agnostic.
+Note that the *docs build* is Node-based whatever DocBot is written in, since
+`grunt web_docs` is the validation gate. DocBot shells out to it; it does not
+reimplement it.
+
+The screenshot filename-to-page index is pure string parsing and is language-agnostic.
 
 ---
 
-## 10. Model provider
+## Model provider
 
 Either **OpenAI or Anthropic**; both work. **[DECIDED]**
 
 Keep the provider behind a thin interface so they can be A/B tested. For an R&D project,
 comparative quality data on the same corpus is a legitimate deliverable in itself.
+
+Open design point: what the model is allowed to see. Start with **the merge request diff
+only**, and widen to repository read access only if drafting quality demonstrably needs
+it. **[PROPOSED]**
 
 **Governance — must be resolved before the pilot:** diffs from a proprietary MDM codebase
 will leave the network. Both vendors offer zero-retention and EU-region arrangements.
@@ -418,56 +715,86 @@ Get this agreed **in writing** first, not after. **[RISK / OPEN]**
 
 ---
 
-## 11. Phasing
+## Phasing
+
+### Phase 0 — align the prototype with reality
+
+The `devinfra/` fixture models a layout that does not exist: `docs/pages/**.md`, a
+`manual.yaml` chapter order, `.tsx` sources, an orphan screenshot registry. Rebase it on
+the real shape — `public/doc/{en,tr,de}/_*.md`, a `gruntfile.js` with a real
+`htmlDocPages`, Pandoc in the Jenkins image, `screenshots/` beside `img/` — before
+building bot logic on top of it. Cheap now, expensive later.
 
 ### Phase 1 — no AI at all
 
-1. Obtain the Markdown sources + build script (see §12).
-2. Fix the heading hierarchy defects (§4) and switch to automatic chapter numbering.
-3. Build the image→page index by parsing `combined.html`.
-4. Wire the E2E screenshot perceptual-diff into a source-PR comment.
-5. Extract the style guide + terminology glossary from existing prose.
+1. Phase 0.
+2. Deterministic gate: route-to-page lookup plus the `htmlDocPages` registration check,
+   emitting the advisory comment. This is the pilot's first version with no model and no
+   governance sign-off needed.
+3. Fix the heading hierarchy defects and switch to automatic chapter numbering.
+4. Build the image-to-page index by parsing the Markdown sources.
+5. Extract the style guide and terminology glossary from existing prose.
 6. Build `generated` reference tables from policy schemas, if such schemas exist.
+7. Screenshot perceptual-diff — **deferred** until the E2E framework replacement is
+   known.
 
-Phase 1 delivers real value on its own and makes the doc-impact PR template an easier
+Phase 1 delivers real value on its own and makes the doc-impact MR template an easier
 sell to the team.
 
 ### Phase 2 — gate in advisory mode
 
-Deploy the gate commenting on source PRs. Collect verdict data. Tune. No writes to docs.
+Add the model tier to the gate, still commenting on source MRs. Collect verdict data.
+Tune. No writes to docs.
 
 ### Phase 3 — drafting agent
 
-Turn on `draft` against docs PRs, starting with **low-risk areas** (troubleshooting)
+Turn on `draft` against docs MRs, starting with **low-risk areas** (troubleshooting)
 before opening it to enrollment procedures.
 
 ---
 
-## 12. Open questions
+## Open questions
 
 | # | Question | Blocks | Owner |
 |---|---|---|---|
-| 1 | Which forge — GitLab / Bitbucket / GitHub Enterprise? | Jenkins plugin choice | team |
-| 2 | Are policy/restriction schemas TypeScript or backend-side? | Python vs TS decision | team |
-| 3 | Can we get the Markdown sources + build script for the manual? | Everything | user (in progress) |
-| 4 | Does the PDF build share the same source, or has it diverged? | Build pipeline design | user (PDF pending) |
-| 5 | Who is the named human reviewer for docs PRs? Is there a technical writer? | Option B viability | team |
-| 6 | What is the contract for "user-facing"? Labels, conventional commits, or a mandatory "Doc impact" section in the PR template? | Gate design | team — *under discussion* |
-| 7 | Do policy/restriction reference tables exist anywhere? (only 1 table in the manual) | `generated` class scope | team |
-| 8 | Data-governance sign-off for sending code diffs to an external model API | Pilot start | legal/security |
+| 1 | Does DocBot draft English only with tracked translation debt, or all three languages? | Drafting design, doc map shape, validation gates | team |
+| 2 | What is the E2E framework being migrated to, and do `docshot()` and the filename conventions survive it? | All screenshot work | team |
+| 3 | Are policy/restriction schemas frontend TypeScript or backend-side? | Python versus TypeScript | team |
+| 4 | Can `htmlDocPages` be extracted from `gruntfile.js` into data DocBot can safely write? | Page registration step | team |
+| 5 | Is GitLab confirmed as the forge for the real repository? | Plugin choice (prototype already assumes it) | team |
+| 6 | Who is the named human reviewer for docs MRs? Is there a technical writer? | Option B viability | team |
+| 7 | What is the contract for "user-facing"? Labels, conventional commits, or a mandatory "Doc impact" section in the MR template? | Gate design | team — *under discussion* |
+| 8 | Do policy/restriction reference tables exist anywhere? (only 1 table in the manual) | `generated` class scope | team |
+| 9 | Where do the `img/` images come from, and is that directory homogeneous? | Whether an orphan registry is needed at all | team |
+| 10 | Data-governance sign-off for sending code diffs to an external model API | Pilot start | legal/security |
+| 11 | Full Markdown sources and `gruntfile.js` — do we have working access, or only the description? | Phase 0 | user |
+
+**Closed since the last revision:**
+
+- *Does the PDF build share the same source, or has it diverged?* — It shares it. The same
+  ordered `htmlDocPages` feeds `index.html`, `combined.html` and `mobivisor.pdf`.
+- *Can we get the Markdown sources and build script?* — The build system is now described
+  in detail; question 11 tracks the remaining access gap.
 
 ---
 
-## 13. Artifacts referenced
+## Artifacts referenced
 
-- `combined.html` — 165,947 bytes, Pandoc output, the whole manual concatenated.
-  Uploaded and analysed. **The analysis in §3–§5 derives entirely from this file.**
+- `Help_File_Creation_Description.md` — description of the real MobiVisor documentation
+  system, written against the actual gruntfile, screenshot helper, README and checking
+  scripts. **The corrections in this revision derive from this file.** It notes two gaps
+  in its own coverage: how the running UI selects documentation for the current route,
+  and where `helper.docshot()` calls sit in the E2E test source.
+- `combined.html` — 165,947 bytes, Pandoc output, the whole manual concatenated. The
+  structure and prose analysis derives from this file.
+- `devinfra/` — the working GitLab + Jenkins prototype. Source of everything marked
+  **[EVIDENCE]** under [CI integration](#ci-integration).
 - A PDF with images — mentioned by the user, **not yet provided**.
-- Markdown sources — **not yet provided**, existence inferred from Pandoc metadata.
+- Markdown sources — **not yet provided** directly; layout and build now known.
 
 ---
 
-## 14. Standing principles
+## Standing principles
 
 1. Human review is mandatory. Never ship option D.
 2. Deterministic beats probabilistic. Prefer schema rendering, filename parsing, and
@@ -476,3 +803,9 @@ before opening it to enrollment procedures.
 3. The gate's job is mostly to say nothing.
 4. Log every verdict and every draft. This is an R&D project; the data is the output.
 5. Fix the document's structure before letting an agent edit it.
+6. Existing conventions are load-bearing. The route-to-filename rule, the
+   `screenshots/` versus `img/` split and `htmlDocPages` all encode knowledge that is
+   cheaper to read than to rebuild — and each is a place DocBot can silently break the
+   manual by ignoring it.
+7. Prefer state that lives in the forge over state that lives in Jenkins. It survives
+   coalesced builds, replays and a wiped controller; Jenkins' own state does not.

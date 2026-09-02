@@ -8,15 +8,16 @@
 # the only reason the fixture carries both. Each kind maps to a doc-map area
 # with a documented expected behaviour — see demo-repo/README.md.
 #
-#   code      src/enrollment/ios/**        ai-drafted     (default)
-#   kiosk     src/console/kiosk/**         ai-drafted     — also a registered screenshot
-#   users     src/console/settings/Ldap*   ai-drafted     — two pages
-#   schema    schema/policies/**           generated      — regenerate, never draft
-#   internal  src/protocol/apns/**         no-doc-impact  — the gate must stay silent
-#   ci        tests/**                     no-doc-impact  — the gate must stay silent
-#   docs      docs/pages/**                no-doc-impact  — the manual is the output
-#   both      code + its manual page       ai-drafted     — already documented
-#   unmapped  a path in no area at all     —              — tier 1 cannot answer
+#   code      public/app/enrollment/ios/**  ai-drafted     (default)
+#   kiosk     public/app/policies/kiosk/**  ai-drafted     — also has a screenshot
+#   users     public/app/users/**           ai-drafted
+#   devices   public/app/devices/**         ai-drafted     — two pages
+#   schema    schema/policies/**            generated      — regenerate, never draft
+#   internal  server/protocol/apns/**       no-doc-impact  — the gate must stay silent
+#   ci        e2e/**                        no-doc-impact  — the gate must stay silent
+#   docs      public/doc/en/**              no-doc-impact  — the manual is the output
+#   both      code + its manual page        ai-drafted     — already documented
+#   unmapped  a path in no area at all      —              — tier 1 cannot answer
 #
 # The chain this exercises, end to end:
 #
@@ -46,16 +47,17 @@ for arg in "$@"; do
 done
 
 case "$KIND" in
-  code)     FILES="src/enrollment/ios/EnrollmentWizard.tsx"; AREA="enrollment-ios (ai-drafted)" ;;
-  kiosk)    FILES="src/console/kiosk/SamsungKioskForm.tsx";  AREA="kiosk-modes (ai-drafted)" ;;
-  users)    FILES="src/console/settings/LdapSettings.tsx";   AREA="users-and-roles (ai-drafted)" ;;
-  schema)   FILES="schema/policies/android-restrictions.json"; AREA="policy-schema (generated)" ;;
-  internal) FILES="src/protocol/apns/PushTransport.ts";      AREA="push-transport (no-doc-impact)" ;;
-  ci)       FILES="tests/enrollment.spec.ts";                AREA="ci-and-tests (no-doc-impact)" ;;
-  docs)     FILES="docs/pages/users.md";                     AREA="manual-source (no-doc-impact)" ;;
-  both)     FILES="src/enrollment/ios/EnrollmentWizard.tsx docs/pages/enrollment/ios-abm.md"
+  code)     FILES="public/app/enrollment/ios/enrollment-wizard.controller.js"; AREA="enrollment-ios (ai-drafted)" ;;
+  kiosk)    FILES="public/app/policies/kiosk/kiosk.controller.js";        AREA="kiosk-modes (ai-drafted)" ;;
+  users)    FILES="public/app/users/users.controller.js";                 AREA="users (ai-drafted)" ;;
+  devices)  FILES="public/app/devices/devices.controller.js";             AREA="devices (ai-drafted), two pages" ;;
+  schema)   FILES="schema/policies/android-restrictions.json";            AREA="policy-schema (generated)" ;;
+  internal) FILES="server/protocol/apns/push-transport.js";               AREA="push-transport (no-doc-impact)" ;;
+  ci)       FILES="e2e/specs/devices.spec.js";                            AREA="ci-and-tests (no-doc-impact)" ;;
+  docs)     FILES="public/doc/en/_users.md";                              AREA="manual-source (no-doc-impact)" ;;
+  both)     FILES="public/app/enrollment/ios/enrollment-wizard.controller.js public/doc/en/_enrollment_ios.md"
             AREA="enrollment-ios (ai-drafted), already documented in the same MR" ;;
-  unmapped) FILES="src/console/reports/ExportSchedule.tsx";  AREA="none — tier 1 cannot answer" ;;
+  unmapped) FILES="public/app/reports/export-schedule.controller.js";     AREA="none — tier 1 cannot answer" ;;
   *) echo "unknown kind: $KIND  (try --help)" >&2; exit 2 ;;
 esac
 
@@ -81,7 +83,7 @@ PY
             ;;
     *.md)   printf '\n<!-- %s: touched by open-test-mr.sh -->\n' "$STAMP" >> "$f" ;;
     *.yaml|*.yml) printf '\n# %s: touched by open-test-mr.sh\n' "$STAMP" >> "$f" ;;
-    *)      [ -f "$f" ] || printf '// Created by open-test-mr.sh: a path no doc-map area claims.\n\nexport const placeholder = true;\n' > "$f"
+    *)      [ -f "$f" ] || printf '// Created by open-test-mr.sh: a path no doc-map area claims.\n' > "$f"
             printf '\n// %s: touched by open-test-mr.sh\n' "$STAMP" >> "$f" ;;
   esac
 }

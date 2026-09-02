@@ -1,3 +1,0 @@
-# Git does not track empty directories, and the queue has to exist before the
-# first record lands in it: DocBot commits into `doc-impact/pending/` on a
-# branch cut from the default branch.
