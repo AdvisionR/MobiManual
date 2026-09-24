@@ -70,8 +70,18 @@ gl() { curl -s -H "PRIVATE-TOKEN: ${GITLAB_PAT}" "$@"; }
 # Append something harmless in the file's own comment syntax. A stamp rather
 # than a real edit: what is being tested is which paths the merge touches, not
 # what it says.
+#
+# A missing file is an error, never created: every kind's file exists in
+# demo-repo/, so a missing one means GitLab holds an older fixture than
+# demo-repo/. Creating it would open a merge request that looks right while the
+# gate is judged against the wrong layout.
 touch_file() {
-  local f="$1" dir; dir=$(dirname "$f"); mkdir -p "$dir"
+  local f="$1"
+  if [ ! -f "$f" ]; then
+    printf '\n  !! %s is not in the seeded project.\n' "$f" >&2
+    printf '     GitLab holds an older fixture than demo-repo/. Re-seed:  ./scripts/seed-project.sh\n\n' >&2
+    exit 1
+  fi
   case "$f" in
     *.json) python3 - "$f" "$STAMP" <<'PY'
 import json, sys
@@ -83,8 +93,7 @@ PY
             ;;
     *.md)   printf '\n<!-- %s: touched by open-test-mr.sh -->\n' "$STAMP" >> "$f" ;;
     *.yaml|*.yml) printf '\n# %s: touched by open-test-mr.sh\n' "$STAMP" >> "$f" ;;
-    *)      [ -f "$f" ] || printf '// Created by open-test-mr.sh: a path no doc-map area claims.\n' > "$f"
-            printf '\n// %s: touched by open-test-mr.sh\n' "$STAMP" >> "$f" ;;
+    *)      printf '\n// %s: touched by open-test-mr.sh\n' "$STAMP" >> "$f" ;;
   esac
 }
 
@@ -100,12 +109,25 @@ git clone -q "http://root:${GITLAB_PAT}@${GITLAB_HOST}/root/mobivisor-console.gi
   git push -q origin "$BRANCH"
 )
 
-IID=$(curl -s -X POST -H "PRIVATE-TOKEN: ${GITLAB_PAT}" \
-  --data-urlencode "source_branch=${BRANCH}" \
-  --data-urlencode "target_branch=main" \
-  --data-urlencode "title=${TITLE}" \
-  "$API/projects/$PROJECT_ENC/merge_requests" \
-  | python3 -c 'import sys,json;print(json.load(sys.stdin)["iid"])')
+# GitLab processes a push asynchronously, so a merge request created right after
+# `git push` can be refused with HTTP 400 because the source branch is not known
+# yet. Retry briefly, and show GitLab's own message if it never succeeds rather
+# than dying on a missing "iid" key.
+IID=""
+for _ in $(seq 1 10); do
+  RESP=$(curl -s -X POST -H "PRIVATE-TOKEN: ${GITLAB_PAT}" \
+    --data-urlencode "source_branch=${BRANCH}" \
+    --data-urlencode "target_branch=main" \
+    --data-urlencode "title=${TITLE}" \
+    "$API/projects/$PROJECT_ENC/merge_requests")
+  IID=$(printf '%s' "$RESP" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("iid",""))' 2>/dev/null || true)
+  [ -n "$IID" ] && break
+  sleep 1
+done
+if [ -z "$IID" ]; then
+  printf '\n  !! GitLab refused to open the merge request for %s:\n     %s\n\n' "$BRANCH" "$RESP" >&2
+  exit 1
+fi
 
 printf '\n  MR !%s opened  (%s)\n' "$IID" "$TITLE"
 printf '  touches: %s\n' "$FILES"

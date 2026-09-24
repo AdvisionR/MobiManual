@@ -3,10 +3,13 @@ FROM jenkins/jenkins:${JENKINS_BASE_VERSION}
 
 # jq and curl are what the docbot stub is written against. pandoc builds the
 # manual and node runs the completeness check, so the validation gates can be
-# exercised in the same container as the bot.
+# exercised in the same container as the bot. python3 and python3-venv are for
+# the docbot CLI that replaces the stub (see docbot-cli-design.md, "Packaging"):
+# it gets installed into a venv, not into the system interpreter.
 USER root
 RUN apt-get update \
     && apt-get install -y --no-install-recommends jq curl ca-certificates pandoc nodejs \
+       python3 python3-venv \
     && rm -rf /var/lib/apt/lists/*
 USER jenkins
 

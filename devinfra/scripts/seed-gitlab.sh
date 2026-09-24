@@ -31,9 +31,17 @@ TOKEN=$(docker exec -i \
   # webhook config and then silently drops every delivery.
   s = ApplicationSetting.current_without_cache || ApplicationSetting.create_from_defaults
   s.allow_local_requests_from_web_hooks_and_services = true
+
+  # --- 3. No Auto DevOps --------------------------------------------------
+  # Jenkins is the executor, and this instance deliberately has no runner.
+  # With Auto DevOps on, every push to a project without a .gitlab-ci.yml
+  # starts a generated build/test/scan pipeline that waits for a runner
+  # forever and shows "stuck" on every commit and merge request. Instance-wide
+  # rather than per project, so projects created later are covered too.
+  s.auto_devops_enabled = false
   s.save!
 
-  # --- 3. A personal access token for Jenkins -----------------------------
+  # --- 4. A personal access token for Jenkins -----------------------------
   # Read the generated value back rather than forcing one: GitLab validates
   # token format, and the generated token is guaranteed to satisfy it.
   root.personal_access_tokens.where(name: 'jenkins-docbot').find_each(&:revoke!)
@@ -59,6 +67,7 @@ chmod 600 .runtime/gitlab.env
 
 ok "root password asserted"
 ok "local-network webhooks allowed"
+ok "Auto DevOps disabled"
 ok "token minted -> .runtime/gitlab.env"
 
 # Prove the token actually works before Jenkins depends on it.
