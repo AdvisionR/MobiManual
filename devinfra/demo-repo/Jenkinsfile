@@ -1,6 +1,6 @@
-// Runs docbot once a merge request has landed on main. docbot works out which
+// Runs DocBot once a merge request has landed on main. DocBot works out which
 // merge request that was from the commit under build; this file only decides
-// when to run it.
+// when to run it, and installs it. See tools/docbot/README.md.
 
 pipeline {
   agent any
@@ -10,23 +10,30 @@ pipeline {
   }
 
   environment {
-    GITLAB_URL     = 'http://gitlab.orb.local'
-    GITLAB_PROJECT = 'root/mobivisor-console'
+    DOCBOT_GITLAB_URL = 'http://gitlab.orb.local'
+    DOCBOT_PROJECT    = 'root/mobivisor-console'
   }
 
   stages {
     stage('DocBot') {
-      when { 
+      when {
         branch 'main'
       }
       steps {
-        withCredentials([usernamePassword(credentialsId: 'gitlab-http',
-                                          usernameVariable: 'GITLAB_USER',
-                                          passwordVariable: 'GITLAB_TOKEN')]) {
-          sh 'docbot'
+        // The venv lives in the workspace, which Jenkins keeps between builds,
+        // so PyPI is only needed when requirements.txt changes.
+        sh '''
+          test -x tools/docbot/.venv/bin/python || python3 -m venv tools/docbot/.venv
+          tools/docbot/.venv/bin/pip install --quiet --require-hashes -r tools/docbot/requirements.txt
+        '''
+        withCredentials([string(credentialsId: 'docbot-gitlab-token', variable: 'DOCBOT_GITLAB_TOKEN')]) {
+          sh 'PYTHONPATH=tools/docbot/src tools/docbot/.venv/bin/python -m docbot update-manual > result.json'
         }
-        archiveArtifacts artifacts: 'detection.json,mr.json',
-                         fingerprint: true, allowEmptyArchive: true
+      }
+      post {
+        always {
+          archiveArtifacts artifacts: 'result.json', allowEmptyArchive: true
+        }
       }
     }
   }

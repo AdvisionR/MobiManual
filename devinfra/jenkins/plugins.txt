@@ -10,7 +10,8 @@ workflow-aggregator
 # Discovers branches and merge requests, and registers the GitLab webhook. This
 # is the plugin the template is about. It also exposes CHANGE_ID / CHANGE_TITLE /
 # CHANGE_AUTHOR / CHANGE_BRANCH / CHANGE_TARGET / CHANGE_URL, but only on MR-<iid>
-# builds — docbot runs on main and resolves the merge request itself (README §3).
+# builds — docbot runs on main and resolves the merge request itself (see "How
+# the detection works" in the README).
 gitlab-branch-source
 
 # withCredentials() in the Jenkinsfile.

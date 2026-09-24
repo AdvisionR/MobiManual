@@ -38,6 +38,14 @@ gl -X POST --data "name=mobivisor-console&path=mobivisor-console&visibility=priv
    "$API/projects" >/dev/null
 ok "project created"
 
+# Created here rather than left to the first merge request that carries it:
+# GitLab would invent it with a default colour and no description. See
+# "Marking: label for the query, note for the record" in docbot-queue-design.md.
+gl -X POST --data-urlencode "name=docbot-generated" --data-urlencode "color=#6f42c1" \
+   --data-urlencode "description=Opened by DocBot. DocBot skips these once they merge." \
+   "$API/projects/$PROJECT_ENC/labels" >/dev/null
+ok "label docbot-generated created"
+
 say "Pushing fixture repository"
 WORK="$(pwd)/.runtime/seed-repo"
 rm -rf "$WORK"; cp -R demo-repo "$WORK"

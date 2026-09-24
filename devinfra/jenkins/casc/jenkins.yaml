@@ -33,14 +33,14 @@ credentials:
               id: "gitlab-pat"
               description: "GitLab PAT (root) — MR discovery + webhook management"
               token: "${GITLAB_PAT}"
-          # Same secret as a username/password pair, which is what the
-          # Jenkinsfile binds to hand the bot a token.
-          - usernamePassword:
+          # Same secret as a plain string, which the Jenkinsfile binds to
+          # DOCBOT_GITLAB_TOKEN. The real Jenkins needs a credential of this id
+          # and kind, holding the bot's own token.
+          - string:
               scope: GLOBAL
-              id: "gitlab-http"
-              description: "GitLab HTTP credentials — used by the pipeline"
-              username: "root"
-              password: "${GITLAB_PAT}"
+              id: "docbot-gitlab-token"
+              description: "GitLab token DocBot uses: read merge requests, open docs merge requests"
+              secret: "${GITLAB_PAT}"
 
 unclassified:
   location:

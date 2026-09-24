@@ -23,7 +23,7 @@
 #
 #   push branch -> open MR -> GitLab webhook -> Jenkins discovers MR-<iid>
 #     --merge:  -> merge to main -> main build -> Jenkinsfile: when { branch 'main' }
-#               -> docbot -> detection.json
+#               -> docbot -> docs merge request + result.json
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -194,11 +194,17 @@ until [ -n "$NUM" ]; do
 done
 printf '\n  ok  main #%s finished\n\n' "$NUM"
 
-echo "  ---- what the bot saw (detection.json) ----"
-if curl -sf -u "$AUTH" "$BASE/job/docbot/job/main/${NUM}/artifact/detection.json" | sed 's/^/  /'; then
-  :
+echo "  ---- what the bot did (result.json) ----"
+if RESULT=$(curl -sf -u "$AUTH" "$BASE/job/docbot/job/main/${NUM}/artifact/result.json"); then
+  printf '%s' "$RESULT" | python3 -c '
+import sys, json
+r = json.load(sys.stdin)
+print("  outcome  %s" % r["outcome"])
+for key in ("reason", "error"):
+    if key in r: print("  %-8s %s" % (key, r[key]))
+if "merge_request" in r: print("  docs MR  !%(iid)s  %(url)s" % r["merge_request"])'
 else
-  echo "  (no artifact — docbot decided there was nothing to do)"
+  echo "  (no result.json — the build failed before docbot wrote one)"
   curl -s -u "$AUTH" "$BASE/job/docbot/job/main/${NUM}/consoleText" | grep -F 'docbot:' | sed 's/^/  /' || true
 fi
 printf '\n\n  full log: %s/job/docbot/job/main/%s/console\n\n' "$BASE" "$NUM"

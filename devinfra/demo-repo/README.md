@@ -10,6 +10,7 @@ package.json                     Grunt and Protractor, the documentation toolcha
 doc-map.json                     code area -> manual pages
 scripts/check-missing-doc.js     routes vs pages, pages vs htmlDocPages, language parity
 Jenkinsfile                      runs docbot once a merge request has landed on main
+tools/docbot/                    DocBot itself: a Python CLI the Jenkinsfile installs and runs
 
 public/app/                      AngularJS console
   routes.js                        the route table documentation filenames derive from
@@ -83,14 +84,15 @@ against. `scripts/open-test-mr.sh` takes the row name as its argument.
 | `server/protocol/apns/**` | `push-transport` | `no-doc-impact` | stay silent |
 | `Jenkinsfile`, `e2e/**` | `ci-and-tests` | `no-doc-impact` | stay silent |
 | `public/doc/**` alone | `manual-source` | `no-doc-impact` | stay silent — the manual is the output |
+| `tools/docbot/**` | `docbot` | `no-doc-impact` | stay silent — changing the bot does not change the product |
 | `public/app/reports/**` | none | — | tier 1 cannot answer; it goes to the model, and the verdict is logged |
 
 Proving silence matters as much as proving detection: most merges touch tests,
 CI or internals and must produce nothing.
 
-Nothing reads `doc-map.json` yet. `docbot` reports every merge that reaches
-`main`; the path filter is the next thing to build, and this table is its
-specification.
+Nothing reads `doc-map.json` yet. For every merge that reaches `main`, `docbot`
+opens a placeholder docs merge request (see `tools/docbot/README.md`). The path
+filter is the next thing to build, and this table is its specification.
 
 ## Known findings
 

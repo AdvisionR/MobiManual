@@ -73,6 +73,13 @@
       "class": "no-doc-impact"
     },
     {
+      "id": "docbot",
+      "_comment": "DocBot's own code. Changing the bot does not change the product.",
+      "code": ["^tools/docbot/"],
+      "pages": [],
+      "class": "no-doc-impact"
+    },
+    {
       "id": "manual-source",
       "_comment": [
         "The manual is DocBot's destination, never its trigger. Without this",

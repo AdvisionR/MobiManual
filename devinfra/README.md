@@ -4,17 +4,20 @@ A local GitLab and a local Jenkins, wired together so that **a merge request
 landing on `main` runs your bot**, with that merge request's context already in
 its hands.
 
-There is no bot here. `jenkins/docbot` is a stub that reports what it worked out
-and exits; replacing it is the entire job. Everything else in this directory
-exists to get it called at the right moment.
+The bot lives in the fixture, at `demo-repo/tools/docbot/`: a Python CLI that
+the Jenkinsfile installs and runs. For every merge it opens a docs merge request
+against the same repository. Its drafting step is still a placeholder: it
+appends the merge request's diff to one manual file. Everything else in this
+directory exists to get it called at the right moment.
 
 ```
   merge request merged  ->  GitLab webhook  ->  Jenkins builds main
                                                        |
                                     when { branch 'main' } in the Jenkinsfile
                                                        |
-                                                     docbot
-                                       (git rev-parse HEAD -> which merge request?)
+                                          python -m docbot update-manual
+                              (git rev-parse HEAD -> which merge request?
+                               -> docs merge request from docbot/mr-<iid>)
 ```
 
 Nothing is installed on macOS — no Java, no Ruby, no `brew services`, no
@@ -44,21 +47,17 @@ request can touch either half or both. `open-test-mr.sh` takes the kind of chang
 (`code`, `docs`, `internal`, `both`, …); [demo-repo/README.md](demo-repo/README.md)
 lists them against what the gate is expected to do with each.
 
-The last line prints the `detection.json` the bot produced, which looks like:
+The last lines summarise the `result.json` the build archived:
 
-```json
-{
-  "merge_request": {
-    "id": "1",
-    "title": "A code change the bot should judge (143022)",
-    "author": "root",
-    "branch": "feature/code-143022",
-    "target": "main",
-    "url": "http://gitlab.orb.local/root/mobivisor-console/-/merge_requests/1"
-  },
-  "changed_files": ["public/app/enrollment/ios/enrollment-wizard.controller.js"]
-}
 ```
+  outcome  opened
+  docs MR  !2  http://gitlab.orb.local/root/mobivisor-console/-/merge_requests/2
+```
+
+`result.json` itself also names the source merge request, the branch and the
+manual diff. The outcome is one of `opened`, `exists` (a rebuild found the docs
+merge request it opened before), `skipped` (not a merge, or DocBot's own) and
+`error`.
 
 | | URL | Login |
 |---|---|---|
@@ -99,9 +98,9 @@ cost is that the bot can no longer put the documentation *into* the merge
 request that changed the code, which is the one thing the monorepo would
 otherwise make easy.
 
-**`jenkins/docbot`** is then run in the workspace with a GitLab token bound from
-the `gitlab-http` credential — and with no merge-request context at all. It
-works that out for itself.
+**`demo-repo/tools/docbot/`** is then installed into a venv in the workspace
+and run with a GitLab token bound from the `docbot-gitlab-token` credential —
+and with no merge-request context at all. It works that out for itself.
 
 ### Why the merge request is derived, not received
 
@@ -124,23 +123,23 @@ re-index all resolve to the same merge request, and a direct push to `main`
 resolves to none — which is a correct answer, not an error.
 
 Two failure modes must not collapse into one, so the HTTP status is inspected
-rather than left to `curl -f`:
+rather than treated as one kind of error:
 
 | Status | Meaning | docbot |
 |---|---|---|
 | 200 | GitLab knows the commit | resolve the merge request, or find none |
 | 404 | GitLab has never seen it — an `MR-*` build checks out a merge *result* built locally and never pushed | exit 0, nothing to do |
-| anything else | usually 401 from a stale `gitlab-http` credential | **fail the build** |
+| anything else | usually 401 from a stale `docbot-gitlab-token` credential | exit 1, **fail the build** |
 
 A stale credential that resolved to "nothing to do" would look exactly like a
 quiet, working bot.
 
 ### Why the changed files come from the API
 
-Once docbot has the iid, `/merge_requests/:iid/changes` returns the diff
-*alongside* the merge request, so `detection.json` is a straight projection of a
-single response — one source of truth, and nothing unpacked into shell
-variables on the way.
+Once docbot has the merge request, `/merge_requests/:iid/diffs` supplies its
+per-file diffs, renames included, and the manual file is read with
+`/repository/files/…/raw?ref=<merge commit>`, so the draft starts from the
+manual as it was at the merge.
 
 A local `git diff HEAD^ HEAD` would agree on the `main` build, which is a full
 clone of an ordinary branch. It would stop agreeing the moment the stage is
@@ -151,8 +150,9 @@ labels does it carry.
 ### The bot's own merge requests
 
 DocBot's output is a merge request against the repository it watches, so merging
-it builds `main`, which runs DocBot. The stub cuts the loop by skipping any
-merge request labelled `docbot-generated`.
+it builds `main`, which runs DocBot. docbot labels every merge request it opens
+`docbot-generated`, and cuts the loop by skipping any merge request with that
+label. `seed-project.sh` creates the label up front.
 
 The fixture cuts it a second time, in `doc-map.json`, which classifies
 `^public/doc/` as `no-doc-impact`. That one covers what a label cannot: a human
@@ -162,35 +162,36 @@ editing the manual by hand.
 
 ## 4. Where your bot goes
 
-Edit [jenkins/docbot](jenkins/docbot) — replace the marked block at the bottom,
-or the whole file — and rebuild:
+In the fixture, at [demo-repo/tools/docbot/](demo-repo/tools/docbot/). It is a
+Python package that the Jenkinsfile installs into a venv in the workspace, from
+a hash-locked `requirements.txt`, and runs as `python -m docbot update-manual`.
+Nothing of the bot is baked into the Jenkins image.
 
-```bash
-docker compose up -d --build jenkins
-```
+It lives in the watched repository because that is how it will reach the real
+one: integration means copying the directory and the Jenkinsfile stage.
+[docs/docbot-code-location.md](../docs/docbot-code-location.md) weighs this
+against a separate image and explains when the bot should move out. To ship a
+change into the stack, re-seed with `./scripts/seed-project.sh`.
 
-It is baked into the image at `/usr/local/bin/docbot` rather than living in the
-watched repository, because a bot that reviews a repo should not be edited by
-the merge requests it reviews. The Jenkinsfile only ever calls `docbot`, so a
-real CLI in a pinned image is a drop-in replacement for the stub.
-
-Keep the decisions in there and out of the `Jenkinsfile`: a script can be run
-and tested on a laptop, and Groovy inside a pipeline cannot. That is not a
+The drafting step is `src/docbot/draft.py`, a pure function from the merge
+request and its diffs to new manual content. Today it is a placeholder. Keep the
+decisions in the package and out of the `Jenkinsfile`: a CLI can be run and
+tested on a laptop, and Groovy inside a pipeline cannot. That is not a
 stylistic preference — it is what makes this loop possible, with no build, no
 webhook and no waiting:
 
 ```bash
-docker exec -e GITLAB_URL=http://gitlab.orb.local \
-            -e GITLAB_PROJECT=root/mobivisor-console jenkins sh -c '
-  rm -rf /tmp/hand
-  git clone -q http://root:$GITLAB_PAT@gitlab.orb.local/root/mobivisor-console.git /tmp/hand
-  cd /tmp/hand && GITLAB_TOKEN=$GITLAB_PAT docbot'
+export DOCBOT_GITLAB_URL=http://gitlab.orb.local DOCBOT_PROJECT=root/mobivisor-console
+export DOCBOT_GITLAB_TOKEN=$(sed -n 's/^GITLAB_PAT=//p' .runtime/gitlab.env)
+cd demo-repo/tools/docbot
+uv run docbot update-manual --sha <a merge commit on main> --dry-run
+uv run pytest
 ```
 
-The token is already in the container's environment as `GITLAB_PAT`, so nothing
-needs to be passed in. Against a `main` whose HEAD is a merge commit this prints
-the same banner Jenkins would; against one that is not, it prints
-`docbot: <sha> is not a merge to main — nothing to do`. Both are worth seeing.
+`--dry-run` prints the manual diff and writes nothing. Without it, the same
+command opens the docs merge request exactly as Jenkins would. Against a commit
+that is not a merge, it reports `not a merge to main, nothing to do`. Both are
+worth seeing.
 
 ---
 
@@ -201,7 +202,7 @@ the same banner Jenkins would; against one that is not, it prints
 | `up.sh` | Start OrbStack, boot GitLab, wait for real readiness, seed it, build and boot Jenkins |
 | `seed-gitlab.sh` | Set root password, allow local-network webhooks, mint a Jenkins API token |
 | `seed-project.sh` | Create the project, push `demo-repo/`, create the Jenkins job, verify the webhook |
-| `open-test-mr.sh` | Open a merge request touching a chosen part of the monorepo; `--merge` lands it and prints what the bot detected |
+| `open-test-mr.sh` | Open a merge request touching a chosen part of the monorepo; `--merge` lands it and prints what the bot did |
 | `status.sh` | Containers, memory, disk, and four-way reachability check |
 | `down.sh` | Stop everything, keep data |
 | `nuke.sh` | Remove everything this stack created |
@@ -321,8 +322,10 @@ What holds is a work queue whose state lives in GitLab: ask for the merged merge
 requests that do not yet carry a processed marker, handle each, then mark it.
 Processing becomes idempotent instead of depending on being run exactly once, so
 it survives coalesced builds, replays, a restart and a wiped `jenkins-home`
-alike. The full argument is at the foot of [jenkins/docbot](jenkins/docbot); it
-is a design change, and it belongs in the real CLI.
+alike. The full argument is in
+[docs/docbot-queue-design.md](../docs/docbot-queue-design.md). Until
+`process-queue` lands, `docbot update-manual` still handles only the merge that
+produced HEAD, so this gap is open.
 
 ---
 

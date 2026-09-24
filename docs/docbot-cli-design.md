@@ -95,6 +95,12 @@ This is not a decision worth defending hard. It is recorded so the choice is vis
 
 ## Where the code lives
 
+> **Superseded 2026-09-24.** This section never weighed how the code reaches the real
+> repository. [docbot-code-location.md](docbot-code-location.md) does, and DocBot now
+> lives at `tools/docbot/` inside the MobiVisor fixture while Jenkins is the executor.
+> That document also replaces "Packaging" below. The layout keeps the shape shown here,
+> under `tools/docbot/` instead of `docbot/`.
+
 | Option | Verdict |
 |---|---|
 | **A. In the MobiVisor repo** (for example `tools/docbot/`) | **Rejected.** The foundation doc already rules that "a bot that reviews a repository should not be editable by the merge requests it reviews". It would also make every change to DocBot a MobiVisor merge request, which the gate would then judge, and tie DocBot's release cadence to the console's |
@@ -340,11 +346,11 @@ in a shell.
 | Change | Why |
 |---|---|
 | ~~Re-seed the stack from `demo-repo/` (queue design, step 1)~~ **Done 2026-09-23.** The seeded file list and `doc-map.json` are identical to `demo-repo/`; `main` #1 resolved to "not a merge — nothing to do" | Finding 5: the stack still carried the pre-Phase-0 layout |
-| `open-test-mr.sh` fails on a missing file instead of creating it | Finding 5: creating missing files is what hid the stale seed |
-| Jenkins `Dockerfile`: `python3`, a venv, `COPY --from=docbot`; compose adds `additional_contexts` | Finding 1, and Packaging. **`python3` and `python3-venv` done 2026-09-23** (Python 3.13.5; `venv` + `pip` verified in the container). The venv, `COPY` and `additional_contexts` wait until `docbot/` exists |
-| Jenkinsfile stage as shown under Invocation; `gitlab-http` becomes a `docbot-gitlab-token` string credential | The `DOCBOT_*` names |
+| ~~`open-test-mr.sh` fails on a missing file instead of creating it~~ **Done** in aa54cc3 | Finding 5: creating missing files is what hid the stale seed |
+| ~~Jenkins `Dockerfile`: `python3`, a venv, `COPY --from=docbot`; compose adds `additional_contexts`~~ **Superseded 2026-09-24.** `python3` and `python3-venv` stay. Nothing of DocBot is baked in: the Jenkinsfile installs `tools/docbot/` from the checkout ([docbot-code-location.md](docbot-code-location.md)) | Finding 1, and Packaging |
+| ~~Jenkinsfile stage as shown under Invocation; `gitlab-http` becomes a `docbot-gitlab-token` string credential~~ **Done 2026-09-24**, running `update-manual` (HEAD only) until `process-queue` exists | The `DOCBOT_*` names |
 | `seed-gitlab.sh` writes `.runtime/docbot.env` | The laptop loop |
-| `jenkins/docbot` deleted once `resolve` is ported | As the queue design says |
+| ~~`jenkins/docbot` deleted once `resolve` is ported~~ **Done 2026-09-24.** The resolution is in `tools/docbot/src/docbot/resolve.py` | As the queue design says |
 
 ---
 
