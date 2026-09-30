@@ -1,0 +1,44 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fixture Developer <dev@mobimanual.local>
+Date: Thu, 24 Sep 2026 12:00:00 +0200
+Subject: [PATCH] Assign iOS devices to a department during enrollment
+
+Devices enrolled through Apple Business Manager arrived without a
+department, and an administrator had to move each one by hand afterwards.
+
+The iOS enrollment wizard now asks which department the device belongs to.
+Finish stays disabled until a department is chosen, and the department is
+sent along with the enrollment profile.
+---
+Expected: worth documenting. Triage picks _enrollment_ios.md. The draft adds a step for choosing the department before Finish and says Finish needs one; tr and de are listed as translation debt.
+
+ .../enrollment/ios/enrollment-wizard.controller.js  | 13 +++++++++++--
+ 1 file changed, 11 insertions(+), 2 deletions(-)
+
+diff --git a/public/app/enrollment/ios/enrollment-wizard.controller.js b/public/app/enrollment/ios/enrollment-wizard.controller.js
+index fac5a6b..705b644 100644
+--- a/public/app/enrollment/ios/enrollment-wizard.controller.js
++++ b/public/app/enrollment/ios/enrollment-wizard.controller.js
+@@ -1,11 +1,20 @@
+-angular.module('mobivisor').controller('EnrollmentWizardCtrl', ['$scope', 'depService', function ($scope, depService) {
++angular.module('mobivisor').controller('EnrollmentWizardCtrl', ['$scope', 'depService', 'departmentService', function ($scope, depService, departmentService) {
+   $scope.step = 1;
+-  $scope.profile = { supervised: true, mdmRemovable: false };
++  $scope.profile = { supervised: true, mdmRemovable: false, department: null };
++  $scope.departments = [];
++
++  departmentService.list().then(function (departments) {
++    $scope.departments = departments;
++  });
+ 
+   $scope.next = function () {
+     $scope.step += 1;
+   };
+ 
++  $scope.canFinish = function () {
++    return $scope.profile.department !== null;
++  };
++
+   $scope.finish = function () {
+     return depService.assignProfile($scope.profile);
+   };

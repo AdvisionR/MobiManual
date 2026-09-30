@@ -38,14 +38,24 @@ OrbStack-specific feature (§6). `up.sh` starts it if it is not running.
 ```bash
 ./scripts/up.sh              # boot GitLab + Jenkins, seed credentials  (~5 min first run)
 ./scripts/seed-project.sh    # create the GitLab project and the Jenkins job
-./scripts/open-test-mr.sh code --merge   # open a merge request, merge it, watch the bot
+./scripts/open-test-mr.sh --merge            # a real change worth documenting: merge it, watch the bot
+./scripts/open-test-mr.sh refactor --merge   # a real change not worth documenting
 ```
 
 `demo-repo/` is the fixture that gets pushed: a **monorepo**, with the
 console under `public/app/` and the user manual under `public/doc/`, so a merge
-request can touch either half or both. `open-test-mr.sh` takes the kind of change you want
-(`code`, `docs`, `internal`, `both`, …); [demo-repo/README.md](demo-repo/README.md)
-lists them against what the gate is expected to do with each.
+request can touch either half or both. `open-test-mr.sh` takes one of two kinds
+of argument:
+
+- **A scenario**, from [scenarios/](scenarios/README.md): a real change with a
+  developer's title and description, and an expected outcome. It tests what the
+  model makes of a change. The default, `ios-department`, is worth documenting,
+  and `refactor` is not.
+- **A kind** (`code`, `docs`, `internal`, `both`, …): a comment appended to one
+  part of the monorepo. It tests which paths DocBot ignores and which reach the
+  model. [demo-repo/README.md](demo-repo/README.md) lists them.
+
+`./scripts/open-test-mr.sh --help` lists both.
 
 The last lines summarise the `result.json` the build archived:
 
@@ -154,9 +164,9 @@ it builds `main`, which runs DocBot. docbot labels every merge request it opens
 `docbot-generated`, and cuts the loop by skipping any merge request with that
 label. `seed-project.sh` creates the label up front.
 
-The fixture cuts it a second time, in `doc-map.json`, which classifies
-`^public/doc/` as `no-doc-impact`. That one covers what a label cannot: a human
-editing the manual by hand.
+The fixture cuts it a second time, in `doc-map.json`, which ignores changes
+under `^public/doc/`. That one covers what a label cannot: a human editing the
+manual by hand.
 
 ---
 
@@ -202,7 +212,7 @@ worth seeing.
 | `up.sh` | Start OrbStack, boot GitLab, wait for real readiness, seed it, build and boot Jenkins |
 | `seed-gitlab.sh` | Set root password, allow local-network webhooks, mint a Jenkins API token |
 | `seed-project.sh` | Create the project, push `demo-repo/`, create the Jenkins job, verify the webhook |
-| `open-test-mr.sh` | Open a merge request touching a chosen part of the monorepo; `--merge` lands it and prints what the bot did |
+| `open-test-mr.sh` | Open a merge request from a scenario (a real change) or a kind (a comment in a chosen part of the monorepo); `--merge` lands it and prints what the bot did |
 | `status.sh` | Containers, memory, disk, and four-way reachability check |
 | `down.sh` | Stop everything, keep data |
 | `nuke.sh` | Remove everything this stack created |

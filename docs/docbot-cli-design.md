@@ -284,7 +284,7 @@ own.**
 | Run cap | `--max`, default 25 | Per invocation |
 | Areas, `docRoot`, languages | `doc-map.json` in MobiVisor, **read at the merge commit** | Facts about the repository. They change with the code they describe |
 | Label names | Constants in code | Not configurable. The queue query depends on them, and configurable names would let two deployments disagree about what the queue is |
-| Model provider and key | Later: `DOCBOT_LLM_PROVIDER` plus the provider's own variable (`MISTRAL_API_KEY`, as `.env.example` already has) | Out of scope until Q10 |
+| Model provider and key | Later: `DOCBOT_LLM_PROVIDER` plus the provider's own variable (`MISTRAL_API_KEY`, as `tools/docbot/.env.example` has) | Out of scope until Q10 |
 
 | Rejected | Why |
 |---|---|

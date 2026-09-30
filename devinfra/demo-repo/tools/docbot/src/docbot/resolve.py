@@ -7,6 +7,8 @@ same merge request, and a direct push to main resolves to none.
 
 import subprocess
 
+from docbot.gitlab import GitLab
+
 
 def head_sha() -> str:
     return subprocess.run(["git", "rev-parse", "HEAD"], check=True, capture_output=True, text=True).stdout.strip()
@@ -25,5 +27,5 @@ def select_merge(merge_requests: list[dict], sha: str, target_branch: str) -> di
     return None
 
 
-def resolve(gitlab, sha: str, target_branch: str) -> dict | None:
+def resolve(gitlab: GitLab, sha: str, target_branch: str) -> dict | None:
     return select_merge(gitlab.merge_requests_for_commit(sha) or [], sha, target_branch)

@@ -1,0 +1,29 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fixture Developer <dev@mobimanual.local>
+Date: Thu, 24 Sep 2026 12:00:00 +0200
+Subject: [PATCH] Filter the device list by compliance
+
+Administrators want to find the devices that break their policies without
+opening each one.
+
+The device list gets a compliance filter next to the platform filter, with
+the choices all, compliant and non-compliant. The device service already
+knew each device's compliance state; the list now asks for it.
+---
+Expected: worth documenting. Triage picks _devices.md, perhaps also _devices_id.md. The draft adds the compliance filter to the paragraph about filters on _devices.md; if _devices_id.md was picked, it comes back no-change.
+
+ public/app/devices/devices.controller.js | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/public/app/devices/devices.controller.js b/public/app/devices/devices.controller.js
+index a604f07..31e64dd 100644
+--- a/public/app/devices/devices.controller.js
++++ b/public/app/devices/devices.controller.js
+@@ -1,6 +1,6 @@
+ angular.module('mobivisor').controller('DevicesCtrl', ['$scope', 'deviceService', function ($scope, deviceService) {
+   $scope.devices = [];
+-  $scope.filter = { platform: 'all', enrolled: true };
++  $scope.filter = { platform: 'all', enrolled: true, compliance: 'all' };
+ 
+   $scope.reload = function () {
+     deviceService.list($scope.filter).then(function (devices) {

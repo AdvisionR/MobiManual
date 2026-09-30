@@ -1,0 +1,38 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fixture Developer <dev@mobimanual.local>
+Date: Thu, 24 Sep 2026 12:00:00 +0200
+Subject: [PATCH] Split the users controller's reload into helpers
+
+reload built its query and handled the result inline. Both are now small
+named functions, and reload returns its promise so the specs can wait for
+the list to load.
+---
+Expected: not worth documenting. Triage answers no-doc-impact: nothing a user sees or does changes, so no docs merge request is opened.
+
+ public/app/users/users.controller.js | 12 +++++++++---
+ 1 file changed, 9 insertions(+), 3 deletions(-)
+
+diff --git a/public/app/users/users.controller.js b/public/app/users/users.controller.js
+index df9c969..3fb28af 100644
+--- a/public/app/users/users.controller.js
++++ b/public/app/users/users.controller.js
+@@ -2,10 +2,16 @@ angular.module('mobivisor').controller('UsersCtrl', ['$scope', 'userService', fu
+   $scope.users = [];
+   $scope.source = 'local';
+ 
++  function query() {
++    return { source: $scope.source };
++  }
++
++  function show(users) {
++    $scope.users = users;
++  }
++
+   $scope.reload = function () {
+-    userService.list({ source: $scope.source }).then(function (users) {
+-      $scope.users = users;
+-    });
++    return userService.list(query()).then(show);
+   };
+ 
+   $scope.reload();

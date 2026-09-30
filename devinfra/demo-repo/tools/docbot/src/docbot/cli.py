@@ -68,13 +68,13 @@ def _narrate(result: dict) -> None:
     if outcome == "skipped":
         say(f"docbot: {result['sha'][:8]}: {result['reason']}, nothing to do")
     elif outcome == "exists":
-        mr = result["merge_request"]
+        mr = result["docs_merge_request"]
         say(f"docbot: already handled by !{mr['iid']} ({mr['state']})  {mr['url']}")
     elif outcome == "dry-run":
         say(result["diff"])
         say(f"docbot: dry run, nothing written. Would open {result['branch']} -> main")
     elif outcome == "opened":
-        mr = result["merge_request"]
+        mr = result["docs_merge_request"]
         say(f"docbot: opened !{mr['iid']} from {result['branch']}  {mr['url']}")
     elif outcome == "error":
         say(f"docbot: {result['error']}")

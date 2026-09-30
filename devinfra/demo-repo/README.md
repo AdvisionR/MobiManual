@@ -7,7 +7,7 @@ shape. `scripts/seed-project.sh` pushes it to GitLab.
 ```
 gruntfile.js                     htmlDocPages — the order of the manual
 package.json                     Grunt and Protractor, the documentation toolchain
-doc-map.json                     code area -> manual pages
+doc-map.json                     paths whose changes never need a manual update
 scripts/check-missing-doc.js     routes vs pages, pages vs htmlDocPages, language parity
 Jenkinsfile                      runs docbot once a merge request has landed on main
 tools/docbot/                    DocBot itself: a Python CLI the Jenkinsfile installs and runs
@@ -40,10 +40,12 @@ underscores and parameters collapse to `id`:
 #!/policies/kiosk    ->  _policies_kiosk.md
 ```
 
-This makes most of the code-to-docs mapping a lookup rather than a
-hand-maintained list. `doc-map.json` covers only what the convention cannot
-reach: backend areas, the schema-generated page, pages with no route, and the
-exclusions.
+DocBot does not map code to pages by hand. `doc-map.json` lists only the paths
+whose changes never need a manual update: tests, CI, DocBot itself and the
+manual. For everything else, a model reads the diff next to the manual's table
+of contents (`htmlDocPages`, with each page's headings) and names the pages the
+change affects, if any. This naming convention is what makes those file names
+meaningful to it.
 
 ## Adding a page is two steps
 
@@ -70,29 +72,32 @@ cannot.
 Every language has its own capture set, so one UI change invalidates the same
 screenshot three times.
 
-## What the gate should do with a merge here
+## What DocBot should do with a merge here
 
-Each row is a merge request you can open and a prediction to check the gate
-against. `scripts/open-test-mr.sh` takes the row name as its argument.
+Each row is a merge request you can open. `scripts/open-test-mr.sh` takes the
+kind as its argument.
 
-| Touch this | Doc-map area | Class | Expected gate behaviour |
+| Kind | Touches | `doc-map.json` | Then |
 |---|---|---|---|
-| `public/app/enrollment/ios/**` | `enrollment-ios` | `ai-drafted` | flag doc impact, propose `_enrollment_ios.md` |
-| `public/app/policies/kiosk/**` | `kiosk-modes` | `ai-drafted` | flag doc impact, and the screenshot as possibly stale |
-| `public/app/users/**` | `users` | `ai-drafted` | flag doc impact |
-| `schema/policies/**` | `policy-schema` | `generated` | flag for regeneration, never a drafted edit |
-| `server/protocol/apns/**` | `push-transport` | `no-doc-impact` | stay silent |
-| `Jenkinsfile`, `e2e/**` | `ci-and-tests` | `no-doc-impact` | stay silent |
-| `public/doc/**` alone | `manual-source` | `no-doc-impact` | stay silent — the manual is the output |
-| `tools/docbot/**` | `docbot` | `no-doc-impact` | stay silent — changing the bot does not change the product |
-| `public/app/reports/**` | none | — | tier 1 cannot answer; it goes to the model, and the verdict is logged |
+| `ci` | `e2e/**` | ignored (`ci-and-tests`) | nothing, not even a model call |
+| `docs` | `public/doc/**` alone | ignored (`manual-source`) | nothing: the manual is the output |
+| — | `tools/docbot/**` | ignored (`docbot`) | nothing: changing the bot does not change the product |
+| `code`, `kiosk`, `users`, `devices` | a console controller | — | goes to the model |
+| `schema` | `schema/policies/**` | — | goes to the model |
+| `internal` | `server/protocol/apns/**` | — | goes to the model, which should find no page |
+| `unmapped` | `public/app/reports/**`, which has no page | — | goes to the model, which should find no page and say so |
+| `both` | a controller and its own page | the page change is ignored as a trigger | the model is told the page was already edited in this merge request |
 
-Proving silence matters as much as proving detection: most merges touch tests,
-CI or internals and must produce nothing.
+These kinds only append a comment to each file, so the right answer from the
+model is "no page needs changing" every time. That proves silence, which
+matters as much as proving detection: most merges touch tests, CI or internals
+and must produce nothing. Proving that DocBot drafts the right edit takes merge
+requests with real behaviour changes. Those are the scenarios in
+`devinfra/scenarios/` of the MobiManual repository, which `open-test-mr.sh`
+applies the same way.
 
 Nothing reads `doc-map.json` yet. For every merge that reaches `main`, `docbot`
-opens a placeholder docs merge request (see `tools/docbot/README.md`). The path
-filter is the next thing to build, and this table is its specification.
+opens a placeholder docs merge request (see `tools/docbot/README.md`).
 
 ## Known findings
 

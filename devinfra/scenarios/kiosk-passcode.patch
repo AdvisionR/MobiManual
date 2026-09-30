@@ -1,0 +1,35 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fixture Developer <dev@mobimanual.local>
+Date: Thu, 24 Sep 2026 12:00:00 +0200
+Subject: [PATCH] Give kiosk policies their own exit passcode
+
+Leaving kiosk mode took the device passcode. The person using the device
+usually knows it, so anyone could leave kiosk mode.
+
+A kiosk policy now sets its own exit passcode, in a new field on the Kiosk
+policy form. The device passcode no longer leaves kiosk mode.
+---
+Expected: worth documenting. Triage picks _policies_kiosk.md. The draft corrects "Leaving kiosk mode requires the device passcode." rather than only adding to it, adds a step for the exit passcode, and flags screenshots/_kiosk_mode_1.png as possibly stale.
+
+ public/app/policies/kiosk/kiosk.controller.js | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/public/app/policies/kiosk/kiosk.controller.js b/public/app/policies/kiosk/kiosk.controller.js
+index f5cbcb8..36ffc65 100644
+--- a/public/app/policies/kiosk/kiosk.controller.js
++++ b/public/app/policies/kiosk/kiosk.controller.js
+@@ -1,8 +1,13 @@
+ angular.module('mobivisor').controller('KioskCtrl', ['$scope', 'policyService', function ($scope, policyService) {
+   $scope.mode = 'single-app';
+   $scope.allowedApps = [];
++  $scope.exitPasscode = '';
+ 
+   $scope.save = function () {
+-    return policyService.saveKiosk({ mode: $scope.mode, allowedApps: $scope.allowedApps });
++    return policyService.saveKiosk({
++      mode: $scope.mode,
++      allowedApps: $scope.allowedApps,
++      exitPasscode: $scope.exitPasscode
++    });
+   };
+ }]);

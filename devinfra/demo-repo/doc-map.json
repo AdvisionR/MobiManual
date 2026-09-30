@@ -1,83 +1,25 @@
 {
   "_comment": [
-    "Maps code areas to manual pages. It is the contract between the two halves",
-    "of the repository and belongs to neither, so it sits at the root.",
+    "Paths whose changes never call for a manual update. DocBot drops them",
+    "before any model sees the merge request, and a merge that touches nothing",
+    "else ends there. Everything not listed goes to the model, which decides",
+    "which manual pages, if any, the change affects.",
     "",
     "`code` entries are regexes matched against changed file paths as GitLab",
-    "reports them, repo-root-relative. `pages` are filenames inside",
-    "<docRoot>/<language>/, so one entry covers all three languages.",
-    "",
-    "Console routes do not need entries here: _<route>.md is derived from the",
-    "route table by scripts/check-missing-doc.js. This file covers what that",
-    "convention cannot reach.",
-    "",
-    "no-doc-impact entries matter as much as the others. They record why the",
-    "gate stays silent."
+    "reports them, repo-root-relative. Keep this list short: every entry is a",
+    "promise that a whole area can never matter to a reader of the manual."
   ],
   "docRoot": "public/doc",
   "languages": ["en", "tr", "de"],
-  "areas": [
-    {
-      "id": "users",
-      "code": ["^public/app/users/", "^server/ldap/"],
-      "pages": ["_users.md"],
-      "class": "ai-drafted"
-    },
-    {
-      "id": "devices",
-      "code": ["^public/app/devices/"],
-      "pages": ["_devices.md", "_devices_id.md"],
-      "class": "ai-drafted"
-    },
-    {
-      "id": "enrollment-ios",
-      "code": ["^public/app/enrollment/ios/", "^server/protocol/dep/"],
-      "pages": ["_enrollment_ios.md"],
-      "class": "ai-drafted"
-    },
-    {
-      "id": "kiosk-modes",
-      "code": ["^public/app/policies/kiosk/"],
-      "pages": ["_policies_kiosk.md"],
-      "class": "ai-drafted"
-    },
-    {
-      "id": "policy-schema",
-      "code": ["^schema/policies/"],
-      "pages": ["_policies_restrictions.md"],
-      "class": "generated"
-    },
-    {
-      "id": "general-information",
-      "code": [],
-      "pages": ["cover_page.md", "chapter1.md"],
-      "class": "human-only"
-    },
-    {
-      "id": "build-machinery",
-      "_comment": "Not pages. search.md is injected into combined.html, break.md into the PDF.",
-      "code": [],
-      "pages": ["search.md", "break.md"],
-      "class": "build-machinery"
-    },
-    {
-      "id": "push-transport",
-      "code": ["^server/protocol/apns/", "^server/protocol/fcm/"],
-      "pages": [],
-      "class": "no-doc-impact"
-    },
+  "ignore": [
     {
       "id": "ci-and-tests",
-      "code": ["^\\.gitlab-ci\\.yml$", "^Jenkinsfile$", "^e2e/", "\\.spec\\.js$"],
-      "pages": [],
-      "class": "no-doc-impact"
+      "code": ["^\\.gitlab-ci\\.yml$", "^Jenkinsfile$", "^e2e/", "\\.spec\\.js$"]
     },
     {
       "id": "docbot",
       "_comment": "DocBot's own code. Changing the bot does not change the product.",
-      "code": ["^tools/docbot/"],
-      "pages": [],
-      "class": "no-doc-impact"
+      "code": ["^tools/docbot/"]
     },
     {
       "id": "manual-source",
@@ -87,9 +29,7 @@
         "docbot also skips merge requests labelled docbot-generated; this entry",
         "covers what that label cannot, a human editing the manual by hand."
       ],
-      "code": ["^public/doc/"],
-      "pages": [],
-      "class": "no-doc-impact"
+      "code": ["^public/doc/"]
     }
   ]
 }

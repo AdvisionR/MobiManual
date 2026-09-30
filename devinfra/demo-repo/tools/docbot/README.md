@@ -21,14 +21,19 @@ before making any network call.
 | `DOCBOT_GITLAB_URL` | `http://gitlab.orb.local` |
 | `DOCBOT_PROJECT` | `root/mobivisor-console` |
 | `DOCBOT_GITLAB_TOKEN` | A token with `api` scope |
+| `MISTRAL_API_KEY` | The model provider's key, read by the drafting step |
 
-On a laptop, with [uv](https://docs.astral.sh/uv/):
+On a laptop, with [uv](https://docs.astral.sh/uv/), the settings live in `.env`.
+That file is gitignored. `.env.example` documents it:
 
 ```bash
 cd tools/docbot
-uv run docbot update-manual --sha <merge commit> --dry-run   # prints the manual diff, writes nothing
+cp .env.example .env                  # once, then fill in the token and the key
+uv run --env-file .env docbot update-manual --sha <merge commit> --dry-run   # prints the manual diff, writes nothing
 uv run pytest
 ```
+
+Variables already exported in the shell take precedence over `.env`.
 
 In CI, the Jenkinsfile creates a venv at `tools/docbot/.venv`, installs
 `requirements.txt` with hash checking, and runs

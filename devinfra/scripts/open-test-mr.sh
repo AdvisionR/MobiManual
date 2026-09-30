@@ -2,22 +2,30 @@
 # Open a merge request against the fixture monorepo, and optionally merge it so
 # DocBot actually runs.
 #
-#   ./scripts/open-test-mr.sh [kind] [--merge]
+#   ./scripts/open-test-mr.sh [scenario|kind] [--merge]
 #
-# `kind` picks which half of the monorepo the merge request touches, which is
-# the only reason the fixture carries both. Each kind maps to a doc-map area
-# with a documented expected behaviour — see demo-repo/README.md.
+# A scenario is a real change: scenarios/<name>.patch, with a title and a
+# description the way a developer would write them. It is what the model judges,
+# and the default is one worth documenting. Each patch states its expected
+# outcome below its "---" line, which git am leaves out of the commit message,
+# so the expectation never reaches the model. --help lists the scenarios.
+# A scenario applies once; after it has merged, re-seed to run it again.
 #
-#   code      public/app/enrollment/ios/**  ai-drafted     (default)
-#   kiosk     public/app/policies/kiosk/**  ai-drafted     — also has a screenshot
-#   users     public/app/users/**           ai-drafted
-#   devices   public/app/devices/**         ai-drafted     — two pages
-#   schema    schema/policies/**            generated      — regenerate, never draft
-#   internal  server/protocol/apns/**       no-doc-impact  — the gate must stay silent
-#   ci        e2e/**                        no-doc-impact  — the gate must stay silent
-#   docs      public/doc/en/**              no-doc-impact  — the manual is the output
-#   both      code + its manual page        ai-drafted     — already documented
-#   unmapped  a path in no area at all      —              — tier 1 cannot answer
+# A kind only appends a comment to a file, so it tests which paths a merge
+# touches. doc-map.json ignores some kinds outright; for the rest, the right
+# answer from the model is always "no page needs changing". See
+# demo-repo/README.md.
+#
+#   code      public/app/enrollment/ios/**  to the model
+#   kiosk     public/app/policies/kiosk/**  to the model   — its page has a screenshot
+#   users     public/app/users/**           to the model
+#   devices   public/app/devices/**         to the model   — two pages
+#   schema    schema/policies/**            to the model
+#   internal  server/protocol/apns/**       to the model   — which should find no page
+#   ci        e2e/**                        ignored        — no model call at all
+#   docs      public/doc/en/**              ignored        — the manual is the output
+#   both      code + its manual page        to the model   — told the page was already edited
+#   unmapped  a controller with no page     to the model   — which should find no page
 #
 # The chain this exercises, end to end:
 #
@@ -35,31 +43,44 @@ PROJECT_ENC="root%2Fmobivisor-console"
 AUTH="${JENKINS_ADMIN_ID}:${JENKINS_ADMIN_PASSWORD}"
 BASE="http://${JENKINS_HOST}:${JENKINS_PORT}"
 
-KIND=code
+usage() {
+  awk 'NR == 1 { next } /^#/ { sub(/^# ?/, ""); print; next } { exit }' "$0"
+  echo
+  echo "Scenarios:"
+  for p in scenarios/*.patch; do
+    printf '  %-16s %s\n' "$(basename "$p" .patch)" "$(sed -n 's/^Expected: \([^.]*\)\..*/\1/p' "$p")"
+  done
+}
+
+KIND=ios-department
 MERGE=""
 for arg in "$@"; do
   case "$arg" in
     --merge) MERGE=1 ;;
-    -h|--help) sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) usage; exit 0 ;;
     -*) echo "unknown option: $arg" >&2; exit 2 ;;
     *)  KIND="$arg" ;;
   esac
 done
 
-case "$KIND" in
-  code)     FILES="public/app/enrollment/ios/enrollment-wizard.controller.js"; AREA="enrollment-ios (ai-drafted)" ;;
-  kiosk)    FILES="public/app/policies/kiosk/kiosk.controller.js";        AREA="kiosk-modes (ai-drafted)" ;;
-  users)    FILES="public/app/users/users.controller.js";                 AREA="users (ai-drafted)" ;;
-  devices)  FILES="public/app/devices/devices.controller.js";             AREA="devices (ai-drafted), two pages" ;;
-  schema)   FILES="schema/policies/android-restrictions.json";            AREA="policy-schema (generated)" ;;
-  internal) FILES="server/protocol/apns/push-transport.js";               AREA="push-transport (no-doc-impact)" ;;
-  ci)       FILES="e2e/specs/devices.spec.js";                            AREA="ci-and-tests (no-doc-impact)" ;;
-  docs)     FILES="public/doc/en/_users.md";                              AREA="manual-source (no-doc-impact)" ;;
+PATCH=""
+if [ -f "scenarios/${KIND}.patch" ]; then
+  PATCH="$(pwd)/scenarios/${KIND}.patch"
+  EXPECT=$(sed -n 's/^Expected: //p' "$PATCH")
+else case "$KIND" in
+  code)     FILES="public/app/enrollment/ios/enrollment-wizard.controller.js"; EXPECT="to the model" ;;
+  kiosk)    FILES="public/app/policies/kiosk/kiosk.controller.js";        EXPECT="to the model" ;;
+  users)    FILES="public/app/users/users.controller.js";                 EXPECT="to the model" ;;
+  devices)  FILES="public/app/devices/devices.controller.js";             EXPECT="to the model (the area has two pages)" ;;
+  schema)   FILES="schema/policies/android-restrictions.json";            EXPECT="to the model" ;;
+  internal) FILES="server/protocol/apns/push-transport.js";               EXPECT="to the model, which should find no page" ;;
+  ci)       FILES="e2e/specs/devices.spec.js";                            EXPECT="ignored by doc-map.json (ci-and-tests)" ;;
+  docs)     FILES="public/doc/en/_users.md";                              EXPECT="ignored by doc-map.json (manual-source)" ;;
   both)     FILES="public/app/enrollment/ios/enrollment-wizard.controller.js public/doc/en/_enrollment_ios.md"
-            AREA="enrollment-ios (ai-drafted), already documented in the same MR" ;;
-  unmapped) FILES="public/app/reports/export-schedule.controller.js";     AREA="none — tier 1 cannot answer" ;;
-  *) echo "unknown kind: $KIND  (try --help)" >&2; exit 2 ;;
-esac
+            EXPECT="to the model, told the page was already edited" ;;
+  unmapped) FILES="public/app/reports/export-schedule.controller.js";     EXPECT="to the model, which should find no page" ;;
+  *) echo "unknown scenario or kind: $KIND  (try --help)" >&2; exit 2 ;;
+esac fi
 
 STAMP=$(date +%H%M%S)
 BRANCH="feature/${KIND}-${STAMP}"
@@ -97,17 +118,41 @@ PY
   esac
 }
 
+# A scenario is applied with git am, which keeps the patch's own title and
+# description, and falls back to a three-way merge when main has moved on since
+# the fixture was seeded (comment stamps from earlier kinds, for instance).
+apply_scenario() {
+  if ! git -c user.email=docbot@mobimanual.local -c user.name=DocBot am -3 -q "$PATCH"; then
+    git am --abort
+    printf '\n  !! scenario %s does not apply to main. Re-seed:  ./scripts/seed-project.sh\n\n' "$KIND" >&2
+    exit 1
+  fi
+  # An already-applied patch is not an error to git am: it skips it and makes
+  # no commit, which would push a branch identical to main.
+  if [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ]; then
+    printf '\n  !! scenario %s is already on main. Re-seed to run it again:  ./scripts/seed-project.sh\n\n' "$KIND" >&2
+    exit 1
+  fi
+}
+
 WORK="$(pwd)/.runtime/mr-work"
 rm -rf "$WORK"
 git clone -q "http://root:${GITLAB_PAT}@${GITLAB_HOST}/root/mobivisor-console.git" "$WORK"
 (
   cd "$WORK"
   git checkout -q -b "$BRANCH"
-  for f in $FILES; do touch_file "$f"; done
-  git -c user.email=docbot@mobimanual.local -c user.name=DocBot add -A
-  git -c user.email=docbot@mobimanual.local -c user.name=DocBot commit -qm "$TITLE"
+  if [ -n "$PATCH" ]; then
+    apply_scenario
+  else
+    for f in $FILES; do touch_file "$f"; done
+    git -c user.email=docbot@mobimanual.local -c user.name=DocBot add -A
+    git -c user.email=docbot@mobimanual.local -c user.name=DocBot commit -qm "$TITLE"
+  fi
   git push -q origin "$BRANCH"
 )
+TITLE=$(git -C "$WORK" log -1 --format=%s)
+DESCRIPTION=$(git -C "$WORK" log -1 --format=%b)
+FILES=$(git -C "$WORK" diff --name-only HEAD~1 HEAD | tr '\n' ' ')
 
 # GitLab processes a push asynchronously, so a merge request created right after
 # `git push` can be refused with HTTP 400 because the source branch is not known
@@ -119,6 +164,7 @@ for _ in $(seq 1 10); do
     --data-urlencode "source_branch=${BRANCH}" \
     --data-urlencode "target_branch=main" \
     --data-urlencode "title=${TITLE}" \
+    --data-urlencode "description=${DESCRIPTION}" \
     "$API/projects/$PROJECT_ENC/merge_requests")
   IID=$(printf '%s' "$RESP" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("iid",""))' 2>/dev/null || true)
   [ -n "$IID" ] && break
@@ -131,7 +177,7 @@ fi
 
 printf '\n  MR !%s opened  (%s)\n' "$IID" "$TITLE"
 printf '  touches: %s\n' "$FILES"
-printf '  doc-map: %s\n' "$AREA"
+printf '%s\n' "$EXPECT" | fold -s -w 67 | sed '1s/^/  expect:  /; 2,$s/^/           /'
 printf '  http://%s/root/mobivisor-console/-/merge_requests/%s\n\n' "$GITLAB_HOST" "$IID"
 
 printf '  waiting for Jenkins to discover it'
@@ -202,7 +248,7 @@ r = json.load(sys.stdin)
 print("  outcome  %s" % r["outcome"])
 for key in ("reason", "error"):
     if key in r: print("  %-8s %s" % (key, r[key]))
-if "merge_request" in r: print("  docs MR  !%(iid)s  %(url)s" % r["merge_request"])'
+if "docs_merge_request" in r: print("  docs MR  !%(iid)s  %(url)s" % r["docs_merge_request"])'
 else
   echo "  (no result.json — the build failed before docbot wrote one)"
   curl -s -u "$AUTH" "$BASE/job/docbot/job/main/${NUM}/consoleText" | grep -F 'docbot:' | sed 's/^/  /' || true

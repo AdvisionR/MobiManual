@@ -32,7 +32,7 @@ def update_manual(gitlab: GitLab, sha: str, dry_run: bool = False) -> dict:
     result["branch"] = branch
     existing = gitlab.merge_requests_from(branch)
     if existing:
-        return {**result, "outcome": "exists", "merge_request": _ref(existing[0])}
+        return {**result, "outcome": "exists", "docs_merge_request": _ref(existing[0])}
 
     current = gitlab.file(MANUAL_FILE, ref=sha)
     new = draft(current, mr, gitlab.merge_request_diffs(mr["iid"]))
@@ -49,7 +49,7 @@ def update_manual(gitlab: GitLab, sha: str, dry_run: bool = False) -> dict:
         source_branch=branch, target_branch=TARGET_BRANCH,
         title=f"Manual update for !{mr['iid']}: {mr['title']}",
         description=_description(mr), labels=[GENERATED_LABEL])
-    return {**result, "outcome": "opened", "merge_request": _ref(opened)}
+    return {**result, "outcome": "opened", "docs_merge_request": _ref(opened)}
 
 
 def _ref(mr: dict) -> dict:
