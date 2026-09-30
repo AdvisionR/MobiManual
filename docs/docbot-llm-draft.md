@@ -10,6 +10,11 @@ checked"). Decided the same day:
 - Mistral, for the prototype only
 - outcomes that open no merge request are recorded in `result.json` only
 
+Decided since, on 2026-09-30, in [the repo-access doc](docbot-claude-repo-access.md): a
+Claude integration uses the Client SDK (`anthropic`), with DocBot owning any tool loop.
+Whether the model gets repository access is still open there, and until that is settled
+the first two decisions above stand.
+
 **Relationship to other documents:** this replaces the placeholder in
 `tools/docbot/src/docbot/draft.py` (see [docbot-code-location.md](docbot-code-location.md)).
 It is roadmap item 2 of `current-state.md`, "Add provider-agnostic AI connection", in its
@@ -155,7 +160,7 @@ return later, **as an output of the pilot rather than an input maintained by han
 | The model returns whole pages | **Rejected.** It breaks "prefer minimal edits", and a reviewer has to diff prose the model re-flowed |
 | The model returns a unified diff | **Rejected.** A diff only applies with exact line numbers and context. A find-and-replace edit only needs an exact snippet, and when it fails, the reason is easy to tell the model |
 | **Find-and-replace edits plus a decision per page, in one call** | **Chosen. [DECIDED 2026-09-24]** |
-| An agent loop with file tools (foundation, "Agent behaviour rules", **[DECIDED]**) | **Deferred, not rejected.** The loop's value is iterating against a build it must pass, and searching the manual for terminology. The fixture has no build to pass (`grunt web_docs` only reports what it would build), and it would also go beyond "the diff suffices". Revisit when `validate` exists. The proposal is what the loop's final tool call would submit, so the loop will wrap this step, not replace it |
+| An agent loop with file tools (foundation, "Agent behaviour rules", **[DECIDED]**) | **Deferred, not rejected.** The loop's value is iterating against a build it must pass, and searching the manual for terminology. The fixture has no build to pass (`grunt web_docs` only reports what it would build), and it would also go beyond "the diff suffices". Revisit when `validate` exists. The proposal is what the loop's final tool call would submit, so the loop will wrap this step, not replace it. **Update 2026-09-30:** a loop with read-only repository tools is designed in [the repo-access doc](docbot-claude-repo-access.md), and it is adopted only if it beats this one-call design on the corpus |
 
 ```json
 {
@@ -208,11 +213,17 @@ schema. The adapter is the only module that imports its provider's SDK, the same
 **Mistral, for the prototype only. [DECIDED 2026-09-24]** It is the key that exists, and
 `tools/docbot/.env.example` reserves `MISTRAL_API_KEY`. The final provider and model are open
 (question 24). The foundation doc's "Either OpenAI or Anthropic" is neither confirmed nor
-replaced by this choice. What comes with it:
+replaced by this choice. A Claude adapter, when one is added, calls Claude through the
+Client SDK (`anthropic`), not the Agent SDK **[DECIDED 2026-09-30]**, for the reasons
+given in [the repo-access doc](docbot-claude-repo-access.md). What comes with the Mistral
+choice:
 
-- `mistralai` uses `httpx` 0.28.1 and OpenTelemetry **[EVIDENCE]**, from the
-  code-location doc, while DocBot uses `httpx2`. So DocBot carries two HTTP stacks, with
-  each confined to its one module: `gitlab.py`, and `llm/mistral.py` through the SDK.
+- `mistralai` 3.0.0 depends on `httpx2`, the same HTTP stack as `gitlab.py`, and so does
+  `anthropic` 1.x. Resolved together with DocBot's dependencies, both give
+  `httpx2==2.13.1` and no `httpx` **[EVIDENCE]**, checked 2026-09-30 in
+  [the repo-access doc](docbot-claude-repo-access.md). **[CORRECTED]** This bullet
+  previously said that `mistralai` uses `httpx` 0.28.1, so that DocBot would carry two HTTP
+  stacks. That was true of the version the code-location doc checked, and is no longer.
 - Which structured-output mode `mistralai` offers, and which model to use, are checked
   against the current SDK and model list at implementation time, not written down here.
   The model is configuration (`DOCBOT_LLM_MODEL`).
