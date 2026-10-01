@@ -6,7 +6,7 @@ from urllib.parse import unquote
 import httpx2
 import pytest
 
-from docbot.draft import MANUAL_FILE
+from docbot.drafting.placeholder import MANUAL_FILE
 from docbot.gitlab import GitLab, GitLabError
 from docbot.update import update_manual
 

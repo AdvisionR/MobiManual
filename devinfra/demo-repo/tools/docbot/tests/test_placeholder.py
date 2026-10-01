@@ -1,4 +1,4 @@
-from docbot.draft import HEADER, draft
+from docbot.drafting.placeholder import HEADER, draft
 
 MR = {"iid": 4, "title": "Rework the iOS wizard", "author": {"username": "dev"}, "web_url": "http://gl/mr/4"}
 

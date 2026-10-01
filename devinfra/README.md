@@ -183,7 +183,7 @@ one: integration means copying the directory and the Jenkinsfile stage.
 against a separate image and explains when the bot should move out. To ship a
 change into the stack, re-seed with `./scripts/seed-project.sh`.
 
-The drafting step is `src/docbot/draft.py`, a pure function from the merge
+The drafting step is `src/docbot/drafting/placeholder.py`, a pure function from the merge
 request and its diffs to new manual content. Today it is a placeholder. Keep the
 decisions in the package and out of the `Jenkinsfile`: a CLI can be run and
 tested on a laptop, and Groovy inside a pipeline cannot. That is not a
@@ -196,6 +196,18 @@ export DOCBOT_GITLAB_TOKEN=$(sed -n 's/^GITLAB_PAT=//p' .runtime/gitlab.env)
 cd demo-repo/tools/docbot
 uv run docbot update-manual --sha <a merge commit on main> --dry-run
 uv run pytest
+```
+
+The fixture is too small to judge the model's drafts, so the drafting step is also
+replayed on real history. Zulip keeps its help centre in its repository, and
+`zulip/cases.json` lists commits that changed the product and the help pages together.
+For each one, the model drafts against the code change with the old help pages, and
+the author's own edit is the reference:
+
+```bash
+./scripts/fetch-zulip.sh
+cd demo-repo/tools/docbot
+uv run --env-file .env pytest -m live -s -k zulip   # results in devinfra/.runtime/zulip-results/
 ```
 
 `--dry-run` prints the manual diff and writes nothing. Without it, the same
@@ -217,6 +229,7 @@ worth seeing.
 | `down.sh` | Stop everything, keep data |
 | `nuke.sh` | Remove everything this stack created |
 | `jenkins-groovy.sh` | Run a Groovy script against the Jenkins script console |
+| `fetch-zulip.sh` | Clone zulip/zulip (bare, `main` only, history since 2026-04-28, about 60 MB) into `.runtime/zulip.git`, or fetch new commits. The drafting step is replayed on the commits in `zulip/cases.json`. Needs no stack |
 
 ---
 

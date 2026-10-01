@@ -14,6 +14,61 @@ second adapter behind the same seam, once question 30 is answered.
 Tags as in the foundation doc: **[DECIDED]**, **[EVIDENCE]**, **[PROPOSED]**,
 **[UNKNOWN]**, plus **[DOCS]** for upstream documentation not reproduced here.
 
+## Progress
+
+**2026-09-30: the harness and the drafting step are built**, in `tools/docbot/`: the
+seam (`llm/__init__.py`), the Mistral adapter (`llm/mistral.py`), the loop
+(`llm/agent.py`), the git tools (`drafting/repo.py`), the edits (`drafting/edits.py`)
+and the drafting conversation (`drafting/proposal.py`). There are 50 offline tests,
+and ruff and pyright are clean. Not built yet: `ignore.py`, `manual.py`, triage, and wiring into
+`update-manual`. Steps 3 (in part), 5 (in part) and 7 of the build order remain.
+
+Where the build differs from the sketch below:
+
+- **The drafting step is `proposal.py`, not a reworked `draft.py`.** The placeholder
+  stays in place, and `update-manual` keeps working, until the wiring step replaces it.
+- **The prompt is a constant in `proposal.py`**, not a file under `prompts/`.
+- **The modules sit in two packages**, not flat (2026-10-01). `llm/` holds the seam,
+  the adapter and the loop, none of which knows about manuals. `drafting/` holds
+  `proposal.py`, `repo.py`, `edits.py` and the placeholder, renamed from `draft.py` to
+  `placeholder.py`. `triage.py`, `manual.py` and `ignore.py` belong in `drafting/`
+  too. The live tests and their helper are in `tests/live/`.
+- **`read_file` is capped at 500 lines**, not 300. The worst case is then about
+  35k + 20 × 7k ≈ 175k tokens, still inside 256k.
+- **An edit's `find` tolerates whitespace differences.** If the snippet is not in the
+  page as it stands, it is matched word by word with any whitespace between the words,
+  and it must still match exactly once. The first live run showed why: `_devices.md` is
+  hard-wrapped, and the model wrote the wrapped sentence on one line seven times before
+  it matched. After the change, the same scenario took one turn.
+- **No `DOCBOT_LLM_PROVIDER` yet.** It comes with the second provider.
+- **Connection failures arrive as `httpx2.TransportError`**, not as the SDK's own
+  errors **[EVIDENCE]**, so the adapter catches both. `gitlab.py` stays the only module
+  that sends requests with `httpx2` itself.
+
+**The live run** (`pytest -m live`), `mistral-medium-3-5`, 2026-09-30 **[EVIDENCE]**.
+The model was given the pages each scenario's `Expected:` line says triage picks.
+Cost is at $1.5 per million input tokens, $0.15 per million cached input tokens and
+$7.5 per million output tokens:
+
+| Scenario | Mode | Turns | Result against `Expected:` | Tokens (in / cached / out) | Cost |
+|---|---|---|---|---|---|
+| `kiosk-passcode` | diff | 1 | Full match: sentence corrected, exit-passcode step added, `_kiosk_mode_1.png` flagged | 952 / 0 / 888 | $0.008 |
+| `kiosk-passcode` | repo | 8 | Sentence corrected. No step added, screenshot not flagged | 12,139 / 0 / 554 | $0.022 |
+| `ios-department` | diff | 1 | Department step added before Finish. Does not say that Finish needs one | 1,026 / 0 / 598 | $0.006 |
+| `ios-department` | repo | 11 | As in diff mode | 18,315 / 2,944 / 550 | $0.028 |
+| `devices-filter` | diff | 1 (8 before the whitespace fix) | Filter added to the paragraph, `_devices_id.md` no-change, screenshot flagged | 939 / 0 / 414 | $0.005 |
+| `devices-filter` | repo | 10 | As in diff mode. One rejected submission (a page left out), corrected | 15,222 / 7,168 / 674 | $0.021 |
+
+What it shows:
+
+- **The harness works end to end**: tool calls, results, the rejection-and-correction
+  path, and the budget.
+- **Prompt caching hits across turns** in some repo-mode runs, but not all.
+- **On this fixture, repo mode costs 3 to 4 times more and is not better.** In the
+  kiosk case it was worse. The model searched for HTML templates the fixture does not
+  have. That matches the repo-access doc's warning that the fixture cannot show what
+  searching adds. The fifth scenario still has to be built.
+
 ---
 
 ## The question
@@ -320,5 +375,5 @@ Numbering continues from the repo-access doc.
 
 | # | Question | Blocks |
 |---|---|---|
-| 33 | Is the existing `MISTRAL_API_KEY` on a paid plan or on the free Experiment tier? The free tier may use inputs and outputs for training unless someone opts out in the Admin Console. That is harmless for the synthetic fixture, but it must be known before anything real is sent | Step 5, and later question 10 |
+| 33 | ~~Is the existing `MISTRAL_API_KEY` on a paid plan or on the free Experiment tier?~~ **Answered 2026-09-30: a paid plan, with usage credits**, so inputs are not used for training by default | — |
 | 34 | Does Mistral's data processing agreement confirm EU hosting, and does prompt caching still work under ZDR? | The real repository on Mistral |

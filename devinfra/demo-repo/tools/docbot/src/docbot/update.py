@@ -7,7 +7,7 @@ instead of opening a second.
 
 import difflib
 
-from docbot.draft import MANUAL_FILE, draft
+from docbot.drafting.placeholder import MANUAL_FILE, draft
 from docbot.gitlab import GitLab
 from docbot.resolve import resolve
 

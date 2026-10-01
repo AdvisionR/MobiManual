@@ -1,0 +1,34 @@
+{
+  "_comment": [
+    "Commits from zulip/zulip that change the product and its help centre together.",
+    "Each one is a case for DocBot's drafting step: the code change goes to the",
+    "model, the help pages the commit edited are the pages to consider, and what",
+    "the commit's author wrote on those pages is the reference to compare against.",
+    "The model never sees that reference: the replay builds a commit with the code",
+    "change and the help centre as it was before.",
+    "",
+    "Fetch the repository with scripts/fetch-zulip.sh. Replay with",
+    "tools/docbot/tests/test_live_zulip.py (pytest -m live). All commits are after",
+    "2026-04-28, mistral-medium-3-5's release."
+  ],
+  "repository": ".runtime/zulip.git",
+  "help": "starlight_help/src/content/",
+  "cases": [
+    {"commit": "4996507536f0082153380a1f802b5a9df6af9733", "change": "recommended organization logo dimensions change"},
+    {"commit": "d1f9dab801d92d55bf19403065648ebbb4d225dc", "change": "mirroring removed; forging DMs gated on a permission"},
+    {"commit": "83e9a83e850372819ccd773e9008d918578b48e1", "change": "reporting a message now sends a confirmation"},
+    {"commit": "f4bb27444cb591a44e4045f5ce30faf3d64fe70e", "change": "link previews can be hidden per recipient"},
+    {"commit": "26e0f9f27f94640ba5b26c6803eda366fa466733", "change": "a popover shows topics that link to a topic"},
+    {"commit": "c4f5d48086e95219238a4662258bdc16fcb2d0b3", "change": "quote and forward hotkeys apply to a selection"},
+    {"commit": "ae588277afd8d27ee5c6c6e727475808e65fc2ed", "change": "per-channel default for push notifications; also adds a page"},
+    {"commit": "8da9cbf764a3515c970e58c6334eaa1a34cac76e", "change": "Ctrl+] and Ctrl+[ indent list items; also adds pages"},
+    {"commit": "7013f22bbdc1e57d49144a14ae70b6b9066ab532", "change": "legacy push notifications skipped when E2EE is required"}
+  ],
+  "excluded": [
+    {"commit": "1357d708e0ec9dc0361a5b689b9b9666195d8ab7", "why": "dependency upgrade; the help edits are incidental"},
+    {"commit": "3b1c4a8a73ee31a26ecfe6cf3bd617b75a0588a7", "why": "typo cleanup across code and docs"},
+    {"commit": "f389a7286d7fccdb97a1cbbdded4ae51326ab5d4", "why": "lint fix: http to https in a link"},
+    {"commit": "c2f7edbfc4af5ee8fef4fec1564b15502985a078", "why": "website text, not product behaviour"},
+    {"commit": "d4d503f39bb1842d70f9a15d98ca50058ed56503", "why": "library removal; the help edit follows the library, not the product"}
+  ]
+}

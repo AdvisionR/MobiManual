@@ -19,15 +19,35 @@ class Config:
     token: str
 
 
+@dataclass(frozen=True)
+class LLMConfig:
+    api_key: str
+    model: str
+
+
 _VARIABLES = {
     "gitlab_url": "DOCBOT_GITLAB_URL",
     "project": "DOCBOT_PROJECT",
     "token": "DOCBOT_GITLAB_TOKEN",
 }
 
+# Mistral is the only provider so far; DOCBOT_LLM_PROVIDER comes with the second.
+_LLM_VARIABLES = {
+    "api_key": "MISTRAL_API_KEY",
+    "model": "DOCBOT_LLM_MODEL",
+}
+
 
 def load(environ=os.environ) -> Config:
-    missing = [name for name in _VARIABLES.values() if not environ.get(name)]
+    return Config(**_read(_VARIABLES, environ))
+
+
+def load_llm(environ=os.environ) -> LLMConfig:
+    return LLMConfig(**_read(_LLM_VARIABLES, environ))
+
+
+def _read(variables: dict[str, str], environ) -> dict[str, str]:
+    missing = [name for name in variables.values() if not environ.get(name)]
     if missing:
         raise ConfigError("missing setting: " + ", ".join(missing))
-    return Config(**{field: environ[name] for field, name in _VARIABLES.items()})
+    return {field: environ[name] for field, name in variables.items()}

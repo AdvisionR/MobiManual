@@ -1,3 +1,5 @@
-# Generated at runtime by scripts/seed-gitlab.sh — holds the GitLab API token.
-# Never commit: it is a live credential, even if only for a local instance.
+# Generated at runtime. Never commit:
+#   gitlab.env  scripts/seed-gitlab.sh: the GitLab API token, a live credential
+#               even if only for a local instance
+#   zulip.git   scripts/fetch-zulip.sh: a clone of zulip/zulip, about 60 MB
 .runtime/

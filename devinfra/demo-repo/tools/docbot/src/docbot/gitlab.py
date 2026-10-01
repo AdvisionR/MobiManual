@@ -1,4 +1,4 @@
-"""The GitLab API, as far as DocBot uses it. The only module that imports httpx2.
+"""The GitLab API, as far as DocBot uses it. The only module that sends requests with httpx2.
 
 Every failure to get an answer from GitLab (unreachable, 401, 5xx) raises
 GitLabError, which the CLI turns into exit code 1. A 404 is not an error where
