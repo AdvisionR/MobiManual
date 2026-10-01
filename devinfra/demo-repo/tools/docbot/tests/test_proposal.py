@@ -43,6 +43,9 @@ def test_the_model_reads_the_page_it_chose_then_edits_it():
     assert "Leaving kiosk mode requires the device passcode." not in opened["task"]  # only through read_page
     (page_text,), = llm.sent
     assert "Leaving kiosk mode requires the device passcode." in page_text.text
+    assert result["system"] == opened["system"]
+    assert result["task"] == opened["task"]
+    assert result["turns"][0]["calls"][0]["result"] == page_text.text
 
 
 def test_pages_the_model_left_alone_need_no_answer():

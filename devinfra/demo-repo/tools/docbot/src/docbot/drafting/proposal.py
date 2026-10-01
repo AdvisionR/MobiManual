@@ -18,7 +18,7 @@ from docbot.drafting.triage import PRODUCT
 from docbot.llm import LLM, Tool, agent
 from docbot.llm.agent import ToolError
 
-SCHEMA = "docbot.proposal/2"
+SCHEMA = "docbot.proposal/3"
 DECISIONS = ("edit", "no-change", "needs-human")
 # One merge rarely needs more; a proposal that edits more goes back to the model. A guard for the prototype.
 MAX_EDITED_PAGES = 5
@@ -84,9 +84,8 @@ def propose(llm: LLM, mr: dict, diffs: list[dict], manual: Manual, edited: list[
     if repo:
         repo_tools, repo_handlers = repo.tools()
         tools, handlers = [*tools, *repo_tools], {**handlers, **repo_handlers}
-    conversation = llm.conversation(SYSTEM.format(product=product),
-                                    _task(mr, diffs, manual, edited, searchable=repo is not None),
-                                    [*tools, SUBMIT], cache_key=f"docbot-{sha[:12]}-draft")
+    system, task = SYSTEM.format(product=product), _task(mr, diffs, manual, edited, searchable=repo is not None)
+    conversation = llm.conversation(system, task, [*tools, SUBMIT], cache_key=f"docbot-{sha[:12]}-draft")
     run = agent.run(conversation, handlers, SUBMIT.name,
                     lambda proposal: validate(full_names(proposal, manual), manual.pages))
     result = {"schema": SCHEMA, "model": llm.name, "context": "repo" if repo else "diff",
@@ -97,7 +96,7 @@ def propose(llm: LLM, mr: dict, diffs: list[dict], manual: Manual, edited: list[
         result["edited"] = edited_pages(proposal, manual.pages)
     else:
         result["reason"] = run["reason"]
-    return {**result, "turns": run["turns"]}
+    return {**result, "system": system, "task": task, "turns": run["turns"]}
 
 
 def full_names(proposal: dict, manual: Manual) -> dict:

@@ -25,7 +25,9 @@ def run(conversation: Conversation, handlers: dict[str, Handler], submit: str,
     """Drive the conversation to a validated submission.
 
     Returns {"outcome": "submitted", "submission": ..., "turns": [...]} or
-    {"outcome": "stopped", "reason": ..., "turns": [...]}.
+    {"outcome": "stopped", "reason": ..., "turns": [...]}. Each turn records the
+    model's text, its usage, and each call with what went back to the model: the
+    result, or the error.
     """
     turns: list[dict] = []
     calls_made = 0
@@ -44,8 +46,8 @@ def run(conversation: Conversation, handlers: dict[str, Handler], submit: str,
         for call in turn.calls:
             calls_made += 1
             result, submission = _answer(call, handlers, submit, validate)
-            entry["calls"].append({"name": call.name, "arguments": call.arguments, "result_chars": len(result.text),
-                                   **({"error": result.text} if result.is_error else {})})
+            entry["calls"].append({"name": call.name, "arguments": call.arguments,
+                                   **({"error": result.text} if result.is_error else {"result": result.text})})
             if submission is not None:
                 return {"outcome": "submitted", "submission": submission, "turns": turns}
             results.append(result)

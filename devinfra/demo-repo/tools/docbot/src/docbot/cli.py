@@ -118,8 +118,7 @@ def _summary(step: dict) -> str:
     if step["outcome"] != "submitted":
         decided = f"stopped: {step['reason']}"
     elif "answer" in step:
-        answer = step["answer"]
-        decided = ", ".join(p["page"] for p in answer["pages"]) or answer["decision"]
+        decided = step["answer"]["decision"]
     else:
         decided = ", ".join(f"{p['page']} {p['decision']}" for p in step["proposal"]["pages"])
     return f"{decided}  [{step['model']}, {len(usage)} turns, {tokens}]"

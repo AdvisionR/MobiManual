@@ -29,6 +29,8 @@ def test_a_valid_answer_comes_back():
     assert "    ## Filters" in opened["task"]
     assert "_devices.md (already edited in this merge request)" in opened["task"]
     assert "MobiVisor, a mobile device management console" in opened["system"]
+    assert result["system"] == opened["system"]
+    assert result["task"] == opened["task"]
 
 
 def test_the_product_can_be_named():

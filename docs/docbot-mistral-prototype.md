@@ -410,6 +410,22 @@ short page names in `submit_proposal`, before the proposal accepted them too.
 - **Diff mode cannot see labels in templates**, as on the fixture: `ae588277af`
   answered `needs-human` instead. Repo mode has not been run on Zulip yet.
 
+**`result.json` holds the whole conversation [DECIDED 2026-10-01].** `docbot.triage/3`
+and `docbot.proposal/3` add the system prompt and the task. Each call records the text
+that went back to the model, as `result`, or `error` when it was refused, in place of
+`result_chars`. So the archived `result.json` of a Jenkins build shows what the model
+read, not only what it asked for. This came up after a scenario merge through Jenkins
+(`ios-department`, build `main #2`): DocBot opened the docs merge request, then crashed
+in the CLI's narration, which still read the `pages` triage no longer returns. The JSON
+is printed after the narration, so that run left no record. `test_cli.py` now runs the
+command on `update_manual`'s real results.
+
+| Option | Verdict |
+|---|---|
+| `MISTRAL_DEBUG=1` in the Jenkinsfile | **Rejected.** It logs every request to the console, and each request repeats the whole conversation, so a 15-turn run logs the task 15 times. It shows Mistral's wire format, not DocBot's tools, and it would change with the provider |
+| The raw request and response per turn, as the sketch above planned | **Rejected.** The same repetition, in the file instead of the log |
+| **What DocBot sent and got back, once each** | **Chosen.** Provider-neutral, and each text is stored once. A tool result is capped at 500 lines of at most 300 characters. By its token counts, the `ios-department` run through Jenkins would have grown by about 10 KB **[PROPOSED]**; Zulip's 15k-token table of contents goes in twice, once per task |
+
 ---
 
 ## The question

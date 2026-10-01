@@ -11,7 +11,7 @@ from docbot.drafting import change
 from docbot.drafting.manual import Manual
 from docbot.llm import LLM, Tool, agent
 
-SCHEMA = "docbot.triage/2"
+SCHEMA = "docbot.triage/3"
 PRODUCT = "MobiVisor, a mobile device management console"
 DECISIONS = ("doc-impact", "no-doc-impact")
 
@@ -48,15 +48,15 @@ SUBMIT = Tool(
 def triage(llm: LLM, mr: dict, diffs: list[dict], manual: Manual, edited: list[str], sha: str,
            product: str = PRODUCT) -> dict:
     """Run the triage conversation. `edited` names the pages the merge request edited itself."""
-    conversation = llm.conversation(SYSTEM.format(product=product), _task(mr, diffs, manual, edited), [SUBMIT],
-                                    cache_key=f"docbot-{sha[:12]}-triage")
+    system, task = SYSTEM.format(product=product), _task(mr, diffs, manual, edited)
+    conversation = llm.conversation(system, task, [SUBMIT], cache_key=f"docbot-{sha[:12]}-triage")
     run = agent.run(conversation, {}, SUBMIT.name, validate)
     result = {"schema": SCHEMA, "model": llm.name, "outcome": run["outcome"]}
     if run["outcome"] == "submitted":
         result["answer"] = run["submission"]
     else:
         result["reason"] = run["reason"]
-    return {**result, "turns": run["turns"]}
+    return {**result, "system": system, "task": task, "turns": run["turns"]}
 
 
 def validate(answer: dict) -> str | None:

@@ -52,6 +52,7 @@ def test_a_tool_result_goes_back_and_a_valid_submission_ends_the_loop():
     assert result["submission"] == {"ok": True}
     assert conversation.sent == [[ToolResult("c1", "lookup", "value of a")]]
     assert [c["name"] for t in result["turns"] for c in t["calls"]] == ["lookup", "submit"]
+    assert [c["result"] for t in result["turns"] for c in t["calls"]] == ["value of a", "accepted"]
 
 
 def test_a_rejected_submission_goes_back_as_an_error_and_can_be_corrected():
@@ -62,6 +63,7 @@ def test_a_rejected_submission_goes_back_as_an_error_and_can_be_corrected():
     assert rejected.is_error
     assert rejected.text == "not accepted: ok must be true"
     assert result["turns"][0]["calls"][0]["error"] == "not accepted: ok must be true"
+    assert "result" not in result["turns"][0]["calls"][0]
 
 
 def test_parallel_calls_are_answered_together():

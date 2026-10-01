@@ -103,7 +103,9 @@ from `DOCBOT_LLM_MODEL` in the Jenkinsfile's `environment`.
 
 stdout carries exactly one JSON document (`docbot.update/2`), and stderr carries
 the narration. The document holds the outcome and, where the model was asked,
-a `triage` and a `draft` section with every turn, tool call and token count.
+a `triage` and a `draft` section with the whole conversation: the system prompt,
+the task, and every turn, with the model's tool calls, what each call got back,
+and the token counts. In Jenkins it is archived as `result.json` on each build.
 The exit codes are:
 
 - 0: done, including "nothing to do" and "needs a human"
