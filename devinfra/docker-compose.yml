@@ -81,8 +81,13 @@ services:
       GITLAB_SERVER_URL: http://${GITLAB_HOST}
     # Written by scripts/seed-gitlab.sh once GitLab is up. Holds GITLAB_PAT.
     # Kept out of .env because it is generated, not authored.
+    # DocBot's laptop settings hold MISTRAL_API_KEY, which CasC turns into the
+    # docbot-llm-key credential. Optional: without the file, the credential is
+    # empty and DocBot stops with a configuration error.
     env_file:
-      - .runtime/gitlab.env
+      - path: .runtime/gitlab.env
+      - path: demo-repo/tools/docbot/.env
+        required: false
     volumes:
       - jenkins-home:/var/jenkins_home
     depends_on:

@@ -10,15 +10,18 @@ opens a merge request with the patch's own title and description.
 | `kiosk-passcode` | Kiosk policies get their own exit passcode | Yes. It makes an existing sentence on the page wrong |
 | `devices-filter` | The device list gets a compliance filter | Yes, on one of the area's two pages |
 | `refactor` | The users controller is split into helpers, with nothing visible changing | No |
+| `account-expiry` | A feature flag turns on an optional expiry date in the Add user form | Yes, but only the repository says what the form gains: the diff is the flag |
 
 The expected outcome in detail is in each patch, on the `Expected:` line below
 its `---`. `git am` leaves everything between `---` and the diff out of the
 commit message, so the expectation never reaches the merge request description
 the model reads.
 
-Until DocBot's drafting step lands, every merged scenario still produces the
-placeholder docs merge request. The expectations describe the model-drafting
-step planned in `docs/docbot-llm-draft.md`.
+The expectations describe the model-drafting step planned in
+`docs/docbot-llm-draft.md`. `tests/live/test_live_update.py` in
+`demo-repo/tools/docbot/` runs every scenario through `update-manual` without the
+stack and writes each result to `.runtime/docbot-results/`, to compare against
+the `Expected:` line.
 
 ## Adding one
 

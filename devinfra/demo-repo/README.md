@@ -14,7 +14,8 @@ tools/docbot/                    DocBot itself: a Python CLI the Jenkinsfile ins
 
 public/app/                      AngularJS console
   routes.js                        the route table documentation filenames derive from
-  users/  devices/  reports/
+  features.js                      feature flags: a finished feature ships dark until its flag is on
+  users/  devices/  reports/       users/ also has its template, users.html
   enrollment/ios/
   policies/kiosk/  policies/restrictions/
 public/doc/<lang>/               the manual, one folder per language: en, tr, de
@@ -96,8 +97,10 @@ requests with real behaviour changes. Those are the scenarios in
 `devinfra/scenarios/` of the MobiManual repository, which `open-test-mr.sh`
 applies the same way.
 
-Nothing reads `doc-map.json` yet. For every merge that reaches `main`, `docbot`
-opens a placeholder docs merge request (see `tools/docbot/README.md`).
+DocBot reads `doc-map.json` at the merge commit and drops the ignored files
+before any model sees the merge request. If nothing is left, it stops there.
+Otherwise triage names the affected pages, or none, and drafting edits them (see
+`tools/docbot/README.md`).
 
 ## Known findings
 

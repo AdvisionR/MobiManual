@@ -5,9 +5,10 @@ import pytest
 from mistralai.client.models import ChatCompletionResponse
 
 from docbot.llm import LLMError, Tool, ToolResult
-from docbot.llm.mistral import MistralLLM
+from docbot.llm.mistral import RETRIES, MistralLLM
 
 GREP = Tool("grep", "Search.", {"type": "object", "properties": {"pattern": {"type": "string"}}})
+SUBMIT = Tool("submit", "Submit.", {"type": "object", "properties": {}})
 
 
 def response(tool_calls=(), content="", finish_reason="tool_calls", cached=None) -> ChatCompletionResponse:
@@ -39,9 +40,9 @@ class FakeClient:
         return answer
 
 
-def conversation(client):
+def conversation(client, tools=(GREP, SUBMIT)):
     return MistralLLM("key", "mistral-medium-3-5", client=client).conversation(
-        "system text", "task text", [GREP], cache_key="docbot-abc-draft")
+        "system text", "task text", list(tools), cache_key="docbot-abc-draft")
 
 
 def test_a_request_carries_tools_forced_tool_use_and_the_cache_key():
@@ -51,11 +52,24 @@ def test_a_request_carries_tools_forced_tool_use_and_the_cache_key():
     assert request["model"] == "mistral-medium-3-5"
     assert request["tool_choice"] == "any"
     assert request["prompt_cache_key"] == "docbot-abc-draft"
-    assert request["tools"] == [{"type": "function", "function": {
-        "name": "grep", "description": "Search.", "parameters": GREP.schema}}]
+    assert request["tools"][0] == {"type": "function", "function": {
+        "name": "grep", "description": "Search.", "parameters": GREP.schema}}
     assert request["messages"] == [{"role": "system", "content": "system text"},
                                    {"role": "user", "content": "task text"}]
     assert [(c.id, c.name, c.arguments) for c in turn.calls] == [("a1", "grep", {"pattern": "kiosk"})]
+
+
+def test_a_lone_tool_is_named_in_tool_choice():
+    client = FakeClient(response([tool_call("a1", "submit", {})]))
+    conversation(client, tools=[SUBMIT]).step()
+    assert client.requests[0]["tool_choice"] == {"type": "function", "function": {"name": "submit"}}
+
+
+def test_the_client_retries_rate_limits_and_server_errors():
+    llm = MistralLLM("key", "mistral-medium-3-5")
+    config = llm._client.sdk_configuration
+    assert config.retry_config is RETRIES
+    assert config.timeout_ms == 300_000
 
 
 def test_the_next_request_repeats_the_whole_conversation_with_the_results():

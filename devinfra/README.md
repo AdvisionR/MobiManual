@@ -6,8 +6,8 @@ its hands.
 
 The bot lives in the fixture, at `demo-repo/tools/docbot/`: a Python CLI that
 the Jenkinsfile installs and runs. For every merge it opens a docs merge request
-against the same repository. Its drafting step is still a placeholder: it
-appends the merge request's diff to one manual file. Everything else in this
+against the same repository, with edits to the manual pages the merge affects,
+drafted by a model (Mistral, for the prototype). Everything else in this
 directory exists to get it called at the right moment.
 
 ```
@@ -109,8 +109,8 @@ request that changed the code, which is the one thing the monorepo would
 otherwise make easy.
 
 **`demo-repo/tools/docbot/`** is then installed into a venv in the workspace
-and run with a GitLab token bound from the `docbot-gitlab-token` credential —
-and with no merge-request context at all. It works that out for itself.
+and run with a GitLab token bound from the `docbot-gitlab-token` credential and
+the model key from `docbot-llm-key` — and with no merge-request context at all. It works that out for itself.
 
 ### Why the merge request is derived, not received
 
@@ -147,9 +147,9 @@ quiet, working bot.
 ### Why the changed files come from the API
 
 Once docbot has the merge request, `/merge_requests/:iid/diffs` supplies its
-per-file diffs, renames included, and the manual file is read with
-`/repository/files/…/raw?ref=<merge commit>`, so the draft starts from the
-manual as it was at the merge.
+per-file diffs, renames included, and `doc-map.json`, `gruntfile.js` and the
+manual pages are read with `/repository/files/…/raw?ref=<merge commit>`, so the
+draft starts from the manual as it was at the merge.
 
 A local `git diff HEAD^ HEAD` would agree on the `main` build, which is a full
 clone of an ordinary branch. It would stop agreeing the moment the stage is
@@ -183,9 +183,9 @@ one: integration means copying the directory and the Jenkinsfile stage.
 against a separate image and explains when the bot should move out. To ship a
 change into the stack, re-seed with `./scripts/seed-project.sh`.
 
-The drafting step is `src/docbot/drafting/placeholder.py`, a pure function from the merge
-request and its diffs to new manual content. Today it is a placeholder. Keep the
-decisions in the package and out of the `Jenkinsfile`: a CLI can be run and
+The decisions are in `src/docbot/drafting/`: which changed files matter, which
+pages triage names, and the edits drafting proposes. Keep them in the package
+and out of the `Jenkinsfile`: a CLI can be run and
 tested on a laptop, and Groovy inside a pipeline cannot. That is not a
 stylistic preference — it is what makes this loop possible, with no build, no
 webhook and no waiting:
@@ -194,15 +194,16 @@ webhook and no waiting:
 export DOCBOT_GITLAB_URL=http://gitlab.orb.local DOCBOT_PROJECT=root/mobivisor-console
 export DOCBOT_GITLAB_TOKEN=$(sed -n 's/^GITLAB_PAT=//p' .runtime/gitlab.env)
 cd demo-repo/tools/docbot
-uv run docbot update-manual --sha <a merge commit on main> --dry-run
+uv run --env-file .env docbot update-manual --sha <a merge commit on main> --dry-run   # .env holds the model key
 uv run pytest
 ```
 
-The fixture is too small to judge the model's drafts, so the drafting step is also
+The fixture is too small to judge the model, so triage and drafting are also
 replayed on real history. Zulip keeps its help centre in its repository, and
-`zulip/cases.json` lists commits that changed the product and the help pages together.
-For each one, the model drafts against the code change with the old help pages, and
-the author's own edit is the reference:
+`zulip/cases.json` lists commits that changed the product and the help pages together,
+and commits that change nothing a user sees. For each one, triage decides whether the
+code change has doc impact, and drafting finds and edits pages in the whole help
+centre as it was before. The author's own edit is the reference:
 
 ```bash
 ./scripts/fetch-zulip.sh
@@ -214,6 +215,14 @@ uv run --env-file .env pytest -m live -s -k zulip   # results in devinfra/.runti
 command opens the docs merge request exactly as Jenkins would. Against a commit
 that is not a merge, it reports `not a merge to main, nothing to do`. Both are
 worth seeing.
+
+Jenkins reads the model key from the same `demo-repo/tools/docbot/.env`, which
+compose passes to the container when it starts. CasC turns `MISTRAL_API_KEY`
+into the `docbot-llm-key` credential. After changing the key, recreate Jenkins
+with `docker compose up -d jenkins`. Without the file, the credential is empty
+and the DocBot stage fails with a configuration error. Like `GITLAB_PAT`, the
+key is then also in the environment of every build on this Jenkins, a shortcut
+only acceptable for the local stack.
 
 ---
 
@@ -229,7 +238,7 @@ worth seeing.
 | `down.sh` | Stop everything, keep data |
 | `nuke.sh` | Remove everything this stack created |
 | `jenkins-groovy.sh` | Run a Groovy script against the Jenkins script console |
-| `fetch-zulip.sh` | Clone zulip/zulip (bare, `main` only, history since 2026-04-28, about 60 MB) into `.runtime/zulip.git`, or fetch new commits. The drafting step is replayed on the commits in `zulip/cases.json`. Needs no stack |
+| `fetch-zulip.sh` | Clone zulip/zulip (bare, `main` only, history since 2026-04-28, about 60 MB) into `.runtime/zulip.git`, or fetch new commits. Triage and drafting are replayed on the commits in `zulip/cases.json`. Needs no stack |
 
 ---
 

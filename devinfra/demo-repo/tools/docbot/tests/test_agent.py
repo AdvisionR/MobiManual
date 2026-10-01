@@ -80,9 +80,17 @@ def test_tool_errors_unknown_tools_and_bad_arguments_go_back_to_the_model():
     assert run(conversation)["outcome"] == "submitted"
     assert [(r.is_error, r.text) for r in conversation.sent[0]] == [
         (True, "no such key"),
-        (True, "no tool named 'shell'"),
+        (True, "no tool named 'shell'. The tools are: lookup, submit"),
         (True, "the arguments are not a JSON object"),
     ]
+
+
+def test_a_submission_sent_as_the_tool_name_is_explained():
+    conversation = FakeConversation(turn(call('{"ok": true}')), turn(call("submit", {"ok": True})))
+    assert run(conversation)["outcome"] == "submitted"
+    (sent,), = conversation.sent
+    assert sent.text == ("the tool name is the JSON of your answer. Call one of: lookup, submit, "
+                         "with your answer as its arguments")
 
 
 def test_the_call_budget_stops_the_loop():

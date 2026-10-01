@@ -10,7 +10,7 @@ import fnmatch
 import subprocess
 
 from docbot.llm import Tool
-from docbot.llm.agent import Handler, ToolError
+from docbot.llm.agent import Handler, ToolError, int_arg, str_arg
 
 MAX_FILES = 300
 MAX_MATCHES = 50
@@ -57,9 +57,9 @@ class Repo:
 
     def tools(self) -> tuple[list[Tool], dict[str, Handler]]:
         handlers: dict[str, Handler] = {
-            "list_files": lambda a: self.list_files(_str(a, "pattern", "*")),
-            "grep": lambda a: self.grep(_str(a, "pattern"), _str(a, "path", "")),
-            "read_file": lambda a: self.read_file(_str(a, "path"), _int(a, "start", 1), _int(a, "end", 0)),
+            "list_files": lambda a: self.list_files(str_arg(a, "pattern", "*")),
+            "grep": lambda a: self.grep(str_arg(a, "pattern"), str_arg(a, "path", "")),
+            "read_file": lambda a: self.read_file(str_arg(a, "path"), int_arg(a, "start", 1), int_arg(a, "end", 0)),
         }
         return [LIST_FILES, GREP, READ_FILE], handlers
 
@@ -110,16 +110,3 @@ def _capped(lines: list[str], cap: int, what: str) -> str:
         return "\n".join(lines)
     return "\n".join(lines[:cap]) + f"\n... {len(lines) - cap} more {what}"
 
-
-def _str(args: dict, key: str, default: str | None = None) -> str:
-    value = args.get(key, default)
-    if not isinstance(value, str):
-        raise ToolError(f"{key!r} must be a string")
-    return value
-
-
-def _int(args: dict, key: str, default: int) -> int:
-    value = args.get(key, default)
-    if not isinstance(value, int) or isinstance(value, bool):
-        raise ToolError(f"{key!r} must be an integer")
-    return value

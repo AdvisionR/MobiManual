@@ -1,9 +1,15 @@
 """Mistral, through its Python SDK. The only module that imports mistralai.
 
-Every step sets tool_choice "any", so the model calls a tool on every turn and a
-conversation can only end through one of DocBot's submit tools. Prompt caching
-is requested with a key that stays the same for the whole conversation. Mistral
-does not guarantee a hit; usage reports the cached tokens either way.
+The model calls a tool on every turn, so a conversation can only end through
+one of DocBot's submit tools. With several tools, tool_choice is "any". With
+only one, that tool is named: under "any", Medium 3.5 often wrote a lone
+submit call out as text as well, and the parser then put that text into the
+call's name. Naming the tool stopped it (2026-10-01 experiment, in the Mistral
+prototype doc).
+
+Prompt caching is requested with a key that stays the same for the whole
+conversation. Mistral does not guarantee a hit; usage reports the cached
+tokens either way. The SDK retries 429 and 5xx answers with backoff.
 """
 
 import json
@@ -11,16 +17,24 @@ import json
 import httpx2
 from mistralai.client import Mistral
 from mistralai.client.errors import MistralError, NoResponseError
-from mistralai.client.models import TextChunk, ToolTypedDict
+from mistralai.client.models import (
+    ChatCompletionRequestToolChoiceTypedDict,
+    TextChunk,
+    ToolTypedDict,
+)
+from mistralai.client.utils import BackoffStrategy, RetryConfig
 
 from docbot.llm import LLMError, Tool, ToolCall, ToolResult, Turn
 
-TIMEOUT_MS = 120_000
+# Medium 3.5 reasons before it answers: one call took over 120 s on 2026-10-01.
+TIMEOUT_MS = 300_000
+# Retries 429 and 5xx: 1 s, growing by half each time, up to 30 s apart and 5 minutes in all.
+RETRIES = RetryConfig("backoff", BackoffStrategy(1_000, 30_000, 1.5, 300_000), retry_connection_errors=True)
 
 
 class MistralLLM:
     def __init__(self, api_key: str, model: str, client: Mistral | None = None):
-        self._client = client or Mistral(api_key=api_key, timeout_ms=TIMEOUT_MS)
+        self._client = client or Mistral(api_key=api_key, timeout_ms=TIMEOUT_MS, retry_config=RETRIES)
         self._model = model
         self.name = f"mistral/{model}"
 
@@ -34,13 +48,15 @@ class MistralConversation:
         self._tools: list[ToolTypedDict] = [
             {"type": "function", "function": {"name": t.name, "description": t.description, "parameters": t.schema}}
             for t in tools]
+        self._tool_choice: ChatCompletionRequestToolChoiceTypedDict = (
+            {"type": "function", "function": {"name": tools[0].name}} if len(tools) == 1 else "any")
         self._messages: list = [{"role": "system", "content": system}, {"role": "user", "content": task}]
 
     def step(self) -> Turn:
         try:
             response = self._client.chat.complete(
                 model=self._model, messages=self._messages, tools=self._tools,
-                tool_choice="any", prompt_cache_key=self._cache_key)
+                tool_choice=self._tool_choice, prompt_cache_key=self._cache_key)
         except (MistralError, NoResponseError, httpx2.TransportError) as e:
             raise LLMError(f"mistral: {e}") from e
         choice = response.choices[0]

@@ -1,6 +1,7 @@
 """Helpers for the live tests, which replay a change from a local git repository."""
 
 import os
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -22,3 +23,19 @@ def diffs(repo: Path | str, base: str, head: str) -> list[dict]:
         text = git(repo, "diff", base, head, "--", path)
         result.append({"old_path": path, "new_path": path, "diff": text[text.index("@@"):] if "@@" in text else ""})
     return result
+
+
+def fixture_repo(fixture: Path, checkout: Path) -> str:
+    """A repository at checkout with the fixture as its one commit. Returns that commit."""
+    shutil.copytree(fixture, checkout, ignore=shutil.ignore_patterns(
+        ".git", ".venv", ".env", "__pycache__", ".pytest_cache", ".ruff_cache", "node_modules"))
+    git(checkout, "init", "-q")
+    git(checkout, "add", ".")
+    git(checkout, "commit", "-q", "-m", "fixture")
+    return git(checkout, "rev-parse", "HEAD").strip()
+
+
+def apply_patch(checkout: Path, patch: Path) -> str:
+    """A scenario applied the way open-test-mr.sh applies it, as a commit. Returns that commit."""
+    git(checkout, "am", "-q", str(patch))
+    return git(checkout, "rev-parse", "HEAD").strip()

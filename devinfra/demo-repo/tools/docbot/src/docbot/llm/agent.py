@@ -67,7 +67,13 @@ def _answer(call: ToolCall, handlers: dict[str, Handler], submit: str,
         return ToolResult(call.id, call.name, "accepted"), call.arguments
     handler = handlers.get(call.name)
     if handler is None:
-        return error(f"no tool named {call.name!r}")
+        # Mistral sometimes sends its arguments' JSON as the tool's name too. Which tool it meant
+        # is a guess, so it is asked again rather than guessed for.
+        tools = ", ".join([*handlers, submit])
+        if call.name.lstrip().startswith("{"):
+            return error(f"the tool name is the JSON of your answer. Call one of: {tools}, "
+                         "with your answer as its arguments")
+        return error(f"no tool named {call.name!r}. The tools are: {tools}")
     try:
         return ToolResult(call.id, call.name, handler(call.arguments)), None
     except ToolError as e:
@@ -76,3 +82,19 @@ def _answer(call: ToolCall, handlers: dict[str, Handler], submit: str,
 
 def _stopped(reason: str, turns: list[dict]) -> dict:
     return {"outcome": "stopped", "reason": reason, "turns": turns}
+
+
+def str_arg(args: dict, key: str, default: str | None = None) -> str:
+    """A tool argument that must be a string; a ToolError tells the model otherwise."""
+    value = args.get(key, default)
+    if not isinstance(value, str):
+        raise ToolError(f"{key!r} must be a string")
+    return value
+
+
+def int_arg(args: dict, key: str, default: int) -> int:
+    """A tool argument that must be an integer; a ToolError tells the model otherwise."""
+    value = args.get(key, default)
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise ToolError(f"{key!r} must be an integer")
+    return value

@@ -309,6 +309,11 @@ The scenarios under `devinfra/scenarios/` already carry expected outcomes. The p
    under `public/app/`. The expected answer is `_policies_kiosk.md`, reached through the
    controller that calls it and `routes.js`. With the diff only, the model has to guess
    the page from the table of contents alone.
+   **[CORRECTED 2026-10-01]** This example cannot separate the modes: triage picks the
+   pages and has no tools in either mode, and drafting may only edit the pages triage
+   picked. The fifth scenario that was built, `account-expiry`, targets the third gap
+   under "What repo access buys" instead: a fact the edit needs that is outside the
+   diff. See the Mistral prototype doc, "Progress", and its question 35.
 2. **Run every scenario with `--context diff` and `--context repo`**, with the same
    model and the same triage, and record each outcome against its expectation, plus
    cost and the `files_sent` list.

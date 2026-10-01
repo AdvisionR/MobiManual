@@ -1,0 +1,26 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fixture Developer <dev@mobimanual.local>
+Date: Thu, 1 Oct 2026 12:00:00 +0200
+Subject: [PATCH] Turn on account expiry
+
+Account expiry has been merged behind its flag since the user form was
+reworked. QA signed it off on staging, so it ships with this release.
+---
+Expected: worth documenting. Triage picks _users.md. What the flag turns on is only in public/app/users/users.html, which the diff does not show: an optional **Account expires** date on the Add form, after Role, from which the account can no longer sign in while its devices stay managed. With --context repo, the draft finds it and adds an optional step to "Adding a user" before Save. With --context diff, the draft cannot know the label or that the field is optional, so needs-human is the right answer, and an edit naming a field the diff does not show is invented.
+
+ public/app/features.js | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/public/app/features.js b/public/app/features.js
+index 2fb2293..9f59ede 100644
+--- a/public/app/features.js
++++ b/public/app/features.js
+@@ -5,7 +5,7 @@
+ 
+ angular.module('mobivisor')
+   .constant('FEATURES', {
+-    accountExpiry: false
++    accountExpiry: true
+   })
+   .run(['$rootScope', 'FEATURES', function ($rootScope, FEATURES) {
+     $rootScope.FEATURES = FEATURES;

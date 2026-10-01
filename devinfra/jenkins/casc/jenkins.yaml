@@ -1,6 +1,7 @@
 # Jenkins Configuration as Code — applied at boot, so the controller can be
 # rebuilt from scratch at any time. Secrets come from the environment
-# (docker-compose.yml + .runtime/gitlab.env), never from this file.
+# (docker-compose.yml, .runtime/gitlab.env and demo-repo/tools/docbot/.env),
+# never from this file.
 #
 # The symbol names were read back from a running instance via
 # POST /configuration-as-code/export, not guessed. Several are not the obvious
@@ -41,6 +42,14 @@ credentials:
               id: "docbot-gitlab-token"
               description: "GitLab token DocBot uses: read merge requests, open docs merge requests"
               secret: "${GITLAB_PAT}"
+          # The model provider's key, which the Jenkinsfile binds to
+          # MISTRAL_API_KEY. From demo-repo/tools/docbot/.env, which may be
+          # missing: the default keeps an unset variable from reaching CasC.
+          - string:
+              scope: GLOBAL
+              id: "docbot-llm-key"
+              description: "Model provider key DocBot drafts with"
+              secret: "${MISTRAL_API_KEY:-}"
 
 unclassified:
   location:

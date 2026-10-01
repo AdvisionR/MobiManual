@@ -1,6 +1,6 @@
 import pytest
 
-from docbot.drafting.edits import EditError, apply
+from docbot.drafting.edits import EditError, apply, wrap_width
 
 PAGE = "1. Open **Policies > Kiosk**.\n2. Select **Save**.\n\nLeaving kiosk mode requires the device passcode.\n"
 
@@ -16,7 +16,78 @@ def test_edits_apply_in_order():
 def test_a_snippet_copied_onto_one_line_still_matches_a_wrapped_page():
     wrapped = "Use the platform filter. The enrolled\nfilter hides devices that have been wiped.\n"
     new = apply(wrapped, [{"find": "The enrolled filter hides devices", "replace": "The compliance filter"}])
-    assert new == "Use the platform filter. The compliance filter that have been wiped.\n"
+    assert new == "Use the platform filter. The\ncompliance filter that have been\nwiped.\n"
+
+
+DEVICES = """\
+# Devices
+
+![](screenshots/_devices_1.png)
+
+Use the platform filter to restrict the list to Android or iOS. The enrolled
+filter hides devices that have been wiped or retired.
+"""
+ONE_LINE = "Use the platform filter to restrict the list to Android or iOS. The enrolled filter hides devices that have been wiped or retired."
+
+
+def test_a_paragraph_the_model_joined_onto_one_line_is_wrapped_again():
+    # The devices-filter scenario, as Mistral drafted it on 2026-10-01.
+    replace = ONE_LINE.replace(" The enrolled", " Use the compliance filter to show all, compliant, or "
+                                                "non-compliant devices. The enrolled")
+    assert apply(DEVICES, [{"find": ONE_LINE, "replace": replace}]).endswith(
+        "\n\nUse the platform filter to restrict the list to Android or iOS. Use the\n"
+        "compliance filter to show all, compliant, or non-compliant devices. The\n"
+        "enrolled filter hides devices that have been wiped or retired.\n")
+
+
+def test_the_models_own_line_breaks_are_kept_and_a_trailing_space_dropped():
+    replace = ("Use the platform filter to restrict the list to Android or iOS. \nUse the compliance filter to show "
+               "all, compliant or non-compliant devices. The enrolled filter hides devices that have been wiped or retired.")
+    assert apply(DEVICES, [{"find": ONE_LINE, "replace": replace}]).endswith(
+        "\n\nUse the platform filter to restrict the list to Android or iOS.\n"
+        "Use the compliance filter to show all, compliant or non-compliant devices.\n"
+        "The enrolled filter hides devices that have been wiped or retired.\n")
+
+
+def test_a_long_list_item_continues_under_its_text():
+    page = "Select the options the device should\nget, then continue.\n\n1. Open it.\n2. Save.\n"
+    new = apply(page, [{"find": "2. Save.", "replace": "2. Select the department the device belongs to, then save it."}])
+    assert new.endswith("1. Open it.\n2. Select the department the device\n   belongs to, then save it.\n")
+
+
+def test_a_line_the_pages_wrapping_could_have_produced_is_not_broken():
+    # Wrapped at 13 or more, but below 23, or "paragraph." would have fit: 15 is within that.
+    page = "Short wrapped\nparagraph.\n"
+    assert apply(page, [{"find": "Short", "replace": "A short"}]) == "A short wrapped\nparagraph.\n"
+
+
+def test_lines_the_edit_did_not_touch_keep_their_length():
+    page = "Short wrapped\nparagraph.\n\nAn untouched line that is much longer than the wrap width of this page.\n"
+    new = apply(page, [{"find": "paragraph.", "replace": "paragraph, now edited."}])
+    assert new == ("Short wrapped\nparagraph, now edited.\n\n"
+                   "An untouched line that is much longer than the wrap width of this page.\n")
+
+
+def test_a_page_that_does_not_hard_wrap_is_left_as_the_model_wrote_it():
+    page = "# Kiosk Modes\n\n1. Open it.\n2. Save.\n\nLeaving kiosk mode requires the device passcode.\n"
+    replace = "Leaving kiosk mode requires the exit passcode that the kiosk policy sets, not the device passcode."
+    assert apply(page, [{"find": "Leaving kiosk mode requires the device passcode.", "replace": replace}]).endswith(
+        f"\n\n{replace}\n")
+
+
+@pytest.mark.parametrize("page, width", [
+    (DEVICES, (76, 82)),                                        # "filter" did not fit after 76 characters
+    ("# A heading that is long\nText.\n", None),               # a heading never wraps onto the next line
+    ("1. An item\n2. Another item\n", None),                    # neither does a list item onto the next item
+    ("1. An item that\n   continues here\n", (15, 24)),         # but a list item may wrap
+    # Wrapped by hand: "thirty" would have fit after "Wrapped at", so the bounds clash. The limit is the width.
+    ("Wrapped at\nthirty or so, and\nlater at forty-five\ncharacters.\n", (19, 19)),
+    ("```\na code line\nanother\n```\n", None),                 # code is not prose
+    ("% MobiVisor User Manual\n% IOTIQ\n", None),               # a Pandoc title block
+    ("| a | b |\n|---|---|\n", None),
+])
+def test_wrap_width(page, width):
+    assert wrap_width(page) == width
 
 
 @pytest.mark.parametrize("page, find, message", [
@@ -29,3 +100,12 @@ def test_a_snippet_copied_onto_one_line_still_matches_a_wrapped_page():
 def test_an_edit_that_cannot_land_exactly_once_is_refused(page, find, message):
     with pytest.raises(EditError, match=message):
         apply(page, [{"find": find, "replace": "x"}])
+
+
+def test_a_long_line_the_page_already_had_is_left_alone_when_the_replacement_repeats_it():
+    long_line = "  See [contextually appropriate code formatting](/help/code-blocks#insert-code-formatting)."
+    page = f"A paragraph that wraps\nhere, at twenty-two.\n\n* **Quote**: >\n{long_line}\n"
+    new = apply(page, [{"find": f"* **Quote**: >\n{long_line}",
+                        "replace": f"* **Quote**: >\n{long_line}\n\n* **Indent a list item, a new shortcut**: Ctrl + ]"}])
+    assert f"\n{long_line}\n" in new
+    assert new.endswith("\n* **Indent a list\n  item, a new\n  shortcut**: Ctrl + ]\n")  # the new line still wraps

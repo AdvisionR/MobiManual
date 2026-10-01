@@ -89,6 +89,12 @@ answers, and applying the edits.
 
 ## Decision 1 — the doc map only excludes; the model picks the pages
 
+**[SUPERSEDED 2026-10-01, in part]** The model still picks the pages, but drafting
+picks them now, not triage: triage answers only whether a merge affects the manual,
+and drafting reads and searches the manual with tools before it chooses. See
+"Decisions of 2026-10-01" in [the Mistral prototype doc](docbot-mistral-prototype.md).
+The ignore list below stands.
+
 | Option | Verdict |
 |---|---|
 | A hand-maintained code-to-page map (the foundation's doc map, and the fixture's `doc-map.json` until now) | **Rejected for now. [DECIDED 2026-09-24]** Someone has to maintain it, and every console refactor makes entries stale. A stale entry hands the model the wrong page with full confidence. See [Why a map may come back](#why-a-code-to-page-map-may-come-back) |
