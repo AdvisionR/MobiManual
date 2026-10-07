@@ -14,7 +14,7 @@ import json
 from pathlib import Path
 
 import pytest
-from replay import apply_patch, diffs, fixture_repo, git
+from replay import apply_patch, diffs, expectations, fixture_repo, git
 
 from docbot import config
 from docbot.drafting.manual import Manual, html_doc_pages
@@ -25,19 +25,9 @@ from docbot.llm.mistral import MistralLLM
 FIXTURE = Path(__file__).resolve().parents[4]
 SCENARIOS = FIXTURE.parent / "scenarios"
 
-# The pages each scenario's Expected line says must change. Each must come back "edit",
-# except where the diff alone cannot say what to write. Scenarios without doc impact are not here:
-# drafting only runs after triage found some.
-PAGES = {
-    "kiosk-passcode": ["_policies_kiosk.md"],
-    "ios-department": ["_enrollment_ios.md"],
-    "devices-filter": ["_devices.md"],
-    "account-expiry": ["_users.md"],
-    "command-expiry": ["_devices_id.md", "_devicescommands.md"],
-    "retire-label": ["_devices_id.md", "_devicescommands.md", "_dashboard.md"],
-    "passcode-history": ["_policies_passcode.md"],
-}
-DIFF_ONLY = {"account-expiry": "needs-human"}
+# The scenarios whose patch names pages that must be edited (replay.expectations). The others have no
+# doc impact, and drafting only runs after triage found some.
+DRAFTED = [patch.stem for patch in sorted(SCENARIOS.glob("*.patch")) if "edits" in expectations(patch)]
 
 pytestmark = [pytest.mark.live,
               pytest.mark.skipif(not SCENARIOS.is_dir(), reason="devinfra/scenarios is not next to the fixture")]
@@ -51,7 +41,7 @@ def merged(tmp_path: Path, scenario: str) -> tuple[Path, str, str]:
 
 
 @pytest.mark.parametrize("context", ["diff", "repo"])
-@pytest.mark.parametrize("scenario", list(PAGES))
+@pytest.mark.parametrize("scenario", DRAFTED)
 def test_the_model_drafts_the_expected_page(tmp_path, scenario, context):
     settings = config.load_llm()
     checkout, base, head = merged(tmp_path, scenario)
@@ -66,5 +56,8 @@ def test_the_model_drafts_the_expected_page(tmp_path, scenario, context):
     print(f"\n===== {scenario} / {context}\n{json.dumps(result, indent=2)}")
     assert result["outcome"] == "submitted", result.get("reason")
     decisions = {entry["page"]: entry["decision"] for entry in result["proposal"]["pages"]}
-    expected = DIFF_ONLY.get(scenario, "edit") if context == "diff" else "edit"
-    assert {page: decisions.get(page) for page in PAGES[scenario]} == dict.fromkeys(PAGES[scenario], expected)
+    fields = expectations(SCENARIOS / f"{scenario}.patch")
+    # Where the diff alone cannot say what to write, the pages come back needs-human instead.
+    expected = "needs-human" if context == "diff" and fields.get("outcome-diff-only") == "needs-human" else "edit"
+    pages = fields["edits"].split()
+    assert {page: decisions.get(page) for page in pages} == dict.fromkeys(pages, expected)

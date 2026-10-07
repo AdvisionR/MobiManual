@@ -25,7 +25,14 @@ project_id() { gl "$API/projects/$PROJECT_ENC" | python3 -c 'import sys,json;pri
 say "Recreating GitLab project ${PROJECT_PATH}"
 EXISTING=$(project_id)
 if [ -n "$EXISTING" ]; then
+  # A plain DELETE only marks the project for deletion (GitLab 18 and later, on
+  # every tier): it is renamed to <path>-deletion_scheduled-<id> and kept for 30
+  # days, and the purge cron runs at 07:00 UTC, when this GitLab is rarely up.
+  # The second DELETE removes it now; GitLab wants the renamed path to confirm.
   gl -X DELETE "$API/projects/$EXISTING" >/dev/null
+  MARKED=$(gl "$API/projects/$EXISTING" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("path_with_namespace",""))')
+  gl -X DELETE -G --data-urlencode "permanently_remove=true" --data-urlencode "full_path=${MARKED}" \
+     "$API/projects/$EXISTING" >/dev/null
   # GitLab deletes asynchronously; recreating too soon collides with the old path.
   for _ in $(seq 1 30); do
     [ -z "$(project_id)" ] && break

@@ -11,6 +11,7 @@ It ships dark behind FEATURES.lostMode until the device lab has tried it
 on iOS 18.
 ---
 Expected: not worth documenting yet. Triage answers no-doc-impact: the flag is off, so nobody using the console can see Lost mode. A draft that adds Lost mode to _devicescommands.md documents a command users do not have.
+Expected-outcome: no-doc-impact
 
  public/app/devices/device-detail.html           | 1 +
  public/app/devicescommands/devicescommands.html | 2 +-

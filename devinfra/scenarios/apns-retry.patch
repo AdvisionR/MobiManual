@@ -10,6 +10,7 @@ The transport now retries them up to three times with exponential backoff,
 and keeps one HTTP/2 session open instead of connecting for every push.
 ---
 Expected: not worth documenting. Triage answers no-doc-impact: the manual says iOS devices are woken by a push and nothing about retries, and nothing it says becomes wrong. A trap twice over: _apns.md is about Access Point Names, not Apple Push, and the Apple Push certificate on _settings.md is untouched. A draft that edits either is wrong.
+Expected-outcome: no-doc-impact
 
  server/protocol/apns/push-transport.js | 41 ++++++++++++++++++++++----
  1 file changed, 35 insertions(+), 6 deletions(-)

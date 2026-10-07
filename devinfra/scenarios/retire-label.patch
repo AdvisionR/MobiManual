@@ -12,6 +12,8 @@ Turkish and German follow with the next translation round. The Devices page
 of the manual is updated here.
 ---
 Expected: worth documenting. The author updated _devices.md themselves, so DocBot sees it as already edited in this merge request, and triage still answers doc-impact because the label appears on other pages too. The draft renames Retire/retired to Unenroll/unenrolled on _devices_id.md, _devicescommands.md, _dashboard.md and the Roles table on _users.md, and leaves _devices.md as the author wrote it. The e2e spec change is dropped by doc-map.json before the model sees the diff.
+Expected-outcome: opened
+Expected-edits: _devices_id.md _devicescommands.md _dashboard.md _users.md
 
  e2e/specs/devices.spec.js | 6 +++---
  public/doc/en/_devices.md | 4 ++--

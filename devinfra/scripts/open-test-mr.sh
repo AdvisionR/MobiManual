@@ -48,7 +48,7 @@ usage() {
   echo
   echo "Scenarios:"
   for p in scenarios/*.patch; do
-    printf '  %-16s %s\n' "$(basename "$p" .patch)" "$(sed -n 's/^Expected: \([^.]*\)\..*/\1/p' "$p")"
+    printf '  %-20s %s\n' "$(basename "$p" .patch)" "$(sed -n 's/^Expected: \([^.]*\)\..*/\1/p' "$p")"
   done
 }
 
@@ -63,24 +63,37 @@ for arg in "$@"; do
   esac
 done
 
+# What DocBot should end with. A scenario's patch states it below its "---":
+# Expected-outcome, the pages it must edit (Expected-edits), the pages it may
+# also edit (Expected-may-edit), and, where --diff-only changes the answer,
+# Expected-outcome-diff-only. A kind only appends a comment, so it ends at
+# no-doc-impact, or at skipped when doc-map.json ignores every file.
 PATCH=""
+EXPECT_EDITS=""; EXPECT_MAY_EDIT=""; EXPECT_OUTCOME_DIFF_ONLY=""
 if [ -f "scenarios/${KIND}.patch" ]; then
   PATCH="$(pwd)/scenarios/${KIND}.patch"
   EXPECT=$(sed -n 's/^Expected: //p' "$PATCH")
-else case "$KIND" in
-  code)     FILES="public/app/enrollment/ios/enrollment-wizard.controller.js"; EXPECT="to the model" ;;
-  kiosk)    FILES="public/app/policies/kiosk/kiosk.controller.js";        EXPECT="to the model" ;;
-  users)    FILES="public/app/users/users.controller.js";                 EXPECT="to the model" ;;
-  devices)  FILES="public/app/devices/devices.controller.js";             EXPECT="to the model (the area has two pages)" ;;
-  schema)   FILES="schema/policies/android-restrictions.json";            EXPECT="to the model" ;;
+  EXPECT_OUTCOME=$(sed -n 's/^Expected-outcome: //p' "$PATCH")
+  EXPECT_EDITS=$(sed -n 's/^Expected-edits: //p' "$PATCH")
+  EXPECT_MAY_EDIT=$(sed -n 's/^Expected-may-edit: //p' "$PATCH")
+  EXPECT_OUTCOME_DIFF_ONLY=$(sed -n 's/^Expected-outcome-diff-only: //p' "$PATCH")
+else
+  EXPECT_OUTCOME=no-doc-impact
+  case "$KIND" in
+  code)     FILES="public/app/enrollment/ios/enrollment-wizard.controller.js"; EXPECT="to the model, which should find no page" ;;
+  kiosk)    FILES="public/app/policies/kiosk/kiosk.controller.js";        EXPECT="to the model, which should find no page" ;;
+  users)    FILES="public/app/users/users.controller.js";                 EXPECT="to the model, which should find no page" ;;
+  devices)  FILES="public/app/devices/devices.controller.js";             EXPECT="to the model, which should find no page (the area has two)" ;;
+  schema)   FILES="schema/policies/android-restrictions.json";            EXPECT="to the model, which should find no page" ;;
   internal) FILES="server/protocol/apns/push-transport.js";               EXPECT="to the model, which should find no page" ;;
-  ci)       FILES="e2e/specs/devices.spec.js";                            EXPECT="ignored by doc-map.json (ci-and-tests)" ;;
-  docs)     FILES="public/doc/en/_users.md";                              EXPECT="ignored by doc-map.json (manual-source)" ;;
+  ci)       FILES="e2e/specs/devices.spec.js";                            EXPECT="ignored by doc-map.json (ci-and-tests)"; EXPECT_OUTCOME=skipped ;;
+  docs)     FILES="public/doc/en/_users.md";                              EXPECT="ignored by doc-map.json (manual-source)"; EXPECT_OUTCOME=skipped ;;
   both)     FILES="public/app/enrollment/ios/enrollment-wizard.controller.js public/doc/en/_enrollment_ios.md"
-            EXPECT="to the model, told the page was already edited" ;;
+            EXPECT="to the model, told the page was already edited, which should find no page" ;;
   unmapped) FILES="public/app/reports/export-schedule.controller.js";     EXPECT="to the model, which should find no page" ;;
   *) echo "unknown scenario or kind: $KIND  (try --help)" >&2; exit 2 ;;
-esac fi
+  esac
+fi
 
 STAMP=$(date +%H%M%S)
 BRANCH="feature/${KIND}-${STAMP}"
@@ -178,6 +191,7 @@ fi
 printf '\n  MR !%s opened  (%s)\n' "$IID" "$TITLE"
 printf '  touches: %s\n' "$FILES"
 printf '%s\n' "$EXPECT" | fold -s -w 67 | sed '1s/^/  expect:  /; 2,$s/^/           /'
+printf '  outcome: %s%s\n' "$EXPECT_OUTCOME" "${EXPECT_EDITS:+, editing $EXPECT_EDITS}"
 printf '  http://%s/root/mobivisor-console/-/merge_requests/%s\n\n' "$GITLAB_HOST" "$IID"
 
 printf '  waiting for Jenkins to discover it'
@@ -240,17 +254,73 @@ until [ -n "$NUM" ]; do
 done
 printf '\n  ok  main #%s finished\n\n' "$NUM"
 
-echo "  ---- what the bot did (result.json) ----"
-if RESULT=$(curl -sf -u "$AUTH" "$BASE/job/docbot/job/main/${NUM}/artifact/result.json"); then
-  printf '%s' "$RESULT" | python3 -c '
-import sys, json
-r = json.load(sys.stdin)
-print("  outcome  %s" % r["outcome"])
+# Kept, so a run can be looked at again after the next one.
+mkdir -p .runtime/mr-results
+SAVED=".runtime/mr-results/${KIND}-${STAMP}.json"
+if curl -sf -u "$AUTH" -o "$SAVED" "$BASE/job/docbot/job/main/${NUM}/artifact/result.json"; then
+  EXPECT="$EXPECT" EXPECT_OUTCOME="$EXPECT_OUTCOME" EXPECT_EDITS="$EXPECT_EDITS" EXPECT_MAY_EDIT="$EXPECT_MAY_EDIT" \
+  EXPECT_OUTCOME_DIFF_ONLY="$EXPECT_OUTCOME_DIFF_ONLY" python3 - "$SAVED" <<'PY'
+import json, os, sys, textwrap
+
+r = json.load(open(sys.argv[1]))
+draft = r.get("draft") or {}
+want = os.environ["EXPECT_OUTCOME"]
+must = os.environ["EXPECT_EDITS"].split()
+may = os.environ["EXPECT_MAY_EDIT"].split()
+# With --diff-only, a scenario whose edit needs the code ends at needs-human, editing nothing.
+if os.environ["EXPECT_OUTCOME_DIFF_ONLY"] and draft.get("context") == "diff":
+    want, must = os.environ["EXPECT_OUTCOME_DIFF_ONLY"], []
+
+
+def say(label, text, width=11):
+    lines = textwrap.wrap(str(text), 78 - width, break_long_words=False, break_on_hyphens=False) or [""]
+    print("  " + label.ljust(width - 2) + lines[0])
+    for line in lines[1:]:
+        print(" " * width + line)
+
+
+print("  ---- what DocBot should do ----")
+say("outcome", want)
+if must:
+    say("edits", ", ".join(must))
+if may:
+    say("may edit", ", ".join(may))
+say("", os.environ["EXPECT"])
+
+print("\n  ---- what DocBot did (result.json) ----")
+say("outcome", f"{r['outcome']}  {'✓' if r['outcome'] == want else '✗ expected ' + want}")
 for key in ("reason", "error"):
-    if key in r: print("  %-8s %s" % (key, r[key]))
-if "docs_merge_request" in r: print("  docs MR  !%(iid)s  %(url)s" % r["docs_merge_request"])'
+    if key in r:
+        say(key, r[key])
+answer = (r.get("triage") or {}).get("answer")
+if answer:
+    say("triage", f"{answer['decision']}: {answer['reason']}")
+if draft:
+    calls = sum(len(t["calls"]) for t in draft["turns"])
+    say("draft", f"{draft.get('context')} mode, {calls} tool calls")
+    proposal = draft.get("proposal") or {}
+    for entry in proposal.get("pages", []):
+        say("", f"{entry['decision']} {entry['page']}: {entry['reason']}", 13)
+    for doubt in proposal.get("uncertainties", []):
+        say("unsure", doubt)
+edited = list(draft.get("edited") or {})
+if must or edited:
+    missing = [p for p in must if p not in edited]
+    extra = [p for p in edited if p not in must and p not in may]
+    problems = ([f"✗ not edited: {', '.join(missing)}"] if missing else []) + \
+               ([f"✗ also edited: {', '.join(extra)}"] if extra else [])
+    say("pages", "; ".join(problems) or "✓ the expected pages")
+if "docs_merge_request" in r:
+    say("docs MR", "!%(iid)s  %(url)s" % r["docs_merge_request"])
+if r.get("diff"):
+    print("\n  ---- the manual diff: is it what the expectation describes? ----")
+    print("\n".join("    " + line for line in r["diff"].rstrip("\n").split("\n")))
+PY
+  printf '\n  saved:    %s\n' "$SAVED"
 else
+  rm -f "$SAVED"
+  echo "  ---- what DocBot did ----"
   echo "  (no result.json — the build failed before docbot wrote one)"
   curl -s -u "$AUTH" "$BASE/job/docbot/job/main/${NUM}/consoleText" | grep -F 'docbot:' | sed 's/^/  /' || true
 fi
-printf '\n\n  full log: %s/job/docbot/job/main/%s/console\n\n' "$BASE" "$NUM"
+printf '  full log: %s/job/docbot/job/main/%s/console\n\n' "$BASE" "$NUM"

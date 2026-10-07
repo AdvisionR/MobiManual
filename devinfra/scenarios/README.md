@@ -25,10 +25,27 @@ opens a merge request with the patch's own title and description.
 | `lost-mode-dark` | A Lost mode command is merged behind a flag that stays off | Silence on a feature nobody can see yet; the counterpart of `account-expiry` |
 | `dashboard-count-fix` | The dashboard stops counting retired devices | Silence on a fix that makes the product match what the manual already says |
 
-The expected outcome in detail is in each patch, on the `Expected:` line below
-its `---`. `git am` leaves everything between `---` and the diff out of the
-commit message, so the expectation never reaches the merge request description
-the model reads.
+What DocBot should do is stated in each patch, below its `---`:
+
+```
+Expected: worth documenting. Triage answers doc-impact. The draft changes ...
+Expected-outcome: opened
+Expected-edits: _devices_id.md _devicescommands.md
+Expected-may-edit: chapter1.md
+Expected-outcome-diff-only: needs-human
+```
+
+`Expected:` describes the right result in words, for a person to judge the
+draft by. The other lines are what the tools check: update-manual's outcome,
+the pages that must be edited, the pages that may be edited as well, and, where
+`--diff-only` cannot write the edit, the outcome then (with no page edited).
+`git am` leaves everything between `---` and the diff out of the commit message,
+so the expectation never reaches the merge request description the model reads.
+
+`open-test-mr.sh --merge` prints the expectation next to what DocBot did: the
+outcome, triage's reason, each page's decision and reason, a check of the pages
+against `Expected-edits`, and the manual diff. It keeps each `result.json` in
+`.runtime/mr-results/`.
 
 `tests/live/test_live_update.py` in `demo-repo/tools/docbot/` runs every
 scenario through `update-manual` without the stack, in repo mode and with
@@ -47,11 +64,11 @@ manual. Then:
 git format-patch -1 --stdout --zero-commit --no-signature > scenarios/<name>.patch
 ```
 
-Add one `Expected: …` line directly below the patch's `---` line. It should
-start with "worth documenting" or "not worth documenting": that is what
-`open-test-mr.sh --help` lists. Then add the scenario's outcome to
-`SCENARIO_OUTCOMES` in `test_live_update.py`, and, if it is worth documenting,
-the pages it must edit to `PAGES` in `test_live_mistral.py`.
+Add the `Expected:` lines directly below the patch's `---` line. `Expected:`
+should start with "worth documenting" or "not worth documenting": that is what
+`open-test-mr.sh --help` lists. `Expected-outcome:` is required; the other
+lines only where they apply. The live tests and `open-test-mr.sh` read them
+from the patch, so nothing else needs changing.
 
 `demo-repo/README.md` lists the facts the manual states on several pages and
 the words it uses for different things: a scenario built on one of them tests

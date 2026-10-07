@@ -11,6 +11,9 @@ Finish stays disabled until a department is chosen, and the department is
 sent along with the enrollment profile.
 ---
 Expected: worth documenting. Triage answers doc-impact. The draft edits _enrollment_ios.md: a step for choosing the **Department** before Finish, and that Finish needs one. _devices_id.md, which says departments come from the directory and can be edited, may stay unchanged or gain that iOS devices get theirs at enrollment; nothing else changes. tr and de are translation debt.
+Expected-outcome: opened
+Expected-edits: _enrollment_ios.md
+Expected-may-edit: _devices_id.md
 
  .../enrollment/ios/enrollment-wizard.controller.js   | 12 ++++++++++--
  public/app/enrollment/ios/enrollment-wizard.html     |  4 +++-

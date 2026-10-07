@@ -8,6 +8,8 @@ their commands expired, and the helpdesk had to retry each one by hand.
 Queued commands now stay valid for 72 hours before they expire.
 ---
 Expected: worth documenting. Triage answers doc-impact, although the diff is one constant in server/. The draft changes the expiry from 24 to 72 hours on both pages that state it: _devices_id.md ("not acknowledged within 24 hours") and _devicescommands.md ("within 24 hours expires"). A draft that edits only one of them is incomplete. tr and de are translation debt.
+Expected-outcome: opened
+Expected-edits: _devices_id.md _devicescommands.md
 
  server/commands/command-queue.js | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)

@@ -8,6 +8,8 @@ from going back to one of their last passcodes. How many passcodes are
 remembered is a new setting, from 0 to 24, and 0, the default, turns it off.
 ---
 Expected: worth documenting. Triage answers doc-impact. The draft adds a **Passcode history** row to the settings table on _policies_passcode.md (0 to 24, default 0, 0 turns the check off). The other pages about passcodes or passwords stay unchanged: _policies_kiosk.md, _devicescommands.md, and the console password rules on chapter1.md and _users.md.
+Expected-outcome: opened
+Expected-edits: _policies_passcode.md
 
  public/app/policies/passcode/passcode.controller.js | 3 ++-
  public/app/policies/passcode/passcode.html          | 4 ++++

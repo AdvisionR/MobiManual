@@ -10,6 +10,8 @@ A kiosk policy now sets its own exit passcode, in a new field on the Kiosk
 policy form. The device passcode no longer leaves kiosk mode.
 ---
 Expected: worth documenting. Triage answers doc-impact. The draft corrects "Leaving kiosk mode requires the device passcode." on _policies_kiosk.md rather than only adding to it, adds a step for the **Exit passcode**, and flags screenshots/_kiosk_mode_1.png as possibly stale. _devicescommands.md and _policies_passcode.md also talk about the device passcode and stay unchanged.
+Expected-outcome: opened
+Expected-edits: _policies_kiosk.md
 
  public/app/policies/kiosk/kiosk.controller.js | 7 ++++++-
  public/app/policies/kiosk/kiosk.html          | 4 ++++

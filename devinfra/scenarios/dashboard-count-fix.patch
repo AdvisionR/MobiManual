@@ -8,6 +8,7 @@ the device list with the enrolled filter on. The tile now leaves out
 retired devices as well as wiped ones.
 ---
 Expected: not worth documenting. Triage answers no-doc-impact: _dashboard.md already says retired and wiped devices are not counted, and the fix makes the product match it. A user notices the change, but nothing the manual says becomes wrong.
+Expected-outcome: no-doc-impact
 
  server/dashboard/summary.js | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)

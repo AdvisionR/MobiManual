@@ -7,6 +7,10 @@ Account expiry has been merged behind its flag since the user form was
 reworked. QA signed it off on staging, so it ships with this release.
 ---
 Expected: worth documenting. Triage answers doc-impact. What the flag turns on is only in the code the diff does not show: public/app/users/users.html shows USERS.ACCOUNT_EXPIRES on the Add form, after Role, and public/i18n/en.json labels it **Account expires**, an optional date from which the account can no longer sign in while its devices stay managed. By default, the draft searches the code, finds it and adds an optional step to "Adding a user" on _users.md before Save. With --diff-only, the draft cannot know the label or that the field is optional, so needs-human is the right answer, and an edit naming a field the diff does not show is invented.
+Expected-outcome: opened
+Expected-edits: _users.md
+Expected-may-edit: chapter1.md
+Expected-outcome-diff-only: needs-human
 
  public/app/features.js | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)

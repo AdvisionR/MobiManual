@@ -11,6 +11,8 @@ the choices all, compliant and non-compliant. The device service already
 knew each device's compliance state; the list now asks for it.
 ---
 Expected: worth documenting. Triage answers doc-impact. The draft adds the **Compliance** filter to "Filtering the list" on _devices.md. _devices_id.md, _dashboard.md and _policies.md also mention compliance and stay unchanged.
+Expected-outcome: opened
+Expected-edits: _devices.md
 
  public/app/devices/devices.controller.js | 2 +-
  public/app/devices/devices.html          | 7 +++++++

@@ -35,6 +35,21 @@ def fixture_repo(fixture: Path, checkout: Path) -> str:
     return git(checkout, "rev-parse", "HEAD").strip()
 
 
+def expectations(patch: Path) -> dict[str, str]:
+    """What DocBot should do with a scenario: the Expected-<field> lines below its patch's ---, by field.
+
+    outcome is update-manual's outcome. edits and may-edit name pages, space-separated: the
+    ones that must be edited, and the ones that may be as well. outcome-diff-only, where
+    present, replaces outcome with --diff-only, and then no page is edited.
+    """
+    fields = {}
+    for line in patch.read_text().split("\ndiff --git", 1)[0].splitlines():
+        if line.startswith("Expected-"):
+            field, _, value = line.removeprefix("Expected-").partition(": ")
+            fields[field] = value
+    return fields
+
+
 def apply_patch(checkout: Path, patch: Path) -> str:
     """A scenario applied the way open-test-mr.sh applies it, as a commit. Returns that commit."""
     git(checkout, "am", "-q", str(patch))

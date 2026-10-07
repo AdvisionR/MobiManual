@@ -19,7 +19,7 @@ from urllib.parse import unquote
 
 import httpx2
 import pytest
-from replay import apply_patch, diffs, fixture_repo, git
+from replay import apply_patch, diffs, expectations, fixture_repo, git
 
 from docbot import config
 from docbot.drafting.repo import Repo
@@ -33,13 +33,8 @@ SCENARIOS = DEVINFRA / "scenarios"
 RESULTS = DEVINFRA / ".runtime" / "docbot-results"
 PREFIX = "/api/v4/projects/root%2Fmobivisor-console/"
 
-# Each scenario's Expected line, as an outcome: "dry-run" means pages were edited. A pair is (diff, repo):
-# account-expiry can only be written from code the diff does not show.
-SCENARIO_OUTCOMES = {"kiosk-passcode": "dry-run", "ios-department": "dry-run", "devices-filter": "dry-run",
-                     "account-expiry": ("needs-human", "dry-run"), "command-expiry": "dry-run",
-                     "retire-label": "dry-run", "passcode-history": "dry-run",
-                     "refactor": "no-doc-impact", "apns-retry": "no-doc-impact", "lost-mode-dark": "no-doc-impact",
-                     "dashboard-count-fix": "no-doc-impact"}
+# What each scenario should end with is stated in its patch (replay.expectations).
+SCENARIO_NAMES = [patch.stem for patch in sorted(SCENARIOS.glob("*.patch"))]
 # open-test-mr.sh's kinds append a comment, so none is worth documenting: ignored, or silent at triage.
 KINDS = {
     "code": (["public/app/enrollment/ios/enrollment-wizard.controller.js"], "no-doc-impact"),
@@ -108,16 +103,21 @@ def dry_run(checkout: Path, base: str, head: str, case: str, context: str) -> di
 
 
 @pytest.mark.parametrize("context", ["diff", "repo"])
-@pytest.mark.parametrize("scenario", list(SCENARIO_OUTCOMES))
+@pytest.mark.parametrize("scenario", SCENARIO_NAMES)
 def test_update_scenario(tmp_path, scenario, context):
     checkout = tmp_path / "repo"
     base = fixture_repo(FIXTURE, checkout)
     head = apply_patch(checkout, SCENARIOS / f"{scenario}.patch")
     result = dry_run(checkout, base, head, scenario, context)
-    expected = SCENARIO_OUTCOMES[scenario]
-    if isinstance(expected, tuple):
-        expected = expected[0] if context == "diff" else expected[1]
-    assert result["outcome"] == expected, result.get("reason")
+    fields = expectations(SCENARIOS / f"{scenario}.patch")
+    diff_only = context == "diff" and "outcome-diff-only" in fields
+    outcome = fields["outcome-diff-only"] if diff_only else fields["outcome"]
+    must = set() if diff_only else set(fields.get("edits", "").split())
+    may = set(fields.get("may-edit", "").split())
+    # A dry run stops where it would open the docs merge request.
+    assert result["outcome"] == ("dry-run" if outcome == "opened" else outcome), result.get("reason")
+    edited = set((result.get("draft") or {}).get("edited") or {})
+    assert must <= edited <= must | may, f"edited {sorted(edited)}, expected {sorted(must)} (may also: {sorted(may)})"
 
 
 @pytest.mark.parametrize("kind", list(KINDS))
