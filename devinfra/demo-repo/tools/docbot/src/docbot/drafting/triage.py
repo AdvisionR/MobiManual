@@ -12,7 +12,7 @@ from docbot.drafting.manual import Manual
 from docbot.llm import LLM, Tool, agent
 
 SCHEMA = "docbot.triage/3"
-PRODUCT = "MobiVisor, a mobile device management console"
+PRODUCT = "MobiVisor, a mobile device management console,"
 DECISIONS = ("doc-impact", "no-doc-impact")
 
 SYSTEM = """\

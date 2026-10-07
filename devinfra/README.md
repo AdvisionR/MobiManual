@@ -194,9 +194,13 @@ webhook and no waiting:
 export DOCBOT_GITLAB_URL=http://gitlab.orb.local DOCBOT_PROJECT=root/mobivisor-console
 export DOCBOT_GITLAB_TOKEN=$(sed -n 's/^GITLAB_PAT=//p' .runtime/gitlab.env)
 cd demo-repo/tools/docbot
-uv run --env-file .env docbot update-manual --sha <a merge commit on main> --dry-run   # .env holds the model key
+git -C ../../../.runtime/mr-work fetch -q   # the clone open-test-mr.sh made, now with the merge commit
+uv run --env-file .env docbot update-manual --sha <a merge commit on main> --repo ../../../.runtime/mr-work --dry-run   # .env holds the model key
 uv run pytest
 ```
+
+Drafting searches the code at the merge commit, so `--repo` names a clone of the
+project that has it. `--diff-only` drafts from the diff alone and needs no clone.
 
 The fixture is too small to judge the model, so triage and drafting are also
 replayed on real history. Zulip keeps its help centre in its repository, and

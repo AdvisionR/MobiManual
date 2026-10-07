@@ -9,8 +9,8 @@ DocBot needs; 2 usage or configuration error, raised before any network call.
 """
 
 import json
+import os
 import subprocess
-from enum import Enum
 from typing import Annotated, NoReturn
 
 import typer
@@ -27,11 +27,6 @@ from docbot.update import SCHEMA, update_manual
 app = typer.Typer(add_completion=False, no_args_is_help=True, pretty_exceptions_enable=False)
 
 
-class Context(str, Enum):
-    diff = "diff"
-    repo = "repo"
-
-
 @app.callback()
 def main() -> None:
     """DocBot: keeps the MobiVisor user manual in step with what merges to main."""
@@ -41,10 +36,11 @@ def main() -> None:
 def update_manual_command(
     sha: Annotated[str | None, typer.Option(help="Commit on main to process. Default: HEAD of the working directory.")] = None,
     dry_run: Annotated[bool, typer.Option("--dry-run", help="Show the manual change, write nothing.")] = False,
-    context: Annotated[Context, typer.Option(
-        help="What the drafting model sees: the diff only, or also a search over the code at the merge commit.")] = Context.diff,
+    diff_only: Annotated[bool, typer.Option(
+        "--diff-only", help="Draft from the merge request's diff alone, without searching the code.")] = False,
     repo_path: Annotated[str | None, typer.Option(
-        "--repo", help="A git checkout that contains the merge commit. Needed with --context repo.")] = None,
+        "--repo", help="A git checkout that contains the merge commit, for drafting to search. "
+                       "Default: the working directory.")] = None,
 ) -> None:
     """Draft a docs merge request for the merge that produced a commit on main."""
     try:
@@ -57,13 +53,14 @@ def update_manual_command(
         _usage_error("cannot read HEAD: run inside a git checkout, or pass --sha")
 
     repo = None
-    if context is Context.repo:
-        if repo_path is None:
-            _usage_error("--context repo needs --repo, a checkout that contains the merge commit")
+    if diff_only:
+        if repo_path is not None:
+            _usage_error("--diff-only searches no checkout, so --repo has nothing to do")
+    else:
         try:
-            repo = Repo(repo_path, sha)
+            repo = Repo(repo_path or os.getcwd(), sha)
         except RepoError as e:
-            _usage_error(f"{e}; fetch it, or point --repo at a checkout that has it")
+            _usage_error(f"{e}; fetch it, point --repo at a checkout that has it, or pass --diff-only")
 
     gitlab = GitLab(settings.gitlab_url, settings.project, settings.token)
     llm = MistralLLM(llm_settings.api_key, llm_settings.model)

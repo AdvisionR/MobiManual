@@ -320,6 +320,9 @@ The scenarios under `devinfra/scenarios/` already carry expected outcomes. The p
 3. **Adopt repo access if it gets more scenarios right** without breaking the
    `refactor` scenario's silence. If it does not, the diff-only design stands and this
    document is the record of why.
+   **[DECIDED 2026-10-07]** Repo access is the default before this comparison has
+   finished, and `--diff-only` turns it off. See the Mistral prototype doc, "Decision D —
+   the default mode".
 
 The fixture is small enough that `--context diff` could be widened to "the whole
 repository in the prompt". Do not do that. It would win on the fixture and fall apart

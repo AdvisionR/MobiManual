@@ -27,8 +27,8 @@ pipeline {
           test -x tools/docbot/.venv/bin/python || python3 -m venv tools/docbot/.venv
           tools/docbot/.venv/bin/pip install --quiet --require-hashes -r tools/docbot/requirements.txt
         '''
-        // --context diff, the default: the model sees the merge request's diff only.
-        // For the comparison, add --context repo --repo . (the workspace is the checkout).
+        // Drafting also searches the code at the merge commit, in the working directory:
+        // the workspace is the checkout. Add --diff-only to give the model the diff alone.
         withCredentials([string(credentialsId: 'docbot-gitlab-token', variable: 'DOCBOT_GITLAB_TOKEN'),
                          string(credentialsId: 'docbot-llm-key', variable: 'MISTRAL_API_KEY')]) {
           sh 'PYTHONPATH=tools/docbot/src tools/docbot/.venv/bin/python -m docbot update-manual > result.json'

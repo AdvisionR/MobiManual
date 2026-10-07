@@ -67,16 +67,17 @@ That file is gitignored. `.env.example` documents it:
 ```bash
 cd tools/docbot
 cp .env.example .env                  # once, then fill in the token and the key
-uv run --env-file .env docbot update-manual --sha <merge commit> --dry-run   # prints the manual diff, writes nothing
+uv run --env-file .env docbot update-manual --sha <merge commit> --repo <clone> --dry-run   # prints the manual diff, writes nothing
 uv run pytest
 ```
 
 Variables already exported in the shell take precedence over `.env`.
 
-`--context repo --repo <checkout>` also lets the drafting model search the code
-at the merge commit (`list_files`, `grep`, `read_file`). The checkout must
-contain that commit. The default, `--context diff`, gives it the diff and the
-manual only.
+The drafting model also searches the code at the merge commit (`list_files`,
+`grep`, `read_file`), in the checkout `--repo` names, by default the working
+directory. The checkout must contain that commit, so on a laptop `--repo` is a
+clone of the GitLab project, refreshed with `git fetch`. `--diff-only` gives the
+model the diff and the manual only, and needs no checkout.
 
 `uv run pytest` needs neither GitLab nor a key. The tests marked `live`, in
 `tests/live/`, call Mistral with the fixture and each scenario from `devinfra/scenarios`, and cost

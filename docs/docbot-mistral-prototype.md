@@ -307,6 +307,14 @@ nothing about the form.
 | Kiosk exit-passcode step, diff mode | 0 of 30 | 19 of 19 |
 | Cost per diff-mode draft | about $0.0005 | $0.003 with `named` |
 
+**2026-10-07: repo mode is the default.** `--context diff|repo` is gone. Drafting
+searches the checkout that `--repo` names, by default the working directory, and
+`--diff-only` turns the search off. Why, and what it leaves open: "Decision D — the
+default mode". The Jenkinsfile needs no flag, since its workspace is the checkout. The
+change reaches the stack's Jenkins after `./scripts/seed-project.sh`. On a laptop,
+`--repo` is a clone of the stack's project. Entries dated before this one use the old
+flags.
+
 ---
 
 ## Decisions of 2026-10-01
@@ -442,8 +450,8 @@ The prototype is done when all four of these hold:
    edits `public/doc/en/_*.md`, and `docbot-changes.md` is gone.
 3. **Silence:** the `refactor` scenario and the comment kinds end as `skipped` or
    `no-doc-impact`, and no merge request opens.
-4. **Both modes:** every scenario has been run with `--context diff` and
-   `--context repo`, and each outcome is recorded against its `Expected:` line.
+4. **Both modes:** every scenario has been run in repo mode, the default, and with
+   `--diff-only`, and each outcome is recorded against its `Expected:` line.
 
 **Out of scope:** the Claude adapter (question 30), `validate` (the build as a gate),
 page classes (question 27), translations (question 1), the queue, and `report`.
@@ -456,7 +464,7 @@ update-manual
   ├── ignore.py        pure    doc-map ignore list → the files that matter, or skipped
   ├── manual.py        pure    htmlDocPages + headings → table of contents
   ├── triage.py        model   a conversation whose only tool is submit_triage
-  ├── repo.py          git     list_files, grep, read_file at the merge commit (only with --context repo)
+  ├── repo.py          git     list_files, grep, read_file at the merge commit (not with --diff-only)
   ├── agent.py         pure    the loop, for both calls: step → run tools → add results → until submit
   ├── draft.py         model   a conversation with the repo tools (or none) and submit_proposal
   ├── edits.py         pure    proposal + page texts → new page texts, or an error for the model
@@ -515,9 +523,32 @@ a second provider needs different ones.
 
 ## Decision D — the default mode
 
-`--context diff` is the default **[PROPOSED]**, because it is the LLM draft plan's
-decided baseline. `repo` is opt-in, until the comparison under "How to decide" in the
-repo-access doc settles it.
+**Repo mode is the default [DECIDED 2026-10-07].** Drafting searches the checkout that
+`--repo` names, by default the working directory, and `--diff-only` turns the search
+off. Until then, `--context diff` was the default **[PROPOSED]**, as the LLM draft plan's
+decided baseline, and `--context repo` was opt-in until the comparison under "How to
+decide" in the repo-access doc settled it.
+
+| Option | Verdict |
+|---|---|
+| `--context diff` as the default, `repo` opt-in | **Superseded.** Diff mode misses what only the code shows, on both corpora: `account-expiry` ends at `needs-human` in diff mode and gets its edit in repo mode, and Zulip's `ae588277af` answered `needs-human` because its labels are in templates **[EVIDENCE]**, see "Progress" |
+| `--context diff\|repo`, with `repo` as the default | **Rejected.** A choice of two values where only one is ever passed is a flag. And `--context` did not say what it turned off |
+| **`--diff-only` to turn the search off, and `--repo` defaulting to the working directory** | **Chosen.** It matches `--sha`, which defaults to `HEAD` of the working directory, so the Jenkins workspace needs no flag at all |
+| Fall back to diff mode when the working directory lacks the commit | **Rejected.** The same merge would then be drafted differently depending on where DocBot runs. A missing commit stays a usage error, exit code 2, and the message names `--diff-only` |
+
+What it costs, and what it leaves open:
+
+- **Cost.** Repo mode cost 3 to 4 times as much as diff mode on the fixture on
+  2026-09-30, in the first design, where the model was handed its pages
+  **[EVIDENCE]**. It has not been measured per mode since.
+- **The comparison is not finished.** The repo-access doc's rule is "adopt repo access
+  if it gets more scenarios right". On the fixture, Medium matched every expectation in
+  both modes. The difference is that `account-expiry` gets its edit in repo mode and a
+  `needs-human` in diff mode. Zulip has not been run in repo mode yet.
+- **Triage is unchanged.** It has no repo tools in either mode (question 35).
+- **Governance.** With repo access, the provider also sees whatever the model chose to
+  read. Before the real repository is used, the sign-off has to cover repo access, not
+  only the diff (the repo-access doc, "Where inference runs: the governance question").
 
 ---
 
@@ -654,7 +685,7 @@ or a reason to stop. For each call it does one of four things:
 | `manual.py` | Parse `htmlDocPages` from `gruntfile.js` with the same regex as `check-missing-doc.js` (`var htmlDocPages = \[…\]`), and read each English page's headings → a table of contents | LLM draft plan, Decision 1 |
 | `edits.py` | Apply `find`/`replace` pairs, where each `find` must occur exactly once | LLM draft plan, Decision 2 |
 | `update.py` | The new outcomes (`no-doc-impact`, `no-change`, `needs-human`), several files per commit (`gitlab.commit` already takes a list of actions), the description from both answers. `draft.py` loses `MANUAL_FILE` | LLM draft plan, Decision 4 |
-| `cli.py` | `--context diff\|repo`, `--repo PATH`, and narration for the new outcomes | This document |
+| `cli.py` | `--diff-only`, `--repo PATH`, and narration for the new outcomes | This document, Decision D |
 | `config.py` | `DOCBOT_LLM_PROVIDER`, `DOCBOT_LLM_MODEL`, `MISTRAL_API_KEY`. A missing one exits with code 2 before any call, as today | LLM draft plan, "Configuration and secrets" |
 | Prompts | Two system prompts, for triage and drafting, as files in `src/docbot/prompts/`, read with `importlib.resources`. They are reviewed like documentation | This document |
 
@@ -686,8 +717,9 @@ schema string moves to `docbot.update/2`, since the outcomes change.
   Jenkinsfile binds it with `withCredentials`, next to `docbot-gitlab-token`. What CasC
   does when the variable is unset is still **[UNKNOWN]**. Check it, because a bad CasC
   value crash-loops Jenkins at boot.
-- **Jenkinsfile:** `DOCBOT_LLM_PROVIDER` and `DOCBOT_LLM_MODEL` in `environment`. Once
-  `repo` mode is wanted in CI, add `--context repo --repo .`.
+- **Jenkinsfile:** `DOCBOT_LLM_PROVIDER` and `DOCBOT_LLM_MODEL` in `environment`. Repo
+  mode needs no flag: the workspace is the checkout, and `--repo` defaults to the
+  working directory (Decision D).
 
 ## Build order
 
@@ -734,4 +766,4 @@ Numbering continues from the repo-access doc.
 |---|---|---|
 | 33 | ~~Is the existing `MISTRAL_API_KEY` on a paid plan or on the free Experiment tier?~~ **Answered 2026-09-30: a paid plan, with usage credits**, so inputs are not used for training by default | — |
 | 34 | Does Mistral's data processing agreement confirm EU hosting, and does prompt caching still work under ZDR? | The real repository on Mistral |
-| 35 | Should triage get the repo tools in `--context repo`? Today it has none in either mode, so a change whose effect only the code shows, such as a feature flag (`account-expiry`), can end at `no-doc-impact` before drafting can search. Searching at triage costs on every merge that reaches the model, not only on those with doc impact | Repo mode's value on changes like `account-expiry` |
+| 35 | Should triage get the repo tools in repo mode? Today it has none in either mode, so a change whose effect only the code shows, such as a feature flag (`account-expiry`), can end at `no-doc-impact` before drafting can search. Searching at triage costs on every merge that reaches the model, not only on those with doc impact | Repo mode's value on changes like `account-expiry` |
