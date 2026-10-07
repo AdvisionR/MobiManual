@@ -1,4 +1,5 @@
-// APNs delivery. Internal plumbing with no user-visible surface.
+// APNs delivery: the push that wakes an iOS device so it fetches queued commands
+// and configuration. Android devices poll instead (protocol/android/).
 
 const http2 = require('http2');
 

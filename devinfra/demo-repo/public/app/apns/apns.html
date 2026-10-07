@@ -1,0 +1,27 @@
+<!-- #!/apns, ApnsCtrl. -->
+<div class="apns">
+  <h1>{{ 'APNS.TITLE' | translate }}</h1>
+  <div class="toolbar"><button ng-click="add()">{{ 'APNS.ADD' | translate }}</button></div>
+
+  <form name="apnForm" ng-if="draft" ng-submit="save()">
+    <label for="name">{{ 'APNS.NAME' | translate }}</label>
+    <input id="name" ng-model="draft.name" required>
+    <label for="apn">{{ 'APNS.APN' | translate }}</label>
+    <input id="apn" ng-model="draft.apn" required>
+    <label for="username">{{ 'APNS.USERNAME' | translate }}</label>
+    <input id="username" ng-model="draft.username">
+    <label for="password">{{ 'APNS.PASSWORD' | translate }}</label>
+    <input id="password" type="password" ng-model="draft.password">
+    <label for="auth">{{ 'APNS.AUTH_TYPE' | translate }}</label>
+    <select id="auth" ng-model="draft.authType" ng-options="t as ('APNS.AUTH_' + t.toUpperCase() | translate) for t in authTypes"></select>
+    <label for="groups">{{ 'APNS.GROUPS' | translate }}</label>
+    <select id="groups" multiple ng-model="draft.groups" ng-options="g.id as g.name for g in groups" required></select>
+    <button type="submit" ng-disabled="apnForm.$invalid">{{ 'COMMON.SAVE' | translate }}</button>
+  </form>
+
+  <table>
+    <tr ng-repeat="entry in apns">
+      <td>{{ entry.name }}</td><td>{{ entry.apn }}</td><td>{{ entry.groups.join(', ') }}</td>
+    </tr>
+  </table>
+</div>

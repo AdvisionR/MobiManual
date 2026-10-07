@@ -1,0 +1,14 @@
+<!-- #!/reports/export, ExportScheduleCtrl. Mails the device list as CSV to the recipients. -->
+<form class="export-schedule" ng-submit="save()">
+  <h1>{{ 'REPORTS.EXPORT_TITLE' | translate }}</h1>
+  <label for="interval">{{ 'REPORTS.INTERVAL' | translate }}</label>
+  <select id="interval" ng-model="schedule.interval">
+    <option value="daily">{{ 'REPORTS.DAILY' | translate }}</option>
+    <option value="weekly">{{ 'REPORTS.WEEKLY' | translate }}</option>
+  </select>
+  <label for="format">{{ 'REPORTS.FORMAT' | translate }}</label>
+  <select id="format" ng-model="schedule.format"><option value="csv">CSV</option></select>
+  <label for="recipients">{{ 'REPORTS.RECIPIENTS' | translate }}</label>
+  <input id="recipients" ng-model="schedule.recipients" ng-list>
+  <button type="submit">{{ 'COMMON.SAVE' | translate }}</button>
+</form>

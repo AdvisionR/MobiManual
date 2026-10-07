@@ -1,0 +1,22 @@
+<!-- #!/auditlog, AuditLogCtrl. Administrators and auditors only (server/auth/permissions.js). -->
+<div class="audit-log">
+  <h1>{{ 'AUDIT.TITLE' | translate }}</h1>
+  <div class="filters">
+    <input ng-model="filter.user" ng-change="reload()" placeholder="{{ 'AUDIT.COL_USER' | translate }}">
+    <input ng-model="filter.action" ng-change="reload()" placeholder="{{ 'AUDIT.COL_ACTION' | translate }}">
+    <label>{{ 'AUDIT.FILTER_FROM' | translate }} <input type="date" ng-model="filter.from" ng-change="reload()"></label>
+    <label>{{ 'AUDIT.FILTER_TO' | translate }} <input type="date" ng-model="filter.to" ng-change="reload()"></label>
+    <button ng-click="exportCsv()">{{ 'COMMON.EXPORT_CSV' | translate }}</button>
+  </div>
+  <table>
+    <tr>
+      <th>{{ 'AUDIT.COL_TIME' | translate }}</th>
+      <th>{{ 'AUDIT.COL_USER' | translate }}</th>
+      <th>{{ 'AUDIT.COL_ACTION' | translate }}</th>
+      <th>{{ 'AUDIT.COL_IP' | translate }}</th>
+    </tr>
+    <tr ng-repeat="entry in entries">
+      <td>{{ entry.time | date:'medium' }}</td><td>{{ entry.user }}</td><td>{{ entry.action }}</td><td>{{ entry.ip }}</td>
+    </tr>
+  </table>
+</div>

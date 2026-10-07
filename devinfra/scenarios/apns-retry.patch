@@ -1,0 +1,73 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fixture Developer <dev@mobimanual.local>
+Date: Tue, 6 Oct 2026 09:15:00 +0200
+Subject: [PATCH] Retry APNs pushes that Apple throttles
+
+Under load, Apple answers some pushes with 429 or 503. Those wake-ups were
+dropped, so the device only fetched its commands at its next contact.
+
+The transport now retries them up to three times with exponential backoff,
+and keeps one HTTP/2 session open instead of connecting for every push.
+---
+Expected: not worth documenting. Triage answers no-doc-impact: the manual says iOS devices are woken by a push and nothing about retries, and nothing it says becomes wrong. A trap twice over: _apns.md is about Access Point Names, not Apple Push, and the Apple Push certificate on _settings.md is untouched. A draft that edits either is wrong.
+
+ server/protocol/apns/push-transport.js | 41 ++++++++++++++++++++++----
+ 1 file changed, 35 insertions(+), 6 deletions(-)
+
+diff --git a/server/protocol/apns/push-transport.js b/server/protocol/apns/push-transport.js
+index be21a24..96dbc08 100644
+--- a/server/protocol/apns/push-transport.js
++++ b/server/protocol/apns/push-transport.js
+@@ -6,17 +6,46 @@ const http2 = require('http2');
+ const ENDPOINT = 'https://api.push.apple.com';
+ const MAX_PAYLOAD_BYTES = 4096;
+ 
+-function send(token, payload) {
+-  if (Buffer.byteLength(JSON.stringify(payload)) > MAX_PAYLOAD_BYTES) {
+-    throw new Error('APNs payload exceeds ' + MAX_PAYLOAD_BYTES + ' bytes');
++// Apple throttles with 429 and sheds load with 500/503: worth another try.
++const RETRY_STATUSES = [429, 500, 503];
++const MAX_ATTEMPTS = 3;
++const BACKOFF_MS = 500;
++
++let session = null;
++
++function connect() {
++  if (!session || session.closed || session.destroyed) {
++    session = http2.connect(ENDPOINT);
++    session.on('error', () => { session = null; });
+   }
+-  const session = http2.connect(ENDPOINT);
++  return session;
++}
++
++function post(token, body) {
+   return new Promise((resolve, reject) => {
+-    const req = session.request({ ':method': 'POST', ':path': '/3/device/' + token });
++    const req = connect().request({ ':method': 'POST', ':path': '/3/device/' + token });
+     req.on('response', (headers) => resolve(headers[':status']));
+     req.on('error', reject);
+-    req.end(JSON.stringify(payload));
++    req.end(body);
+   });
+ }
+ 
++function wait(ms) {
++  return new Promise((resolve) => setTimeout(resolve, ms));
++}
++
++async function send(token, payload) {
++  const body = JSON.stringify(payload);
++  if (Buffer.byteLength(body) > MAX_PAYLOAD_BYTES) {
++    throw new Error('APNs payload exceeds ' + MAX_PAYLOAD_BYTES + ' bytes');
++  }
++  let status;
++  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
++    status = await post(token, body);
++    if (!RETRY_STATUSES.includes(status)) return status;
++    await wait(BACKOFF_MS * 2 ** (attempt - 1));
++  }
++  return status;
++}
++
+ module.exports = { send };

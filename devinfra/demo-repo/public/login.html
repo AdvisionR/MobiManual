@@ -1,0 +1,25 @@
+<!doctype html>
+<!-- Served outside the console app: the form posts to server/auth/, which
+     redirects back here with ?reason=failed|locked|timeout. Labels are filled
+     in from i18n/<lang>.json by i18n-static.js, like the console's. -->
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>MobiVisor</title>
+  <link rel="stylesheet" href="css/console.css">
+  <script src="i18n-static.js" defer></script>
+</head>
+<body class="sign-in">
+  <form method="post" action="/signin">
+    <h1 data-i18n="SIGN_IN.TITLE"></h1>
+    <label for="login" data-i18n="SIGN_IN.LOGIN"></label>
+    <input id="login" name="login" autocomplete="username" required>
+    <label for="password" data-i18n="SIGN_IN.PASSWORD"></label>
+    <input id="password" name="password" type="password" autocomplete="current-password" required>
+    <button type="submit" data-i18n="SIGN_IN.SUBMIT"></button>
+    <p class="error" data-reason="failed" data-i18n="SIGN_IN.FAILED"></p>
+    <p class="error" data-reason="locked" data-i18n="SIGN_IN.LOCKED"></p>
+    <p class="notice" data-reason="timeout" data-i18n="SIGN_IN.TIMED_OUT"></p>
+  </form>
+</body>
+</html>

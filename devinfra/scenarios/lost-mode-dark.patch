@@ -1,0 +1,125 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fixture Developer <dev@mobimanual.local>
+Date: Tue, 6 Oct 2026 16:45:00 +0200
+Subject: [PATCH] Add Lost mode for supervised iOS devices, behind a flag
+
+Lost mode locks a supervised iPhone or iPad, shows a message and a phone
+number on its lock screen, and reports where the device is. It is a new
+command next to Lock.
+
+It ships dark behind FEATURES.lostMode until the device lab has tried it
+on iOS 18.
+---
+Expected: not worth documenting yet. Triage answers no-doc-impact: the flag is off, so nobody using the console can see Lost mode. A draft that adds Lost mode to _devicescommands.md documents a command users do not have.
+
+ public/app/devices/device-detail.html           | 1 +
+ public/app/devicescommands/devicescommands.html | 2 +-
+ public/app/features.js                          | 3 ++-
+ public/i18n/de.json                             | 3 +++
+ public/i18n/en.json                             | 3 +++
+ public/i18n/tr.json                             | 3 +++
+ server/commands/definitions.js                  | 5 ++++-
+ 7 files changed, 17 insertions(+), 3 deletions(-)
+
+diff --git a/public/app/devices/device-detail.html b/public/app/devices/device-detail.html
+index 725b78a..fa5377d 100644
+--- a/public/app/devices/device-detail.html
++++ b/public/app/devices/device-detail.html
+@@ -37,6 +37,7 @@
+   <div ng-if="tab === 'commands'">
+     <div class="toolbar">
+       <button ng-repeat="definition in definitions" ng-click="send(definition)"
++              ng-if="!definition.feature || FEATURES[definition.feature]"
+               ng-disabled="!supported(definition)"
+               title="{{ supported(definition) ? '' : ('COMMANDS.NOT_SUPPORTED' | translate) }}">
+         {{ definition.label | translate }}
+diff --git a/public/app/devicescommands/devicescommands.html b/public/app/devicescommands/devicescommands.html
+index b92b867..7afeeb1 100644
+--- a/public/app/devicescommands/devicescommands.html
++++ b/public/app/devicescommands/devicescommands.html
+@@ -8,7 +8,7 @@
+       <th>iOS</th>
+       <th>{{ 'USERS.COL_ROLE' | translate }}</th>
+     </tr>
+-    <tr ng-repeat="definition in definitions">
++    <tr ng-repeat="definition in definitions" ng-if="!definition.feature || FEATURES[definition.feature]">
+       <td>{{ definition.label | translate }}</td>
+       <td>{{ definition.platforms.indexOf('android') >= 0 ? '✓' : '–' }}</td>
+       <td>{{ definition.platforms.indexOf('ios') >= 0 ? '✓' : '–' }}{{ definition.supervisedOnly ? ' *' : '' }}</td>
+diff --git a/public/app/features.js b/public/app/features.js
+index 2fb2293..5b139ac 100644
+--- a/public/app/features.js
++++ b/public/app/features.js
+@@ -5,7 +5,8 @@
+ 
+ angular.module('mobivisor')
+   .constant('FEATURES', {
+-    accountExpiry: false
++    accountExpiry: false,
++    lostMode: false
+   })
+   .run(['$rootScope', 'FEATURES', function ($rootScope, FEATURES) {
+     $rootScope.FEATURES = FEATURES;
+diff --git a/public/i18n/de.json b/public/i18n/de.json
+index 95c9eb4..49fedd2 100644
+--- a/public/i18n/de.json
++++ b/public/i18n/de.json
+@@ -102,6 +102,9 @@
+     "UPDATE_OS": "Betriebssystem aktualisieren",
+     "RETIRE": "Außer Betrieb nehmen",
+     "WIPE": "Vollständig löschen",
++    "LOST_MODE": "Verloren-Modus",
++    "LOST_MODE_MESSAGE": "Nachricht auf dem Sperrbildschirm",
++    "LOST_MODE_PHONE": "Rückrufnummer",
+     "WIPE_CONFIRM": "Geben Sie Ihr Passwort ein, um {{device}} vollständig zu löschen. Dies kann nicht rückgängig gemacht werden.",
+     "NOT_SUPPORTED": "Auf diesem Gerät nicht unterstützt"
+   },
+diff --git a/public/i18n/en.json b/public/i18n/en.json
+index 798ce9e..6bc012a 100644
+--- a/public/i18n/en.json
++++ b/public/i18n/en.json
+@@ -102,6 +102,9 @@
+     "UPDATE_OS": "Update OS",
+     "RETIRE": "Retire",
+     "WIPE": "Wipe",
++    "LOST_MODE": "Lost mode",
++    "LOST_MODE_MESSAGE": "Message on the lock screen",
++    "LOST_MODE_PHONE": "Phone number to call",
+     "WIPE_CONFIRM": "Enter your password to wipe {{device}}. This cannot be undone.",
+     "NOT_SUPPORTED": "Not supported on this device"
+   },
+diff --git a/public/i18n/tr.json b/public/i18n/tr.json
+index 1e76126..724fde8 100644
+--- a/public/i18n/tr.json
++++ b/public/i18n/tr.json
+@@ -102,6 +102,9 @@
+     "UPDATE_OS": "İşletim sistemini güncelle",
+     "RETIRE": "Kullanımdan kaldır",
+     "WIPE": "Tamamen sil",
++    "LOST_MODE": "Kayıp modu",
++    "LOST_MODE_MESSAGE": "Kilit ekranındaki mesaj",
++    "LOST_MODE_PHONE": "Aranacak telefon numarası",
+     "WIPE_CONFIRM": "{{device}} cihazını tamamen silmek için şifrenizi girin. Bu işlem geri alınamaz.",
+     "NOT_SUPPORTED": "Bu cihazda desteklenmiyor"
+   },
+diff --git a/server/commands/definitions.js b/server/commands/definitions.js
+index ad4999c..e013596 100644
+--- a/server/commands/definitions.js
++++ b/server/commands/definitions.js
+@@ -1,5 +1,6 @@
+ // Every command the console can send. platforms: where it runs. supervisedOnly:
+-// iOS devices must be supervised. The roles that may send each one come from
++// iOS devices must be supervised. feature: hidden while that flag in
++// public/app/features.js is off. The roles that may send each one come from
+ // auth/permissions.js.
+ 
+ const { ROLES } = require('../auth/permissions');
+@@ -9,6 +10,8 @@ const COMMANDS = [
+   { name: 'ring', label: 'COMMANDS.RING', platforms: ['android'], durationSeconds: 120 },
+   { name: 'clear-passcode', label: 'COMMANDS.CLEAR_PASSCODE', platforms: ['android', 'ios'], supervisedOnly: true },
+   { name: 'update-os', label: 'COMMANDS.UPDATE_OS', platforms: ['ios'], supervisedOnly: true },
++  { name: 'lost-mode', label: 'COMMANDS.LOST_MODE', platforms: ['ios'], supervisedOnly: true,
++    feature: 'lostMode', fields: ['message', 'phone'] },
+   { name: 'retire', label: 'COMMANDS.RETIRE', platforms: ['android', 'ios'] },
+   { name: 'wipe', label: 'COMMANDS.WIPE', platforms: ['android', 'ios'], confirm: 'password' }
+ ];

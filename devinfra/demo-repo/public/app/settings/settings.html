@@ -1,0 +1,43 @@
+<!-- #!/settings, SettingsCtrl. -->
+<div class="settings">
+  <h1>{{ 'SETTINGS.TITLE' | translate }}</h1>
+
+  <section>
+    <h2>{{ 'SETTINGS.PUSH_CERT' | translate }}</h2>
+    <dl>
+      <dt>{{ 'SETTINGS.APPLE_ID' | translate }}</dt><dd>{{ settings.pushCertificate.appleId }}</dd>
+      <dt>{{ 'SETTINGS.EXPIRES' | translate }}</dt><dd>{{ settings.pushCertificate.expires | date:'mediumDate' }}</dd>
+    </dl>
+    <button ng-click="downloadCsr()">{{ 'SETTINGS.DOWNLOAD_CSR' | translate }}</button>
+    <input type="file" id="cert" accept=".pem">
+    <button ng-click="uploadCertificate()">{{ 'SETTINGS.UPLOAD_CERT' | translate }}</button>
+  </section>
+
+  <section>
+    <h2>{{ 'SETTINGS.DIRECTORY' | translate }}</h2>
+    <label for="ldapUrl">{{ 'SETTINGS.LDAP_URL' | translate }}</label>
+    <input id="ldapUrl" ng-model="settings.directory.url" placeholder="ldaps://">
+    <label for="baseDn">{{ 'SETTINGS.BASE_DN' | translate }}</label>
+    <input id="baseDn" ng-model="settings.directory.baseDn">
+    <label for="bindUser">{{ 'SETTINGS.BIND_USER' | translate }}</label>
+    <input id="bindUser" ng-model="settings.directory.bindUser">
+    <button ng-click="testDirectory()">{{ 'SETTINGS.TEST_CONNECTION' | translate }}</button>
+    <button ng-click="save('directory')">{{ 'COMMON.SAVE' | translate }}</button>
+  </section>
+
+  <section>
+    <h2>{{ 'SETTINGS.EMAIL' | translate }}</h2>
+    <label for="smtp">{{ 'SETTINGS.SMTP_HOST' | translate }}</label>
+    <input id="smtp" ng-model="settings.email.smtpHost">
+    <label for="sender">{{ 'SETTINGS.SENDER' | translate }}</label>
+    <input id="sender" type="email" ng-model="settings.email.sender">
+    <button ng-click="save('email')">{{ 'COMMON.SAVE' | translate }}</button>
+  </section>
+
+  <section>
+    <h2>{{ 'SETTINGS.SECURITY' | translate }}</h2>
+    <label for="timeout">{{ 'SETTINGS.SESSION_TIMEOUT' | translate }}</label>
+    <input id="timeout" type="number" min="5" max="120" ng-model="settings.security.sessionTimeoutMinutes">
+    <button ng-click="save('security')">{{ 'COMMON.SAVE' | translate }}</button>
+  </section>
+</div>

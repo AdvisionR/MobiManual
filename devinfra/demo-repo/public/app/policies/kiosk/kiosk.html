@@ -1,0 +1,15 @@
+<!-- #!/policies/kiosk, KioskCtrl. multi-app is offered for Android only (server/policies/kiosk.js). -->
+<form class="kiosk-policy" ng-submit="save()">
+  <h1>{{ 'KIOSK.TITLE' | translate }}</h1>
+
+  <label>{{ 'KIOSK.MODE' | translate }}</label>
+  <label><input type="radio" ng-model="mode" value="single-app"> {{ 'KIOSK.SINGLE_APP' | translate }}</label>
+  <label><input type="radio" ng-model="mode" value="multi-app"> {{ 'KIOSK.MULTI_APP' | translate }}</label>
+
+  <label>{{ 'KIOSK.APPS' | translate }}</label>
+  <ul><li ng-repeat="app in allowedApps">{{ app.name }}</li></ul>
+  <input ng-model="candidate" placeholder="{{ 'APPS.SEARCH_APP' | translate }}">
+  <button type="button" ng-click="addApp(candidate)">{{ 'KIOSK.ADD_APP' | translate }}</button>
+
+  <button type="submit">{{ 'COMMON.SAVE' | translate }}</button>
+</form>

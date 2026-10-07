@@ -36,7 +36,10 @@ PREFIX = "/api/v4/projects/root%2Fmobivisor-console/"
 # Each scenario's Expected line, as an outcome: "dry-run" means pages were edited. A pair is (diff, repo):
 # account-expiry can only be written from code the diff does not show.
 SCENARIO_OUTCOMES = {"kiosk-passcode": "dry-run", "ios-department": "dry-run", "devices-filter": "dry-run",
-                     "refactor": "no-doc-impact", "account-expiry": ("needs-human", "dry-run")}
+                     "account-expiry": ("needs-human", "dry-run"), "command-expiry": "dry-run",
+                     "retire-label": "dry-run", "passcode-history": "dry-run",
+                     "refactor": "no-doc-impact", "apns-retry": "no-doc-impact", "lost-mode-dark": "no-doc-impact",
+                     "dashboard-count-fix": "no-doc-impact"}
 # open-test-mr.sh's kinds append a comment, so none is worth documenting: ignored, or silent at triage.
 KINDS = {
     "code": (["public/app/enrollment/ios/enrollment-wizard.controller.js"], "no-doc-impact"),

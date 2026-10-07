@@ -10,8 +10,10 @@ describe('devices page', function () {
     helper.screenshot();
   });
 
-  it('should open the kiosk policy form', function () {
-    element(by.css('[ng-click="openKiosk()"]')).click();
-    helper.docshot('kiosk_mode');
+  it('should hide retired devices while the enrolled filter is on', function () {
+    element(by.model('filter.enrolled')).click();
+    expect(element.all(by.cssContainingText('td', 'Retired')).count()).toBeGreaterThan(0);
+    element(by.model('filter.enrolled')).click();
+    expect(element.all(by.cssContainingText('td', 'Retired')).count()).toBe(0);
   });
 });

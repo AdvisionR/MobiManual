@@ -1,0 +1,24 @@
+<!-- #!/policies, PoliciesCtrl. -->
+<div class="policies">
+  <div class="toolbar">
+    <select ng-model="newType" ng-options="t as ('POLICIES.TYPE_' + t.toUpperCase() | translate) for t in types"></select>
+    <button ng-click="create(newType)" ng-disabled="!newType">{{ 'POLICIES.NEW' | translate }}</button>
+  </div>
+  <table>
+    <tr>
+      <th>{{ 'POLICIES.NAME' | translate }}</th>
+      <th>{{ 'POLICIES.TYPE' | translate }}</th>
+      <th>{{ 'POLICIES.ASSIGNED_GROUPS' | translate }}</th>
+      <th></th>
+    </tr>
+    <tr ng-repeat="policy in policies">
+      <td>{{ policy.name }}</td>
+      <td>{{ 'POLICIES.TYPE_' + policy.type.toUpperCase() | translate }}</td>
+      <td>{{ policy.groups.join(', ') }}</td>
+      <td>
+        <select multiple ng-model="policy.chosen" ng-options="g.name for g in groups"></select>
+        <button ng-click="assign(policy, policy.chosen)">{{ 'POLICIES.ASSIGN' | translate }}</button>
+      </td>
+    </tr>
+  </table>
+</div>

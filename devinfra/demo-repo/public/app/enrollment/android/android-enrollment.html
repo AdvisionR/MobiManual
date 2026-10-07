@@ -1,0 +1,17 @@
+<!-- #!/enrollment/android, AndroidEnrollmentCtrl. -->
+<div class="android-enrollment">
+  <h1>{{ 'ENROLLMENT.ANDROID_TITLE' | translate }}</h1>
+  <label><input type="radio" ng-model="mode" value="fully-managed"> {{ 'ENROLLMENT.FULLY_MANAGED' | translate }}</label>
+  <label><input type="radio" ng-model="mode" value="work-profile"> {{ 'ENROLLMENT.WORK_PROFILE' | translate }}</label>
+
+  <label for="group">{{ 'ENROLLMENT.GROUP' | translate }}</label>
+  <select id="group" ng-model="group" ng-options="g.name for g in groups"></select>
+
+  <button ng-click="create()">{{ (mode === 'fully-managed' ? 'ENROLLMENT.CREATE_QR' : 'ENROLLMENT.CREATE_TOKEN') | translate }}</button>
+
+  <div ng-if="issued">
+    <img ng-if="issued.qrCode" ng-src="{{ issued.qrCode }}" alt="">
+    <code ng-if="issued.token">{{ issued.token }}</code>
+    <p>{{ 'ENROLLMENT.VALID_UNTIL' | translate:{ date: (issued.validUntil | date:'mediumDate') } }}</p>
+  </div>
+</div>

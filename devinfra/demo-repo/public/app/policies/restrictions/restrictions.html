@@ -1,0 +1,10 @@
+<!-- #!/policies/restrictions, RestrictionsCtrl. The form is built from schema/policies/android-restrictions.json;
+     each setting's label comes from the schema, not from i18n/. -->
+<form class="restrictions" ng-submit="save()">
+  <h1>{{ 'RESTRICTIONS.TITLE' | translate }}</h1>
+  <div ng-repeat="setting in schema.settings">
+    <label ng-if="setting.type === 'boolean'"><input type="checkbox" ng-model="values[setting.key]"> {{ setting.label }}</label>
+    <label ng-if="setting.type === 'integer'">{{ setting.label }} <input type="number" ng-model="values[setting.key]"></label>
+  </div>
+  <button type="submit">{{ 'COMMON.SAVE' | translate }}</button>
+</form>

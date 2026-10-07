@@ -1,0 +1,95 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fixture Developer <dev@mobimanual.local>
+Date: Mon, 5 Oct 2026 14:00:00 +0200
+Subject: [PATCH] Rename Retire to Unenroll
+
+Customers read "Retire" as decommissioning the hardware and hesitated to
+use it on devices that only change hands. The action, the command and the
+device status are now called Unenroll and Unenrolled. What it does stays the
+same: the device leaves management and keeps its user's data.
+
+Turkish and German follow with the next translation round. The Devices page
+of the manual is updated here.
+---
+Expected: worth documenting. The author updated _devices.md themselves, so DocBot sees it as already edited in this merge request, and triage still answers doc-impact because the label appears on other pages too. The draft renames Retire/retired to Unenroll/unenrolled on _devices_id.md, _devicescommands.md, _dashboard.md and the Roles table on _users.md, and leaves _devices.md as the author wrote it. The e2e spec change is dropped by doc-map.json before the model sees the diff.
+
+ e2e/specs/devices.spec.js | 6 +++---
+ public/doc/en/_devices.md | 4 ++--
+ public/i18n/en.json       | 8 ++++----
+ 3 files changed, 9 insertions(+), 9 deletions(-)
+
+diff --git a/e2e/specs/devices.spec.js b/e2e/specs/devices.spec.js
+index 9a781fe..b0d48bd 100644
+--- a/e2e/specs/devices.spec.js
++++ b/e2e/specs/devices.spec.js
+@@ -10,10 +10,10 @@ describe('devices page', function () {
+     helper.screenshot();
+   });
+ 
+-  it('should hide retired devices while the enrolled filter is on', function () {
++  it('should hide unenrolled devices while the enrolled filter is on', function () {
+     element(by.model('filter.enrolled')).click();
+-    expect(element.all(by.cssContainingText('td', 'Retired')).count()).toBeGreaterThan(0);
++    expect(element.all(by.cssContainingText('td', 'Unenrolled')).count()).toBeGreaterThan(0);
+     element(by.model('filter.enrolled')).click();
+-    expect(element.all(by.cssContainingText('td', 'Retired')).count()).toBe(0);
++    expect(element.all(by.cssContainingText('td', 'Unenrolled')).count()).toBe(0);
+   });
+ });
+diff --git a/public/doc/en/_devices.md b/public/doc/en/_devices.md
+index c3c1521..dd50252 100644
+--- a/public/doc/en/_devices.md
++++ b/public/doc/en/_devices.md
+@@ -9,7 +9,7 @@ not compliant.
+ ## Filtering the list
+ 
+ Use the platform filter to restrict the list to Android or iOS. The enrolled
+-filter hides devices that have been wiped or retired.
++filter hides devices that have been wiped or unenrolled.
+ 
+ The search field matches the device name, the serial number and the owner.
+ 
+@@ -19,7 +19,7 @@ Select devices with the check boxes, then:
+ 
+ - **Move to group** moves them to the group chosen next to the button.
+ - **Send command** sends a command to all of them. See Device Commands.
+-- **Retire** removes them from management. Only administrators see this button.
++- **Unenroll** removes them from management. Only administrators see this button.
+ 
+ ![](screenshots/devices_page-should_list_enrolled_devices.png)
+ 
+diff --git a/public/i18n/en.json b/public/i18n/en.json
+index 798ce9e..186f6df 100644
+--- a/public/i18n/en.json
++++ b/public/i18n/en.json
+@@ -46,7 +46,7 @@
+   },
+   "DASHBOARD": {
+     "TILE_DEVICES": "Devices",
+-    "TILE_DEVICES_HINT": "Enrolled devices by platform. Retired and wiped devices are not counted.",
++    "TILE_DEVICES_HINT": "Enrolled devices by platform. Unenrolled and wiped devices are not counted.",
+     "TILE_COMPLIANCE": "Compliance",
+     "TILE_COMPLIANCE_HINT": "Share of enrolled devices that are compliant.",
+     "TILE_PENDING": "Pending commands",
+@@ -66,10 +66,10 @@
+     "SEARCH_HINT": "Name, serial number or owner",
+     "ACTION_MOVE": "Move to group",
+     "ACTION_COMMAND": "Send command",
+-    "ACTION_RETIRE": "Retire",
++    "ACTION_RETIRE": "Unenroll",
+     "STATUS_ENROLLED": "Enrolled",
+     "STATUS_WIPED": "Wiped",
+-    "STATUS_RETIRED": "Retired",
++    "STATUS_RETIRED": "Unenrolled",
+     "COMPLIANT": "Compliant",
+     "NON_COMPLIANT": "Non-compliant"
+   },
+@@ -100,7 +100,7 @@
+     "RING": "Ring",
+     "CLEAR_PASSCODE": "Clear passcode",
+     "UPDATE_OS": "Update OS",
+-    "RETIRE": "Retire",
++    "RETIRE": "Unenroll",
+     "WIPE": "Wipe",
+     "WIPE_CONFIRM": "Enter your password to wipe {{device}}. This cannot be undone.",
+     "NOT_SUPPORTED": "Not supported on this device"

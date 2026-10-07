@@ -202,8 +202,9 @@ uv run pytest
 Drafting searches the code at the merge commit, so `--repo` names a clone of the
 project that has it. `--diff-only` drafts from the diff alone and needs no clone.
 
-The fixture is too small to judge the model, so triage and drafting are also
-replayed on real history. Zulip keeps its help centre in its repository, and
+The fixture's scenarios are written to test known cases, and its manual is a
+fraction of the real one, so triage and drafting are also replayed on real
+history. Zulip keeps its help centre in its repository, and
 `zulip/cases.json` lists commits that changed the product and the help pages together,
 and commits that change nothing a user sees. For each one, triage decides whether the
 code change has doc impact, and drafting finds and edits pages in the whole help

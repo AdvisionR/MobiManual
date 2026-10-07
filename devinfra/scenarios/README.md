@@ -4,24 +4,38 @@ Real changes to the fixture, each one a merge request DocBot's model has to
 judge. `scripts/open-test-mr.sh <name>` applies one to `main` with `git am` and
 opens a merge request with the patch's own title and description.
 
-| Scenario | Change | Worth documenting? |
+**Worth documenting:**
+
+| Scenario | Change | What it tests |
 |---|---|---|
-| `ios-department` | The iOS enrollment wizard asks for the device's department | Yes |
-| `kiosk-passcode` | Kiosk policies get their own exit passcode | Yes. It makes an existing sentence on the page wrong |
-| `devices-filter` | The device list gets a compliance filter | Yes, on one of the area's two pages |
-| `refactor` | The users controller is split into helpers, with nothing visible changing | No |
-| `account-expiry` | A feature flag turns on an optional expiry date in the Add user form | Yes, but only the repository says what the form gains: the diff is the flag |
+| `ios-department` | The iOS enrollment wizard asks for the device's department | Adding a step to the right page |
+| `kiosk-passcode` | Kiosk policies get their own exit passcode | Correcting a sentence the change makes wrong, not only adding one, when two other pages also talk about the device passcode |
+| `devices-filter` | The device list gets a compliance filter | Editing one page when four mention compliance |
+| `account-expiry` | A feature flag turns on an optional expiry date in the Add user form | Writing from code the diff does not show: the diff is the flag. Needs repo mode |
+| `command-expiry` | Queued commands expire after 72 hours instead of 24 | A one-line server change that makes two pages wrong; finding both |
+| `retire-label` | **Retire** is renamed **Unenroll**, and the author updates one page themselves | A label rename in `en.json` alone; finding the pages the author missed, and leaving theirs alone |
+| `passcode-history` | Passcode policies can forbid reusing recent passcodes | Choosing the passcode policy page among the many that mention passcodes or passwords, and editing a table |
+
+**Not worth documenting:**
+
+| Scenario | Change | What it tests |
+|---|---|---|
+| `refactor` | The users controller is split into helpers, with nothing visible changing | Silence on a refactor |
+| `apns-retry` | Apple Push sends are retried when Apple throttles them | Silence when a page's name matches the code: `_apns.md` is about Access Point Names |
+| `lost-mode-dark` | A Lost mode command is merged behind a flag that stays off | Silence on a feature nobody can see yet; the counterpart of `account-expiry` |
+| `dashboard-count-fix` | The dashboard stops counting retired devices | Silence on a fix that makes the product match what the manual already says |
 
 The expected outcome in detail is in each patch, on the `Expected:` line below
 its `---`. `git am` leaves everything between `---` and the diff out of the
 commit message, so the expectation never reaches the merge request description
 the model reads.
 
-The expectations describe the model-drafting step planned in
-`docs/docbot-llm-draft.md`. `tests/live/test_live_update.py` in
-`demo-repo/tools/docbot/` runs every scenario through `update-manual` without the
-stack and writes each result to `.runtime/docbot-results/`, to compare against
-the `Expected:` line.
+`tests/live/test_live_update.py` in `demo-repo/tools/docbot/` runs every
+scenario through `update-manual` without the stack, in repo mode and with
+`--diff-only`, and writes each result to `.runtime/docbot-results/`, to compare
+against the `Expected:` line. `tests/live/test_live_mistral.py` runs drafting
+alone on the scenarios worth documenting and checks that each page the
+`Expected:` line requires comes back edited.
 
 ## Adding one
 
@@ -35,7 +49,15 @@ git format-patch -1 --stdout --zero-commit --no-signature > scenarios/<name>.pat
 
 Add one `Expected: …` line directly below the patch's `---` line. It should
 start with "worth documenting" or "not worth documenting": that is what
-`open-test-mr.sh --help` lists.
+`open-test-mr.sh --help` lists. Then add the scenario's outcome to
+`SCENARIO_OUTCOMES` in `test_live_update.py`, and, if it is worth documenting,
+the pages it must edit to `PAGES` in `test_live_mistral.py`.
+
+`demo-repo/README.md` lists the facts the manual states on several pages and
+the words it uses for different things: a scenario built on one of them tests
+more than one built on a single sentence.
 
 A scenario applies once. After it has merged, `main` already has it, and the
-script says so. Re-seed with `./scripts/seed-project.sh` to run it again.
+script says so. Re-seed with `./scripts/seed-project.sh` to run it again. A
+change to the fixture can break a patch's context; check that every patch still
+applies to a fresh copy of the fixture after changing it.

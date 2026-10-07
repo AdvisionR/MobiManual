@@ -1,0 +1,27 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fixture Developer <dev@mobimanual.local>
+Date: Wed, 7 Oct 2026 08:50:00 +0200
+Subject: [PATCH] Stop counting retired devices on the dashboard
+
+The Devices tile counted retired devices, so its figures were higher than
+the device list with the enrolled filter on. The tile now leaves out
+retired devices as well as wiped ones.
+---
+Expected: not worth documenting. Triage answers no-doc-impact: _dashboard.md already says retired and wiped devices are not counted, and the fix makes the product match it. A user notices the change, but nothing the manual says becomes wrong.
+
+ server/dashboard/summary.js | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/server/dashboard/summary.js b/server/dashboard/summary.js
+index 1d4a8fd..a48cbc7 100644
+--- a/server/dashboard/summary.js
++++ b/server/dashboard/summary.js
+@@ -3,7 +3,7 @@
+ const PUSH_CERT_WARNING_DAYS = 30;
+ 
+ function summary(db, settings, now) {
+-  const counted = db.devices.find({ status: { $ne: 'wiped' } });
++  const counted = db.devices.find({ status: { $nin: ['wiped', 'retired'] } });
+   const enrolled = counted.filter((d) => d.status === 'enrolled');
+   const daysLeft = Math.floor((settings.pushCertificate.expires - now) / (24 * 60 * 60 * 1000));
+   return {

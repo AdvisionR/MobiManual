@@ -1,0 +1,27 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fixture Developer <dev@mobimanual.local>
+Date: Mon, 5 Oct 2026 10:30:00 +0200
+Subject: [PATCH] Keep queued commands for three days
+
+Devices that are switched off over the weekend came back on Monday to find
+their commands expired, and the helpdesk had to retry each one by hand.
+Queued commands now stay valid for 72 hours before they expire.
+---
+Expected: worth documenting. Triage answers doc-impact, although the diff is one constant in server/. The draft changes the expiry from 24 to 72 hours on both pages that state it: _devices_id.md ("not acknowledged within 24 hours") and _devicescommands.md ("within 24 hours expires"). A draft that edits only one of them is incomplete. tr and de are translation debt.
+
+ server/commands/command-queue.js | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/server/commands/command-queue.js b/server/commands/command-queue.js
+index 1cf5b0d..9935300 100644
+--- a/server/commands/command-queue.js
++++ b/server/commands/command-queue.js
+@@ -2,7 +2,7 @@
+ // device has not acknowledged in time is marked expired; the console can queue
+ // it again (Retry).
+ 
+-const EXPIRY_HOURS = 24;
++const EXPIRY_HOURS = 72;
+ 
+ function enqueue(db, deviceId, command, sentBy, now) {
+   return db.commands.insert({

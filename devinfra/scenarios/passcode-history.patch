@@ -1,0 +1,106 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fixture Developer <dev@mobimanual.local>
+Date: Wed, 7 Oct 2026 11:20:00 +0200
+Subject: [PATCH] Let passcode policies forbid reusing recent passcodes
+
+Auditors asked for passcode history: a passcode policy can now stop users
+from going back to one of their last passcodes. How many passcodes are
+remembered is a new setting, from 0 to 24, and 0, the default, turns it off.
+---
+Expected: worth documenting. Triage answers doc-impact. The draft adds a **Passcode history** row to the settings table on _policies_passcode.md (0 to 24, default 0, 0 turns the check off). The other pages about passcodes or passwords stay unchanged: _policies_kiosk.md, _devicescommands.md, and the console password rules on chapter1.md and _users.md.
+
+ public/app/policies/passcode/passcode.controller.js | 3 ++-
+ public/app/policies/passcode/passcode.html          | 4 ++++
+ public/i18n/de.json                                 | 4 +++-
+ public/i18n/en.json                                 | 4 +++-
+ public/i18n/tr.json                                 | 4 +++-
+ server/policies/passcode.js                         | 3 ++-
+ 6 files changed, 17 insertions(+), 5 deletions(-)
+
+diff --git a/public/app/policies/passcode/passcode.controller.js b/public/app/policies/passcode/passcode.controller.js
+index fa6c1cc..ec6ae3e 100644
+--- a/public/app/policies/passcode/passcode.controller.js
++++ b/public/app/policies/passcode/passcode.controller.js
+@@ -6,7 +6,8 @@ angular.module('mobivisor').controller('PasscodeCtrl', ['$scope', 'policyService
+     minLength: 6,
+     requireAlphanumeric: false,
+     maxAgeDays: 90,
+-    maxFailedAttempts: 10
++    maxFailedAttempts: 10,
++    historyCount: 0
+   };
+ 
+   $scope.save = function () {
+diff --git a/public/app/policies/passcode/passcode.html b/public/app/policies/passcode/passcode.html
+index 65e2cae..3c8580a 100644
+--- a/public/app/policies/passcode/passcode.html
++++ b/public/app/policies/passcode/passcode.html
+@@ -18,5 +18,9 @@
+   <input id="maxFailed" type="number" min="0" max="20" ng-model="policy.maxFailedAttempts">
+   <p class="hint">{{ 'PASSCODE.ZERO_MEANS_NEVER' | translate }}</p>
+ 
++  <label for="history">{{ 'PASSCODE.HISTORY' | translate }}</label>
++  <input id="history" type="number" min="0" max="24" ng-model="policy.historyCount">
++  <p class="hint">{{ 'PASSCODE.HISTORY_HINT' | translate }}</p>
++
+   <button type="submit">{{ 'COMMON.SAVE' | translate }}</button>
+ </form>
+diff --git a/public/i18n/de.json b/public/i18n/de.json
+index 95c9eb4..98d486a 100644
+--- a/public/i18n/de.json
++++ b/public/i18n/de.json
+@@ -170,7 +170,9 @@
+     "REQUIRE_ALPHANUMERIC": "Buchstaben und Ziffern erforderlich",
+     "MAX_AGE": "Maximales Alter (Tage)",
+     "MAX_FAILED": "Fehlversuche bis zum Löschen",
+-    "ZERO_MEANS_NEVER": "0 bedeutet nie"
++    "ZERO_MEANS_NEVER": "0 bedeutet nie",
++    "HISTORY": "Gerätecode-Verlauf",
++    "HISTORY_HINT": "Wie viele frühere Gerätecodes der Benutzer nicht erneut verwenden darf. 0 schaltet die Prüfung aus."
+   },
+   "KIOSK": {
+     "TITLE": "Kiosk-Modi",
+diff --git a/public/i18n/en.json b/public/i18n/en.json
+index 798ce9e..2db1ad3 100644
+--- a/public/i18n/en.json
++++ b/public/i18n/en.json
+@@ -170,7 +170,9 @@
+     "REQUIRE_ALPHANUMERIC": "Require letters and digits",
+     "MAX_AGE": "Maximum age (days)",
+     "MAX_FAILED": "Failed attempts before wipe",
+-    "ZERO_MEANS_NEVER": "0 means never"
++    "ZERO_MEANS_NEVER": "0 means never",
++    "HISTORY": "Passcode history",
++    "HISTORY_HINT": "How many previous passcodes the user cannot use again. 0 turns the check off."
+   },
+   "KIOSK": {
+     "TITLE": "Kiosk Modes",
+diff --git a/public/i18n/tr.json b/public/i18n/tr.json
+index 1e76126..cb89b61 100644
+--- a/public/i18n/tr.json
++++ b/public/i18n/tr.json
+@@ -170,7 +170,9 @@
+     "REQUIRE_ALPHANUMERIC": "Harf ve rakam zorunlu",
+     "MAX_AGE": "Maksimum süre (gün)",
+     "MAX_FAILED": "Silmeden önce başarısız deneme sayısı",
+-    "ZERO_MEANS_NEVER": "0 hiçbir zaman anlamına gelir"
++    "ZERO_MEANS_NEVER": "0 hiçbir zaman anlamına gelir",
++    "HISTORY": "Parola geçmişi",
++    "HISTORY_HINT": "Kullanıcının tekrar kullanamayacağı önceki parola sayısı. 0 denetimi kapatır."
+   },
+   "KIOSK": {
+     "TITLE": "Kiosk Modları",
+diff --git a/server/policies/passcode.js b/server/policies/passcode.js
+index 8cbd916..a05ad19 100644
+--- a/server/policies/passcode.js
++++ b/server/policies/passcode.js
+@@ -4,7 +4,8 @@
+ const LIMITS = {
+   minLength: { min: 4, max: 16, default: 6 },
+   maxAgeDays: { min: 0, max: 730, default: 90 },
+-  maxFailedAttempts: { min: 0, max: 20, default: 10 }
++  maxFailedAttempts: { min: 0, max: 20, default: 10 },
++  historyCount: { min: 0, max: 24, default: 0 }
+ };
+ 
+ function validate(policy) {

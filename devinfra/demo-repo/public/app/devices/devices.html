@@ -1,0 +1,46 @@
+<!-- #!/devices, DevicesCtrl. The device list, its filters and the bulk actions. -->
+<div class="devices">
+  <div class="filters">
+    <label>{{ 'DEVICES.FILTER_PLATFORM' | translate }}
+      <select ng-model="filter.platform" ng-change="reload()">
+        <option value="all">{{ 'COMMON.ALL' | translate }}</option>
+        <option value="android">Android</option>
+        <option value="ios">iOS</option>
+      </select>
+    </label>
+    <label><input type="checkbox" ng-model="filter.enrolled" ng-change="reload()"> {{ 'DEVICES.FILTER_ENROLLED' | translate }}</label>
+    <input type="search" ng-model="filter.search" ng-change="reload()" placeholder="{{ 'DEVICES.SEARCH_HINT' | translate }}">
+    <button ng-click="exportCsv()">{{ 'COMMON.EXPORT_CSV' | translate }}</button>
+  </div>
+
+  <div class="toolbar">
+    <select ng-model="target" ng-options="g.name for g in groups"></select>
+    <button ng-click="moveToGroup(target)" ng-disabled="!target">{{ 'DEVICES.ACTION_MOVE' | translate }}</button>
+    <button ng-click="send('lock')">{{ 'DEVICES.ACTION_COMMAND' | translate }}</button>
+    <button ng-click="send('retire')" ng-if="session.role === 'administrator'">{{ 'DEVICES.ACTION_RETIRE' | translate }}</button>
+  </div>
+
+  <table class="device-list">
+    <tr>
+      <th></th>
+      <th>{{ 'DEVICES.COL_NAME' | translate }}</th>
+      <th>{{ 'DEVICES.COL_PLATFORM' | translate }}</th>
+      <th>{{ 'DEVICES.COL_OWNER' | translate }}</th>
+      <th>{{ 'DEVICES.COL_GROUP' | translate }}</th>
+      <th>{{ 'DEVICES.COL_LAST_CHECKIN' | translate }}</th>
+      <th>{{ 'DEVICES.COL_STATUS' | translate }}</th>
+    </tr>
+    <tr ng-repeat="device in devices">
+      <td><input type="checkbox" ng-model="selected[device.id]"></td>
+      <td><a href="#!/devices/{{ device.id }}">{{ device.name }}</a></td>
+      <td>{{ device.platform }}</td>
+      <td>{{ device.owner }}</td>
+      <td>{{ device.group }}</td>
+      <td>{{ device.lastCheckIn | date:'short' }}</td>
+      <td>
+        {{ 'DEVICES.STATUS_' + device.status.toUpperCase() | translate }}
+        <span class="badge" ng-if="!device.compliant">{{ 'DEVICES.NON_COMPLIANT' | translate }}</span>
+      </td>
+    </tr>
+  </table>
+</div>

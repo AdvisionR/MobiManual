@@ -1,0 +1,21 @@
+<!-- #!/dashboard, DashboardCtrl. Four tiles; each opens the page behind it. -->
+<div class="dashboard">
+  <a class="tile" href="#!/devices">
+    <h2>{{ 'DASHBOARD.TILE_DEVICES' | translate }}</h2>
+    <p class="figure">{{ summary.devices.android }} Android · {{ summary.devices.ios }} iOS</p>
+    <p class="hint">{{ 'DASHBOARD.TILE_DEVICES_HINT' | translate }}</p>
+  </a>
+  <a class="tile" href="#!/devices">
+    <h2>{{ 'DASHBOARD.TILE_COMPLIANCE' | translate }}</h2>
+    <p class="figure">{{ summary.compliance.percent }} %</p>
+    <p class="hint">{{ 'DASHBOARD.TILE_COMPLIANCE_HINT' | translate }}</p>
+  </a>
+  <a class="tile" href="#!/devices">
+    <h2>{{ 'DASHBOARD.TILE_PENDING' | translate }}</h2>
+    <p class="figure">{{ summary.pendingCommands }}</p>
+  </a>
+  <a class="tile" href="#!/settings" ng-class="{ warning: pushCertWarning }">
+    <h2>{{ 'DASHBOARD.TILE_PUSH_CERT' | translate }}</h2>
+    <p class="figure">{{ 'DASHBOARD.PUSH_CERT_DAYS' | translate:{ days: summary.pushCertificate.daysLeft } }}</p>
+  </a>
+</div>

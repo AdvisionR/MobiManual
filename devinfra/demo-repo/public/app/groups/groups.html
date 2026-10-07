@@ -1,0 +1,29 @@
+<!-- #!/groups, GroupsCtrl. Groups carry policies; every device is in exactly one. -->
+<div class="groups">
+  <div class="toolbar">
+    <button ng-click="editing = {}">{{ 'GROUPS.NEW' | translate }}</button>
+  </div>
+
+  <form ng-if="editing" ng-submit="save(editing)">
+    <label for="name">{{ 'GROUPS.NAME' | translate }}</label>
+    <input id="name" ng-model="editing.name" required>
+    <label for="description">{{ 'GROUPS.DESCRIPTION' | translate }}</label>
+    <input id="description" ng-model="editing.description">
+    <button type="submit">{{ 'COMMON.SAVE' | translate }}</button>
+  </form>
+
+  <section ng-repeat="group in groups" class="group">
+    <h2>{{ group.isDefault ? ('GROUPS.DEFAULT' | translate) : group.name }}</h2>
+    <p>{{ group.description }}</p>
+    <div class="tabs">
+      <h3>{{ 'GROUPS.TAB_DEVICES' | translate }}: {{ group.deviceCount }}</h3>
+      <h3>{{ 'GROUPS.TAB_POLICIES' | translate }}</h3>
+      <ul><li ng-repeat="policy in group.policies">{{ policy.name }}</li></ul>
+      <select ng-model="chosen" ng-options="p.name for p in policies"></select>
+      <button ng-click="assign(group, chosen)" ng-disabled="!chosen">{{ 'GROUPS.ASSIGN_POLICY' | translate }}</button>
+    </div>
+    <button ng-click="editing = group">{{ 'COMMON.EDIT' | translate }}</button>
+    <button ng-click="remove(group)" ng-disabled="!canDelete(group)"
+            title="{{ 'GROUPS.DELETE_NOT_EMPTY' | translate }}">{{ 'COMMON.DELETE' | translate }}</button>
+  </section>
+</div>

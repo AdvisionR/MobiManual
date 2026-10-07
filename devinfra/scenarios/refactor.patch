@@ -13,7 +13,7 @@ Expected: not worth documenting. Triage answers no-doc-impact: nothing a user se
  1 file changed, 9 insertions(+), 3 deletions(-)
 
 diff --git a/public/app/users/users.controller.js b/public/app/users/users.controller.js
-index df9c969..3fb28af 100644
+index 7ca0a10..0da5119 100644
 --- a/public/app/users/users.controller.js
 +++ b/public/app/users/users.controller.js
 @@ -2,10 +2,16 @@ angular.module('mobivisor').controller('UsersCtrl', ['$scope', 'userService', fu
@@ -35,4 +35,4 @@ index df9c969..3fb28af 100644
 +    return userService.list(query()).then(show);
    };
  
-   $scope.reload();
+   userService.roles().then(function (roles) {

@@ -1,0 +1,28 @@
+<!-- #!/appinstallations, AppInstallationsCtrl. -->
+<div class="app-installations">
+  <h1>{{ 'APPS.TITLE' | translate }}</h1>
+  <div class="toolbar"><button ng-click="draft = { mode: 'required', groups: [] }">{{ 'APPS.NEW' | translate }}</button></div>
+
+  <form ng-if="draft" ng-submit="create(draft)">
+    <input ng-model="term" ng-change="search(term)" placeholder="{{ 'APPS.SEARCH_APP' | translate }}">
+    <select ng-model="draft.app" ng-options="a as a.name for a in found"></select>
+    <label>{{ 'APPS.MODE' | translate }}</label>
+    <label><input type="radio" ng-model="draft.mode" value="required"> {{ 'APPS.MODE_REQUIRED' | translate }}</label>
+    <label><input type="radio" ng-model="draft.mode" value="available"> {{ 'APPS.MODE_AVAILABLE' | translate }}</label>
+    <label for="groups">{{ 'APPS.GROUPS' | translate }}</label>
+    <select id="groups" multiple ng-model="draft.groups" ng-options="g.id as g.name for g in groups"></select>
+    <button type="submit">{{ 'COMMON.SAVE' | translate }}</button>
+  </form>
+
+  <section ng-repeat="installation in installations">
+    <h2>{{ installation.app.name }} · {{ 'APPS.MODE_' + installation.mode.toUpperCase() | translate }}</h2>
+    <button ng-click="remove(installation)">{{ 'APPS.REMOVE' | translate }}</button>
+    <table>
+      <tr ng-repeat="device in installation.devices">
+        <td>{{ device.name }}</td>
+        <td>{{ 'APPS.STATUS_' + device.status.toUpperCase() | translate }}</td>
+        <td><button ng-if="device.status === 'failed'" ng-click="retry(installation, device)">{{ 'COMMON.RETRY' | translate }}</button></td>
+      </tr>
+    </table>
+  </section>
+</div>

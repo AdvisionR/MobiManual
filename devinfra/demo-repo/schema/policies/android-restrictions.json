@@ -1,20 +1,23 @@
 {
   "_comment": [
-    "Stand-in for the policy schema the reference tables are rendered from.",
-    "Doc-map area: policy-schema, class `generated` — a change here must",
-    "regenerate docs/pages/reference/policy-settings.md, never be drafted by a",
-    "model. Foundation doc §6.4 puts this class in the 'no AI, no hallucination",
-    "risk' bucket precisely because readers trust reference data literally."
+    "Android restrictions: the settings of a Restrictions policy. The console",
+    "builds the form from this file, and scripts/render-restrictions.js renders",
+    "the table on public/doc/<lang>/_policies_restrictions.md from it. Change a",
+    "setting here, then re-run the script."
   ],
   "platform": "android-enterprise",
   "settings": [
     { "key": "camera_enabled", "type": "boolean", "default": true,
       "label": "Allow camera", "applies_to": ["fully-managed", "work-profile"] },
     { "key": "screen_capture_enabled", "type": "boolean", "default": true,
-      "label": "Allow screen capture", "applies_to": ["fully-managed"] },
+      "label": "Allow screen capture", "applies_to": ["fully-managed", "work-profile"] },
+    { "key": "bluetooth_enabled", "type": "boolean", "default": true,
+      "label": "Allow Bluetooth", "applies_to": ["fully-managed"] },
     { "key": "usb_file_transfer_enabled", "type": "boolean", "default": false,
       "label": "Allow USB file transfer", "applies_to": ["fully-managed"] },
-    { "key": "passcode_minimum_length", "type": "integer", "default": 6,
-      "label": "Minimum passcode length", "applies_to": ["fully-managed", "work-profile"] }
+    { "key": "unknown_sources_enabled", "type": "boolean", "default": false,
+      "label": "Allow apps from unknown sources", "applies_to": ["fully-managed", "work-profile"] },
+    { "key": "factory_reset_enabled", "type": "boolean", "default": false,
+      "label": "Allow factory reset", "applies_to": ["fully-managed"] }
   ]
 }

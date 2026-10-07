@@ -25,13 +25,17 @@ from docbot.llm.mistral import MistralLLM
 FIXTURE = Path(__file__).resolve().parents[4]
 SCENARIOS = FIXTURE.parent / "scenarios"
 
-# The pages each scenario's Expected line names. The first one must come back "edit",
-# except where the diff alone cannot say what to write.
+# The pages each scenario's Expected line says must change. Each must come back "edit",
+# except where the diff alone cannot say what to write. Scenarios without doc impact are not here:
+# drafting only runs after triage found some.
 PAGES = {
     "kiosk-passcode": ["_policies_kiosk.md"],
     "ios-department": ["_enrollment_ios.md"],
-    "devices-filter": ["_devices.md", "_devices_id.md"],
+    "devices-filter": ["_devices.md"],
     "account-expiry": ["_users.md"],
+    "command-expiry": ["_devices_id.md", "_devicescommands.md"],
+    "retire-label": ["_devices_id.md", "_devicescommands.md", "_dashboard.md"],
+    "passcode-history": ["_policies_passcode.md"],
 }
 DIFF_ONLY = {"account-expiry": "needs-human"}
 
@@ -63,4 +67,4 @@ def test_the_model_drafts_the_expected_page(tmp_path, scenario, context):
     assert result["outcome"] == "submitted", result.get("reason")
     decisions = {entry["page"]: entry["decision"] for entry in result["proposal"]["pages"]}
     expected = DIFF_ONLY.get(scenario, "edit") if context == "diff" else "edit"
-    assert decisions.get(PAGES[scenario][0]) == expected
+    assert {page: decisions.get(page) for page in PAGES[scenario]} == dict.fromkeys(PAGES[scenario], expected)

@@ -10,20 +10,107 @@ The device list gets a compliance filter next to the platform filter, with
 the choices all, compliant and non-compliant. The device service already
 knew each device's compliance state; the list now asks for it.
 ---
-Expected: worth documenting. Triage picks _devices.md, perhaps also _devices_id.md. The draft adds the compliance filter to the paragraph about filters on _devices.md; if _devices_id.md was picked, it comes back no-change.
+Expected: worth documenting. Triage answers doc-impact. The draft adds the **Compliance** filter to "Filtering the list" on _devices.md. _devices_id.md, _dashboard.md and _policies.md also mention compliance and stay unchanged.
 
  public/app/devices/devices.controller.js | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ public/app/devices/devices.html          | 7 +++++++
+ public/app/services/device.service.js    | 3 ++-
+ public/i18n/de.json                      | 1 +
+ public/i18n/en.json                      | 1 +
+ public/i18n/tr.json                      | 1 +
+ server/devices/query.js                  | 3 +++
+ 7 files changed, 16 insertions(+), 2 deletions(-)
 
 diff --git a/public/app/devices/devices.controller.js b/public/app/devices/devices.controller.js
-index a604f07..31e64dd 100644
+index f9c4842..ee2a9f6 100644
 --- a/public/app/devices/devices.controller.js
 +++ b/public/app/devices/devices.controller.js
 @@ -1,6 +1,6 @@
- angular.module('mobivisor').controller('DevicesCtrl', ['$scope', 'deviceService', function ($scope, deviceService) {
+ angular.module('mobivisor').controller('DevicesCtrl', ['$scope', 'deviceService', 'groupService', 'commandService', function ($scope, deviceService, groupService, commandService) {
    $scope.devices = [];
 -  $scope.filter = { platform: 'all', enrolled: true };
 +  $scope.filter = { platform: 'all', enrolled: true, compliance: 'all' };
+   $scope.selected = {};
  
    $scope.reload = function () {
-     deviceService.list($scope.filter).then(function (devices) {
+diff --git a/public/app/devices/devices.html b/public/app/devices/devices.html
+index 138491e..16c8552 100644
+--- a/public/app/devices/devices.html
++++ b/public/app/devices/devices.html
+@@ -8,6 +8,13 @@
+         <option value="ios">iOS</option>
+       </select>
+     </label>
++    <label>{{ 'DEVICES.FILTER_COMPLIANCE' | translate }}
++      <select ng-model="filter.compliance" ng-change="reload()">
++        <option value="all">{{ 'COMMON.ALL' | translate }}</option>
++        <option value="compliant">{{ 'DEVICES.COMPLIANT' | translate }}</option>
++        <option value="non-compliant">{{ 'DEVICES.NON_COMPLIANT' | translate }}</option>
++      </select>
++    </label>
+     <label><input type="checkbox" ng-model="filter.enrolled" ng-change="reload()"> {{ 'DEVICES.FILTER_ENROLLED' | translate }}</label>
+     <input type="search" ng-model="filter.search" ng-change="reload()" placeholder="{{ 'DEVICES.SEARCH_HINT' | translate }}">
+     <button ng-click="exportCsv()">{{ 'COMMON.EXPORT_CSV' | translate }}</button>
+diff --git a/public/app/services/device.service.js b/public/app/services/device.service.js
+index b020c73..d5c4770 100644
+--- a/public/app/services/device.service.js
++++ b/public/app/services/device.service.js
+@@ -1,6 +1,7 @@
+ angular.module('mobivisor').factory('deviceService', ['api', function (api) {
+   return {
+-    // filter: { platform: 'all' | 'android' | 'ios', enrolled: boolean, search: string }
++    // filter: { platform: 'all' | 'android' | 'ios', enrolled: boolean,
++    //          compliance: 'all' | 'compliant' | 'non-compliant', search: string }
+     list: function (filter) { return api.get('/devices', filter); },
+     get: function (id) { return api.get('/devices/' + id); },
+     moveToGroup: function (ids, groupId) { return api.post('/devices/move', { ids: ids, group: groupId }); },
+diff --git a/public/i18n/de.json b/public/i18n/de.json
+index 95c9eb4..83864a5 100644
+--- a/public/i18n/de.json
++++ b/public/i18n/de.json
+@@ -62,6 +62,7 @@
+     "COL_LAST_CHECKIN": "Letzter Check-in",
+     "COL_STATUS": "Status",
+     "FILTER_PLATFORM": "Plattform",
++    "FILTER_COMPLIANCE": "Konformität",
+     "FILTER_ENROLLED": "Nur registrierte",
+     "SEARCH_HINT": "Name, Seriennummer oder Besitzer",
+     "ACTION_MOVE": "In Gruppe verschieben",
+diff --git a/public/i18n/en.json b/public/i18n/en.json
+index 798ce9e..0c67936 100644
+--- a/public/i18n/en.json
++++ b/public/i18n/en.json
+@@ -62,6 +62,7 @@
+     "COL_LAST_CHECKIN": "Last check-in",
+     "COL_STATUS": "Status",
+     "FILTER_PLATFORM": "Platform",
++    "FILTER_COMPLIANCE": "Compliance",
+     "FILTER_ENROLLED": "Enrolled only",
+     "SEARCH_HINT": "Name, serial number or owner",
+     "ACTION_MOVE": "Move to group",
+diff --git a/public/i18n/tr.json b/public/i18n/tr.json
+index 1e76126..4472744 100644
+--- a/public/i18n/tr.json
++++ b/public/i18n/tr.json
+@@ -62,6 +62,7 @@
+     "COL_LAST_CHECKIN": "Son bağlantı",
+     "COL_STATUS": "Durum",
+     "FILTER_PLATFORM": "Platform",
++    "FILTER_COMPLIANCE": "Uyumluluk",
+     "FILTER_ENROLLED": "Yalnızca kayıtlı",
+     "SEARCH_HINT": "Ad, seri numarası veya sahip",
+     "ACTION_MOVE": "Gruba taşı",
+diff --git a/server/devices/query.js b/server/devices/query.js
+index 4120587..8b58d32 100644
+--- a/server/devices/query.js
++++ b/server/devices/query.js
+@@ -8,6 +8,9 @@ function where(filter) {
+   if (filter.enrolled) {
+     clause.status = { $nin: ['wiped', 'retired'] };
+   }
++  if (filter.compliance && filter.compliance !== 'all') {
++    clause.compliant = filter.compliance === 'compliant';
++  }
+   if (filter.search) {
+     const pattern = new RegExp(filter.search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+     clause.$or = [{ name: pattern }, { serial: pattern }, { owner: pattern }];

@@ -1,0 +1,60 @@
+<!-- #!/devices/:id, DeviceDetailCtrl. Four tabs: overview, policies, applications, commands. -->
+<div class="device-detail">
+  <h1>{{ device.name }}</h1>
+  <nav class="tabs">
+    <a ng-click="tab = 'overview'">{{ 'DEVICE.TAB_OVERVIEW' | translate }}</a>
+    <a ng-click="tab = 'policies'">{{ 'DEVICE.TAB_POLICIES' | translate }}</a>
+    <a ng-click="tab = 'apps'">{{ 'DEVICE.TAB_APPS' | translate }}</a>
+    <a ng-click="tab = 'commands'">{{ 'DEVICE.TAB_COMMANDS' | translate }}</a>
+  </nav>
+
+  <dl ng-if="tab === 'overview'">
+    <dt>{{ 'DEVICE.MODEL' | translate }}</dt><dd>{{ device.model }}</dd>
+    <dt>{{ 'DEVICE.OS_VERSION' | translate }}</dt><dd>{{ device.osVersion }}</dd>
+    <dt>{{ 'DEVICE.SERIAL' | translate }}</dt><dd>{{ device.serial }}</dd>
+    <dt>{{ 'DEVICE.OWNER' | translate }}</dt><dd>{{ device.owner }}</dd>
+    <dt>{{ 'DEVICE.DEPARTMENT' | translate }}</dt>
+    <dd>
+      {{ device.department.name }}
+      <button ng-click="editingDepartment = true">{{ 'COMMON.EDIT' | translate }}</button>
+      <span ng-if="editingDepartment">
+        <select ng-model="chosen" ng-options="d.name for d in departments"></select>
+        <button ng-click="saveDepartment(chosen)">{{ 'COMMON.SAVE' | translate }}</button>
+      </span>
+    </dd>
+    <dt>{{ 'DEVICE.GROUP' | translate }}</dt><dd>{{ device.group }}</dd>
+    <dt>{{ 'DEVICE.LAST_CHECKIN' | translate }}</dt><dd>{{ device.lastCheckIn | date:'medium' }}</dd>
+    <dt>{{ 'DEVICE.COMPLIANCE' | translate }}</dt>
+    <dd>
+      {{ (device.compliant ? 'DEVICES.COMPLIANT' : 'DEVICES.NON_COMPLIANT') | translate }}
+      <ul><li ng-repeat="reason in device.complianceReasons">{{ reason }}</li></ul>
+    </dd>
+  </dl>
+
+  <ul ng-if="tab === 'policies'"><li ng-repeat="policy in device.policies">{{ policy.name }} ({{ policy.type }})</li></ul>
+  <ul ng-if="tab === 'apps'"><li ng-repeat="app in device.applications">{{ app.name }} {{ app.version }}</li></ul>
+
+  <div ng-if="tab === 'commands'">
+    <div class="toolbar">
+      <button ng-repeat="definition in definitions" ng-click="send(definition)"
+              ng-disabled="!supported(definition)"
+              title="{{ supported(definition) ? '' : ('COMMANDS.NOT_SUPPORTED' | translate) }}">
+        {{ definition.label | translate }}
+      </button>
+    </div>
+    <table class="command-history">
+      <tr>
+        <th>{{ 'COMMANDS.COMMAND' | translate }}</th>
+        <th>{{ 'DEVICE.COMMAND_SENT' | translate }}</th>
+        <th>{{ 'DEVICE.COMMAND_STATE' | translate }}</th>
+        <th></th>
+      </tr>
+      <tr ng-repeat="command in commands">
+        <td>{{ command.label | translate }}</td>
+        <td>{{ command.sentAt | date:'short' }}</td>
+        <td>{{ 'DEVICE.STATE_' + command.state.toUpperCase() | translate }}</td>
+        <td><button ng-if="command.state === 'expired'" ng-click="retry(command)">{{ 'COMMON.RETRY' | translate }}</button></td>
+      </tr>
+    </table>
+  </div>
+</div>

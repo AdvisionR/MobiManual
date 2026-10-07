@@ -1,3 +1,3 @@
-% MobiVisor Kullanim Kilavuzu
+% MobiVisor Kullanım Kılavuzu
 % IOTIQ
-% Surum 4.2
+% Sürüm 4.3

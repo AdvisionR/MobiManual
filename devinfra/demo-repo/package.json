@@ -1,9 +1,16 @@
 {
   "name": "mobivisor-console",
-  "version": "4.2.0",
+  "version": "4.3.0",
   "private": true,
   "scripts": {
-    "check-missing-doc": "node scripts/check-missing-doc.js"
+    "check-missing-doc": "node scripts/check-missing-doc.js",
+    "render-restrictions": "node scripts/render-restrictions.js"
+  },
+  "dependencies": {
+    "angular": "1.8.3",
+    "angular-route": "1.8.3",
+    "angular-translate": "2.19.1",
+    "angular-translate-loader-static-files": "2.19.1"
   },
   "devDependencies": {
     "grunt": "^1.6.1",

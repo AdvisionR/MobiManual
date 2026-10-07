@@ -1,0 +1,18 @@
+<!-- #!/devicescommands, DeviceCommandsCtrl. Read-only: commands are sent from a device or the device list. -->
+<div class="device-commands">
+  <h1>{{ 'COMMANDS.TITLE' | translate }}</h1>
+  <table>
+    <tr>
+      <th>{{ 'COMMANDS.COMMAND' | translate }}</th>
+      <th>Android</th>
+      <th>iOS</th>
+      <th>{{ 'USERS.COL_ROLE' | translate }}</th>
+    </tr>
+    <tr ng-repeat="definition in definitions">
+      <td>{{ definition.label | translate }}</td>
+      <td>{{ definition.platforms.indexOf('android') >= 0 ? '✓' : '–' }}</td>
+      <td>{{ definition.platforms.indexOf('ios') >= 0 ? '✓' : '–' }}{{ definition.supervisedOnly ? ' *' : '' }}</td>
+      <td><span ng-repeat="role in definition.roles">{{ 'USERS.ROLE_' + role.toUpperCase() | translate }} </span></td>
+    </tr>
+  </table>
+</div>

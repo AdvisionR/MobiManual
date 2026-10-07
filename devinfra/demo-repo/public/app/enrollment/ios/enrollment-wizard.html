@@ -1,0 +1,21 @@
+<!-- #!/enrollment/ios, EnrollmentWizardCtrl. One question per step, then Finish. -->
+<div class="enrollment-wizard">
+  <h1>{{ 'ENROLLMENT.IOS_TITLE' | translate }}</h1>
+
+  <div ng-if="step === 1">
+    <label><input type="checkbox" ng-model="profile.supervised"> {{ 'ENROLLMENT.SUPERVISED' | translate }}</label>
+  </div>
+
+  <div ng-if="step === 2">
+    <label><input type="checkbox" ng-model="profile.mdmRemovable"> {{ 'ENROLLMENT.MDM_REMOVABLE' | translate }}</label>
+  </div>
+
+  <div ng-if="step === 3">
+    <label for="group">{{ 'ENROLLMENT.GROUP' | translate }}</label>
+    <select id="group" ng-model="profile.group" ng-options="g.id as g.name for g in groups"></select>
+  </div>
+
+  <button ng-if="step > 1" ng-click="step = step - 1">{{ 'COMMON.BACK' | translate }}</button>
+  <button ng-if="step < 3" ng-click="next()">{{ 'COMMON.NEXT' | translate }}</button>
+  <button ng-if="step === 3" ng-click="finish()">{{ 'ENROLLMENT.FINISH' | translate }}</button>
+</div>

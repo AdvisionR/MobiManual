@@ -1,41 +1,51 @@
 <!-- #!/users, UsersCtrl. The account list, the Add form and the directory import. -->
 <div class="users">
   <div class="toolbar">
-    <button ng-click="adding = true">Add</button>
-    <button ng-click="importing = true">Import</button>
+    <button ng-click="adding = true">{{ 'USERS.ADD' | translate }}</button>
+    <button ng-click="importing = true">{{ 'USERS.IMPORT' | translate }}</button>
   </div>
 
   <table class="user-list">
-    <tr ng-repeat="user in users">
+    <tr>
+      <th>{{ 'USERS.COL_LOGIN' | translate }}</th>
+      <th>{{ 'USERS.COL_EMAIL' | translate }}</th>
+      <th>{{ 'USERS.COL_ROLE' | translate }}</th>
+      <th>{{ 'USERS.COL_SOURCE' | translate }}</th>
+      <th></th>
+    </tr>
+    <tr ng-repeat="user in users" ng-class="{ disabled: !user.enabled }">
       <td>{{ user.login }}</td>
       <td>{{ user.email }}</td>
-      <td>{{ user.role }}</td>
+      <td>{{ 'USERS.ROLE_' + user.role.toUpperCase() | translate }}</td>
+      <td>{{ 'USERS.SOURCE_' + user.source.toUpperCase() | translate }}</td>
+      <td>
+        <button ng-click="toggleEnabled(user)">{{ (user.enabled ? 'USERS.DISABLE' : 'USERS.ENABLE') | translate }}</button>
+        <button ng-click="resetPassword(user)" ng-if="user.source === 'local'">{{ 'USERS.RESET_PASSWORD' | translate }}</button>
+      </td>
     </tr>
   </table>
 
   <form name="addUser" ng-show="adding" ng-submit="save(draft)">
-    <label for="login">Login name</label>
+    <label for="login">{{ 'USERS.LOGIN' | translate }}</label>
     <input id="login" ng-model="draft.login" required>
 
-    <label for="email">Email address</label>
+    <label for="email">{{ 'USERS.EMAIL' | translate }}</label>
     <input id="email" type="email" ng-model="draft.email" required>
 
-    <label for="role">Role</label>
-    <select id="role" ng-model="draft.role" ng-options="role for role in roles" required></select>
+    <label for="role">{{ 'USERS.ROLE' | translate }}</label>
+    <select id="role" ng-model="draft.role" ng-options="role as ('USERS.ROLE_' + role.toUpperCase() | translate) for role in roles" required></select>
 
     <div ng-if="FEATURES.accountExpiry">
-      <label for="expires">Account expires</label>
+      <label for="expires">{{ 'USERS.ACCOUNT_EXPIRES' | translate }}</label>
       <input id="expires" type="date" ng-model="draft.expires">
-      <p class="hint">Optional. From this date the account can no longer sign in to the
-        console. Devices the user enrolled stay managed.</p>
+      <p class="hint">{{ 'USERS.ACCOUNT_EXPIRES_HINT' | translate }}</p>
     </div>
 
-    <button type="submit" ng-disabled="addUser.$invalid">Save</button>
+    <button type="submit" ng-disabled="addUser.$invalid">{{ 'COMMON.SAVE' | translate }}</button>
   </form>
 
   <div class="import" ng-show="importing">
-    <p>Reads accounts from the configured directory. Existing accounts are matched by
-      login name.</p>
-    <button ng-click="runImport()">Import</button>
+    <p>{{ 'USERS.IMPORT_HINT' | translate }}</p>
+    <button ng-click="runImport()">{{ 'USERS.RUN_IMPORT' | translate }}</button>
   </div>
 </div>

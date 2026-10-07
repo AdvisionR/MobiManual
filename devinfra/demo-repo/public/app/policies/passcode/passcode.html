@@ -1,0 +1,22 @@
+<!-- #!/policies/passcode, PasscodeCtrl. The passcode the device user sets to unlock the device. -->
+<form class="passcode-policy" ng-submit="save()">
+  <h1>{{ 'PASSCODE.TITLE' | translate }}</h1>
+
+  <label for="name">{{ 'POLICIES.NAME' | translate }}</label>
+  <input id="name" ng-model="policy.name" required>
+
+  <label for="minLength">{{ 'PASSCODE.MIN_LENGTH' | translate }}</label>
+  <input id="minLength" type="number" min="4" max="16" ng-model="policy.minLength">
+
+  <label><input type="checkbox" ng-model="policy.requireAlphanumeric"> {{ 'PASSCODE.REQUIRE_ALPHANUMERIC' | translate }}</label>
+
+  <label for="maxAge">{{ 'PASSCODE.MAX_AGE' | translate }}</label>
+  <input id="maxAge" type="number" min="0" max="730" ng-model="policy.maxAgeDays">
+  <p class="hint">{{ 'PASSCODE.ZERO_MEANS_NEVER' | translate }}</p>
+
+  <label for="maxFailed">{{ 'PASSCODE.MAX_FAILED' | translate }}</label>
+  <input id="maxFailed" type="number" min="0" max="20" ng-model="policy.maxFailedAttempts">
+  <p class="hint">{{ 'PASSCODE.ZERO_MEANS_NEVER' | translate }}</p>
+
+  <button type="submit">{{ 'COMMON.SAVE' | translate }}</button>
+</form>

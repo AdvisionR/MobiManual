@@ -1,0 +1,81 @@
+<!doctype html>
+<html ng-app="mobivisor">
+<head>
+  <meta charset="utf-8">
+  <title>MobiVisor</title>
+  <link rel="stylesheet" href="css/console.css">
+  <script src="lib/angular.min.js"></script>
+  <script src="lib/angular-route.min.js"></script>
+  <script src="lib/angular-translate.min.js"></script>
+  <script src="lib/angular-translate-loader-static-files.min.js"></script>
+  <script src="app/app.js"></script>
+  <script src="app/routes.js"></script>
+  <script src="app/features.js"></script>
+  <script src="app/help.js"></script>
+  <script src="app/services/api.js"></script>
+  <script src="app/services/device.service.js"></script>
+  <script src="app/services/command.service.js"></script>
+  <script src="app/services/group.service.js"></script>
+  <script src="app/services/user.service.js"></script>
+  <script src="app/services/policy.service.js"></script>
+  <script src="app/services/dep.service.js"></script>
+  <script src="app/services/department.service.js"></script>
+  <script src="app/services/report.service.js"></script>
+  <script src="app/services/schema.service.js"></script>
+  <script src="app/apns/apns.controller.js"></script>
+  <script src="app/appinstallations/appinstallations.controller.js"></script>
+  <script src="app/auditlog/auditlog.controller.js"></script>
+  <script src="app/dashboard/dashboard.controller.js"></script>
+  <script src="app/devices/device-detail.controller.js"></script>
+  <script src="app/devices/devices.controller.js"></script>
+  <script src="app/devicescommands/devicescommands.controller.js"></script>
+  <script src="app/enrollment/android/android-enrollment.controller.js"></script>
+  <script src="app/enrollment/ios/enrollment-wizard.controller.js"></script>
+  <script src="app/groups/groups.controller.js"></script>
+  <script src="app/policies/kiosk/kiosk.controller.js"></script>
+  <script src="app/policies/passcode/passcode.controller.js"></script>
+  <script src="app/policies/policies.controller.js"></script>
+  <script src="app/policies/restrictions/restrictions.controller.js"></script>
+  <script src="app/reports/export-schedule.controller.js"></script>
+  <script src="app/settings/settings.controller.js"></script>
+  <script src="app/users/users.controller.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a href="#!/dashboard" class="brand">MobiVisor</a>
+    <nav>
+      <a href="#!/dashboard">{{ 'NAV.DASHBOARD' | translate }}</a>
+      <a href="#!/devices">{{ 'NAV.DEVICES' | translate }}</a>
+      <a href="#!/devicescommands">{{ 'NAV.COMMANDS' | translate }}</a>
+      <a href="#!/groups">{{ 'NAV.GROUPS' | translate }}</a>
+      <a href="#!/users">{{ 'NAV.USERS' | translate }}</a>
+      <span class="menu">{{ 'NAV.ENROLLMENT' | translate }}
+        <a href="#!/enrollment/android">{{ 'NAV.ENROLLMENT_ANDROID' | translate }}</a>
+        <a href="#!/enrollment/ios">{{ 'NAV.ENROLLMENT_IOS' | translate }}</a>
+      </span>
+      <span class="menu"><a href="#!/policies">{{ 'NAV.POLICIES' | translate }}</a>
+        <a href="#!/policies/passcode">{{ 'NAV.POLICIES_PASSCODE' | translate }}</a>
+        <a href="#!/policies/kiosk">{{ 'NAV.POLICIES_KIOSK' | translate }}</a>
+        <a href="#!/policies/restrictions">{{ 'NAV.POLICIES_RESTRICTIONS' | translate }}</a>
+      </span>
+      <a href="#!/apns">{{ 'NAV.APNS' | translate }}</a>
+      <a href="#!/appinstallations">{{ 'NAV.APP_INSTALLATIONS' | translate }}</a>
+      <a href="#!/auditlog">{{ 'NAV.AUDIT_LOG' | translate }}</a>
+      <span class="menu">{{ 'NAV.REPORTS' | translate }}
+        <a href="#!/reports/export">{{ 'NAV.REPORTS_EXPORT' | translate }}</a>
+      </span>
+      <a href="#!/settings" ng-if="session.role === 'administrator'">{{ 'NAV.SETTINGS' | translate }}</a>
+    </nav>
+    <div class="tools">
+      <help-link></help-link>
+      <select ng-model="language" ng-change="useLanguage(language)" title="{{ 'NAV.LANGUAGE' | translate }}">
+        <option value="en">English</option>
+        <option value="tr">Türkçe</option>
+        <option value="de">Deutsch</option>
+      </select>
+      <a href="/signout">{{ 'NAV.SIGN_OUT' | translate }}</a>
+    </div>
+  </header>
+  <main ng-view></main>
+</body>
+</html>
