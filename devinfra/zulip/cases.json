@@ -30,6 +30,8 @@
     "^\\.github/",
     "^\\.claude/",
     "^AGENTS\\.md$",
+    "(^|/)pnpm-lock\\.yaml$",
+    "(^|/)uv\\.lock$",
     "/tests?/",
     "\\.test\\.[cm]?[jt]s$"
   ],

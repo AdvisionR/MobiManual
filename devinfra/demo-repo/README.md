@@ -119,10 +119,10 @@ underscores and parameters collapse to `id`:
 ```
 
 DocBot does not map code to pages by hand. `doc-map.json` lists only the paths
-whose changes never need a manual update: tests, CI, DocBot itself and the
-manual. For everything else, a model reads the diff next to the manual's table
-of contents (`htmlDocPages`, with each page's headings) and decides which pages
-the change affects, if any. This naming convention is what makes those file
+whose changes never need a manual update: tests, CI, lock files, DocBot itself
+and the manual. For everything else, a model reads the diff next to the
+manual's table of contents (`htmlDocPages`, with each page's headings) and
+decides which pages the change affects, if any. This naming convention is what makes those file
 names meaningful to it.
 
 ## Adding a page is two steps

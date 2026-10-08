@@ -7,6 +7,8 @@ from docbot.drafting.ignore import select
 # The fixture's ignore list, copied: these tests must pass where the fixture is not next to them.
 DOC_MAP = {"docRoot": "public/doc", "ignore": [
     {"id": "ci-and-tests", "code": ["^\\.gitlab-ci\\.yml$", "^Jenkinsfile$", "^e2e/", "\\.spec\\.js$"]},
+    {"id": "lock-files",
+     "code": ["(^|/)package-lock\\.json$", "(^|/)npm-shrinkwrap\\.json$", "(^|/)yarn\\.lock$", "(^|/)pnpm-lock\\.yaml$"]},
     {"id": "docbot", "code": ["^tools/docbot/"]},
     {"id": "manual-source", "code": ["^public/doc/"]},
 ]}
@@ -39,6 +41,12 @@ def test_ignored_files_are_dropped_and_logged():
     selection = select(DOC_MAP, [diff("public/app/a.js"), diff("tools/docbot/src/x.py"), diff("Jenkinsfile")], PAGE_DIR)
     assert [d["new_path"] for d in selection.relevant] == ["public/app/a.js"]
     assert selection.ignored == ["tools/docbot/src/x.py", "Jenkinsfile"]
+
+
+def test_a_dependency_upgrade_sends_its_manifest_and_drops_its_lock_file():
+    selection = select(DOC_MAP, [diff("package.json"), diff("package-lock.json"), diff("web/pnpm-lock.yaml")], PAGE_DIR)
+    assert [d["new_path"] for d in selection.relevant] == ["package.json"]
+    assert selection.ignored == ["package-lock.json", "web/pnpm-lock.yaml"]
 
 
 def test_pages_the_merge_request_edited_are_remembered_but_not_sent():

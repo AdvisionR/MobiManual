@@ -55,6 +55,47 @@ def test_a_long_list_item_continues_under_its_text():
     assert new.endswith("1. Open it.\n2. Select the department the device\n   belongs to, then save it.\n")
 
 
+def test_words_a_break_spills_over_join_the_next_line_of_the_paragraph():
+    # The passcode-history scenario, as Mistral drafted it on 2026-10-08: wrapped a little wider than the page,
+    # which left "When" and "and" on lines of their own before the spill-over joined the next line.
+    page = ("After the set number of failed attempts, the device wipes itself. This cannot\nbe undone.\n\n"
+            "If a user has forgotten the passcode, send **Clear passcode** from the device's\n**Commands** tab.\n")
+    replace = ("be undone.\n\nThe passcode history setting prevents users from reusing their last passcodes. When\n"
+               "the value is greater than 0, the device remembers that many previous passcodes and\n"
+               "rejects any attempt to reuse one of them.")
+    assert apply(page, [{"find": "be undone.", "replace": replace}]) == (
+        "After the set number of failed attempts, the device wipes itself. This cannot\nbe undone.\n\n"
+        "The passcode history setting prevents users from reusing their last passcodes.\n"
+        "When the value is greater than 0, the device remembers that many previous\n"
+        "passcodes and rejects any attempt to reuse one of them.\n\n"
+        "If a user has forgotten the passcode, send **Clear passcode** from the device's\n**Commands** tab.\n")
+
+
+def test_words_spill_onto_a_line_the_page_already_had():
+    # The lost-mode-dark scenario: the edit lengthens the first line of a sentence the page wraps in two.
+    page = ("Supervision gives MobiVisor more control over a device. Some commands and\n"
+            "policies need it: **Update OS**, **Clear passcode**, and single-app kiosk mode\n"
+            "on iOS. Supervision can only be set when the device is enrolled.\n")
+    new = apply(page, [{"find": "**Clear passcode**, and", "replace": "**Clear passcode**, **Lost mode**, and"}])
+    assert new == ("Supervision gives MobiVisor more control over a device. Some commands and\n"
+                   "policies need it: **Update OS**, **Clear passcode**, **Lost mode**, and\n"
+                   "single-app kiosk mode on iOS. Supervision can only be set when the device is\n"
+                   "enrolled.\n")
+
+
+@pytest.mark.parametrize("find, replace, new", [
+    # The next list item starts a block of its own: the spilled words stay with their item.
+    ("1. Open the page.", "1. Open the page and choose a group.",
+     "1. Open the page and\n   choose a group.\n2. Save.\n"),
+    # Two trailing spaces are a Markdown line break: the line after it is not joined, and the break is kept.
+    ("A line that ends here  ", "A longer line that ends right here  ",
+     "A longer line that ends\nright here  \nand goes on.\n"),
+])
+def test_spilled_words_never_cross_into_another_block_or_over_a_line_break(find, replace, new):
+    page = "Wrapped at twenty-two\nor so, by hand.\n\n1. Open the page.\n2. Save.\n\nA line that ends here  \nand goes on.\n"
+    assert new in apply(page, [{"find": find, "replace": replace}])
+
+
 def test_a_line_the_pages_wrapping_could_have_produced_is_not_broken():
     # Wrapped at 13 or more, but below 23, or "paragraph." would have fit: 15 is within that.
     page = "Short wrapped\nparagraph.\n"

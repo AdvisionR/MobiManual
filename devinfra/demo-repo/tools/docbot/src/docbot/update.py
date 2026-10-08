@@ -25,6 +25,8 @@ TARGET_BRANCH = "main"
 GENERATED_LABEL = "docbot-generated"
 DOC_MAP = "doc-map.json"
 GRUNTFILE = "gruntfile.js"
+# The most diff the model is sent, in characters (about 25k tokens)
+MAX_DIFF_CHARS = 100_000
 
 
 def update_manual(gitlab: GitLab, llm: LLM, sha: str, dry_run: bool = False, repo: Repo | None = None) -> dict:
@@ -58,6 +60,10 @@ def update_manual(gitlab: GitLab, llm: LLM, sha: str, dry_run: bool = False, rep
     result["files"] = {"sent": [d["new_path"] for d in selection.relevant], "ignored": selection.ignored}
     if not selection.relevant:
         return {**result, "outcome": "skipped", "reason": f"every changed file is ignored by {DOC_MAP}"}
+    size = sum(len(d["diff"]) for d in selection.relevant)
+    if size > MAX_DIFF_CHARS:
+        return {**result, "outcome": "needs-human",
+                "reason": f"the diff is {size} characters, more than the {MAX_DIFF_CHARS} a model is sent"}
 
     names = manual.html_doc_pages(gruntfile)
     texts = {name: gitlab.file(f"{page_dir}/{name}", ref=sha) for name in names}

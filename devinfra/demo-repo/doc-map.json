@@ -17,6 +17,15 @@
       "code": ["^\\.gitlab-ci\\.yml$", "^Jenkinsfile$", "^e2e/", "\\.spec\\.js$"]
     },
     {
+      "id": "lock-files",
+      "_comment": [
+        "Resolved dependency versions, written by the package manager. A dependency",
+        "upgrade's lock file can be hundreds of thousands of characters of diff;",
+        "package.json, which says what was upgraded, still goes to the model."
+      ],
+      "code": ["(^|/)package-lock\\.json$", "(^|/)npm-shrinkwrap\\.json$", "(^|/)yarn\\.lock$", "(^|/)pnpm-lock\\.yaml$"]
+    },
+    {
       "id": "docbot",
       "_comment": "DocBot's own code. Changing the bot does not change the product.",
       "code": ["^tools/docbot/"]

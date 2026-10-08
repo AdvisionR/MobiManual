@@ -7,22 +7,24 @@ Nothing merges itself.
 
 ## Flow
 
-[`update_manual()`](src/docbot/update.py#L30) takes one commit on `main`:
+[`update_manual()`](src/docbot/update.py#L36) takes one commit on `main`:
 
 1. **Resolve** the merge request that produced it ([`resolve()`](src/docbot/resolve.py#L30)).
    If it is not a merge to `main`, or is DocBot's own (label `docbot-generated`): `skipped`.
 2. **Deduplicate.** If a merge request from `docbot/mr-<iid>` already exists: `exists`.
    A rerun asks no model.
 3. **Filter** the diff with the ignore list in `doc-map.json`
-   ([`ignore.select()`](src/docbot/drafting/ignore.py#L25)): tests, CI, DocBot itself,
-   the manual. If nothing is left: `skipped`, with no model call.
+   ([`ignore.select()`](src/docbot/drafting/ignore.py#L25)): tests, CI, lock files,
+   DocBot itself, the manual. If nothing is left: `skipped`, with no model call. If
+   what is left is more than [100,000 characters](src/docbot/update.py#L33) of diff:
+   `needs-human`, with no model call.
 4. **Triage** (model): does the change make the manual wrong or incomplete? If not:
    `no-doc-impact`. See [Triage](#triage).
 5. **Draft** (model): find the affected pages and propose edits to them. If nothing
    is edited: `no-change` or `needs-human`. See [Drafting](#drafting).
 6. **Publish**: one commit on `docbot/mr-<iid>`, and a docs merge request labelled
-   `docbot-generated` ([`update.py`](src/docbot/update.py#L89)). Its description
-   carries the model's reasons ([`_description()`](src/docbot/update.py#L110)).
+   `docbot-generated` ([`update.py`](src/docbot/update.py#L99)). Its description
+   carries the model's reasons ([`_description()`](src/docbot/update.py#L120)).
    `--dry-run` stops before this step and prints the diff.
 
 The manual is the set of English pages listed in `htmlDocPages` in `gruntfile.js`,
@@ -38,17 +40,17 @@ Imports point one way: the top level uses `drafting/`, and `drafting/` uses `llm
 
 [`triage()`](src/docbot/drafting/triage.py#L48): one conversation with one tool.
 
-**In.** [`update.py:66`](src/docbot/update.py#L66) hands triage four things: the
+**In.** [`update.py:76`](src/docbot/update.py#L76) hands triage four things: the
 merge request, the diffs that were not ignored, the manual, and the pages the merge
 request edited. [`_task()`](src/docbot/drafting/triage.py#L71) writes them into one
 user message:
 
 | Input | Written into the task at | Comes from |
 |---|---|---|
-| Merge request title, with its `!iid` | [`change.py:6`](src/docbot/drafting/change.py#L6), `mr['title']` | GitLab `GET /repository/commits/:sha/merge_requests` ([`gitlab.py:54`](src/docbot/gitlab.py#L54)), via [`update.py:33`](src/docbot/update.py#L33) |
+| Merge request title, with its `!iid` | [`change.py:6`](src/docbot/drafting/change.py#L6), `mr['title']` | GitLab `GET /repository/commits/:sha/merge_requests` ([`gitlab.py:54`](src/docbot/gitlab.py#L54)), via [`update.py:39`](src/docbot/update.py#L39) |
 | Merge request description | [`change.py:6`](src/docbot/drafting/change.py#L6), `mr.get("description")` | the same |
-| Diff of each file that is not ignored, with its path | [`change.py:11`](src/docbot/drafting/change.py#L11) | GitLab `GET /merge_requests/:iid/diffs` ([`gitlab.py:61`](src/docbot/gitlab.py#L61)), filtered at [`update.py:57`](src/docbot/update.py#L57) |
-| Page names, in manual order | [`manual.py:86`](src/docbot/drafting/manual.py#L86) | `htmlDocPages` in `gruntfile.js`. The pages are read from GitLab at [`update.py:62`](src/docbot/update.py#L62) |
+| Diff of each file that is not ignored, with its path | [`change.py:11`](src/docbot/drafting/change.py#L11) | GitLab `GET /merge_requests/:iid/diffs` ([`gitlab.py:61`](src/docbot/gitlab.py#L61)), filtered at [`update.py:63`](src/docbot/update.py#L63) |
+| Page names, in manual order | [`manual.py:86`](src/docbot/drafting/manual.py#L86) | `htmlDocPages` in `gruntfile.js`. The pages are read from GitLab at [`update.py:72`](src/docbot/update.py#L72) |
 | Headings of each page | [`manual.py:87`](src/docbot/drafting/manual.py#L87) | the same pages |
 | The marker "already edited in this merge request" | [`manual.py:86`](src/docbot/drafting/manual.py#L86) | manual pages in the diff ([`ignore.py:39`](src/docbot/drafting/ignore.py#L39)) |
 
@@ -107,8 +109,9 @@ A proposal is accepted only if it [validates](src/docbot/drafting/proposal.py#L1
 
 If it does not validate, the error goes back to the model, which tries again within
 the same call budget.
-[`edits.apply()`](src/docbot/drafting/edits.py#L36) tolerates whitespace differences
-in `find`, and re-wraps the new lines to the page's own line width.
+[`edits.apply()`](src/docbot/drafting/edits.py#L40) tolerates whitespace differences
+in `find`, and re-wraps the new lines to the page's own line width. Words that spill
+over a broken line join the next line of the same paragraph.
 
 ## Result
 
@@ -124,7 +127,7 @@ the token usage.
 | `exists` | One was already opened for this merge request | The existing one |
 | `no-doc-impact` | Triage answered no | — |
 | `no-change` | Drafting edited nothing | — |
-| `needs-human` | A conversation ended without a valid answer, or no page was edited and one needs a human | — |
+| `needs-human` | The diff is too large to send, a conversation ended without a valid answer, or no page was edited and one needs a human | — |
 | `dry-run` | `--dry-run` | —, the diff is in `diff` |
 | `opened` | At least one page was edited | Opened |
 | `error` | GitLab or the provider was unreachable or refused, or `doc-map.json` or `gruntfile.js` is missing | — |

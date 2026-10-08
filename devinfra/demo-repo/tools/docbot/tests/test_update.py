@@ -8,7 +8,7 @@ import pytest
 from fakes import FakeLLM, submit
 
 from docbot.gitlab import GitLab, GitLabError
-from docbot.update import update_manual
+from docbot.update import MAX_DIFF_CHARS, update_manual
 
 SHA = "a" * 40
 PREFIX = "/api/v4/projects/root%2Fmobivisor-console/"
@@ -169,6 +169,22 @@ def test_outcomes_without_edits_open_nothing(turns, outcome, reason):
     assert result["outcome"] == outcome
     assert reason in result["reason"]
     assert forge.writes == []
+
+
+def test_a_diff_too_large_to_send_needs_a_human_and_asks_no_model():
+    big = {**CODE, "diff": "@@ -1 +1 @@\n" + "+x\n" * (MAX_DIFF_CHARS // 3)}
+    forge = Forge(commit_mrs=[merged()], diffs=[big, SPEC])
+    result = run(forge)
+    assert result["outcome"] == "needs-human"
+    assert result["reason"] == f"the diff is {MAX_DIFF_CHARS + 11} characters, more than the {MAX_DIFF_CHARS} a model is sent"
+    assert result["files"] == {"sent": ["public/app/kiosk.js"], "ignored": ["e2e/kiosk.spec.js"]}
+    assert forge.writes == []
+
+
+def test_ignored_files_do_not_count_towards_the_size_limit():
+    big = {**SPEC, "diff": "@@ -1 +1 @@\n" + "+x\n" * MAX_DIFF_CHARS}
+    result = run(Forge(commit_mrs=[merged()], diffs=[CODE, big]), FakeLLM(triaged(decision="no-doc-impact")))
+    assert result["outcome"] == "no-doc-impact"
 
 
 def test_a_triage_that_never_validates_needs_a_human():

@@ -301,12 +301,25 @@ The four fixture kinds and the four Zulip kinds suggest what to try (question 36
 Each can be scored on the 4 fixture negatives and the 7 Zulip commits, with the fixture's
 14 positives and Zulip's 9 to check that none is lost, for about $0.50 a round.
 
-### Smaller fixes **[PROPOSED]**
+### Smaller fixes
 
-- **`edits.py`** (E11): when a line of the edit is broken, join the rest onto the next
-  line of the same paragraph before wrapping again, and stop at the paragraph's end.
-- **`doc-map.json`** (E13): ignore lock files (`package-lock.json`), and give the diff
-  sent to the model a size limit that ends in `needs-human`.
+**Done on 2026-10-08 [DECIDED]**, with offline tests (133 pass; ruff and pyright clean):
+
+- **`edits.py`** (E11): the words a break spills over join the next line of the same
+  paragraph, which is broken in turn if it gets too long. They stay on a line of
+  their own only at the paragraph's end or before a Markdown line break. The three
+  drafts with orphan words come out clean when replayed.
+- **Lock files** (E13): a `lock-files` entry in the fixture's `doc-map.json`
+  (`package-lock.json`, `npm-shrinkwrap.json`, `yarn.lock`, `pnpm-lock.yaml`), and
+  `pnpm-lock.yaml` and `uv.lock` in the Zulip replay's ignore list.
+- **A size limit** (E13): more than 100,000 characters of diff after the ignore list
+  (about 25k tokens) ends in `needs-human`, with no model call. The largest change with
+  doc impact replayed so far is 37k characters. Of the 1,237 Zulip commits, only one
+  would stop there besides the two lock-file upgrades: a 220k-character revert that
+  restores a whole integration.
+
+**Still open [PROPOSED]:**
+
 - **Drafting restraint** (E4 to E7): a rule against edits to pages that are still true,
   and against detail the page does not have elsewhere. Score it on `wifi-policy` and
   the Zulip false positives.
