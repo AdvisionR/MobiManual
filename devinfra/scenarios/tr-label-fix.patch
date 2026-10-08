@@ -1,0 +1,34 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fixture Developer <dev@mobimanual.local>
+Date: Thu, 8 Oct 2026 10:30:00 +0200
+Subject: [PATCH] Turkish: clearer labels for the device list filters
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+A customer in Izmir pointed out that "Yalnızca kayıtlı" does not say
+what is registered, and that the search hint reads as "owner" in the
+wrong case. Both Turkish labels are corrected. English and German are
+unchanged.
+---
+Expected: not worth documenting. Triage answers no-doc-impact: only tr.json changes, the English manual DocBot keeps is unaffected, and the Turkish manual does not quote either label.
+Expected-outcome: no-doc-impact
+
+ public/i18n/tr.json | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/public/i18n/tr.json b/public/i18n/tr.json
+index 1e76126..8f7ef0b 100644
+--- a/public/i18n/tr.json
++++ b/public/i18n/tr.json
+@@ -62,8 +62,8 @@
+     "COL_LAST_CHECKIN": "Son bağlantı",
+     "COL_STATUS": "Durum",
+     "FILTER_PLATFORM": "Platform",
+-    "FILTER_ENROLLED": "Yalnızca kayıtlı",
+-    "SEARCH_HINT": "Ad, seri numarası veya sahip",
++    "FILTER_ENROLLED": "Yalnızca kayıtlı cihazlar",
++    "SEARCH_HINT": "Ad, seri numarası veya sahibi",
+     "ACTION_MOVE": "Gruba taşı",
+     "ACTION_COMMAND": "Komut gönder",
+     "ACTION_RETIRE": "Kullanımdan kaldır",

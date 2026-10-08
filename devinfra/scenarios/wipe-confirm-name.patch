@@ -1,0 +1,81 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fixture Developer <dev@mobimanual.local>
+Date: Wed, 7 Oct 2026 10:15:00 +0200
+Subject: [PATCH] Confirm a wipe by typing the device's name
+
+Asking for the administrator's password before a wipe protected against
+an unattended session, but not against wiping the wrong device, which is
+what the last three wipe-related tickets were about. The confirmation now
+asks for the device's name instead, so the administrator has to look at
+which device they are about to erase.
+---
+Expected: worth documenting. Triage answers doc-impact. The draft corrects "Before a wipe is queued, the console asks for your password" on _devicescommands.md: the console now asks for the device's name. Adding the new rule next to the old sentence, without correcting it, is wrong.
+Expected-outcome: opened
+Expected-edits: _devicescommands.md
+
+ public/i18n/de.json            | 2 +-
+ public/i18n/en.json            | 2 +-
+ public/i18n/tr.json            | 2 +-
+ server/commands/definitions.js | 5 +++--
+ 4 files changed, 6 insertions(+), 5 deletions(-)
+
+diff --git a/public/i18n/de.json b/public/i18n/de.json
+index 95c9eb4..9294085 100644
+--- a/public/i18n/de.json
++++ b/public/i18n/de.json
+@@ -102,7 +102,7 @@
+     "UPDATE_OS": "Betriebssystem aktualisieren",
+     "RETIRE": "Außer Betrieb nehmen",
+     "WIPE": "Vollständig löschen",
+-    "WIPE_CONFIRM": "Geben Sie Ihr Passwort ein, um {{device}} vollständig zu löschen. Dies kann nicht rückgängig gemacht werden.",
++    "WIPE_CONFIRM": "Geben Sie den Namen des Geräts, {{device}}, ein, um es vollständig zu löschen. Dies kann nicht rückgängig gemacht werden.",
+     "NOT_SUPPORTED": "Auf diesem Gerät nicht unterstützt"
+   },
+   "GROUPS": {
+diff --git a/public/i18n/en.json b/public/i18n/en.json
+index 798ce9e..26cc684 100644
+--- a/public/i18n/en.json
++++ b/public/i18n/en.json
+@@ -102,7 +102,7 @@
+     "UPDATE_OS": "Update OS",
+     "RETIRE": "Retire",
+     "WIPE": "Wipe",
+-    "WIPE_CONFIRM": "Enter your password to wipe {{device}}. This cannot be undone.",
++    "WIPE_CONFIRM": "Type the name of the device, {{device}}, to wipe it. This cannot be undone.",
+     "NOT_SUPPORTED": "Not supported on this device"
+   },
+   "GROUPS": {
+diff --git a/public/i18n/tr.json b/public/i18n/tr.json
+index 1e76126..6b48aa6 100644
+--- a/public/i18n/tr.json
++++ b/public/i18n/tr.json
+@@ -102,7 +102,7 @@
+     "UPDATE_OS": "İşletim sistemini güncelle",
+     "RETIRE": "Kullanımdan kaldır",
+     "WIPE": "Tamamen sil",
+-    "WIPE_CONFIRM": "{{device}} cihazını tamamen silmek için şifrenizi girin. Bu işlem geri alınamaz.",
++    "WIPE_CONFIRM": "{{device}} cihazını tamamen silmek için cihazın adını yazın. Bu işlem geri alınamaz.",
+     "NOT_SUPPORTED": "Bu cihazda desteklenmiyor"
+   },
+   "GROUPS": {
+diff --git a/server/commands/definitions.js b/server/commands/definitions.js
+index ad4999c..2a2e197 100644
+--- a/server/commands/definitions.js
++++ b/server/commands/definitions.js
+@@ -1,5 +1,6 @@
+ // Every command the console can send. platforms: where it runs. supervisedOnly:
+-// iOS devices must be supervised. The roles that may send each one come from
++// iOS devices must be supervised. confirm: what the console asks for before
++// queueing the command. The roles that may send each one come from
+ // auth/permissions.js.
+ 
+ const { ROLES } = require('../auth/permissions');
+@@ -10,7 +11,7 @@ const COMMANDS = [
+   { name: 'clear-passcode', label: 'COMMANDS.CLEAR_PASSCODE', platforms: ['android', 'ios'], supervisedOnly: true },
+   { name: 'update-os', label: 'COMMANDS.UPDATE_OS', platforms: ['ios'], supervisedOnly: true },
+   { name: 'retire', label: 'COMMANDS.RETIRE', platforms: ['android', 'ios'] },
+-  { name: 'wipe', label: 'COMMANDS.WIPE', platforms: ['android', 'ios'], confirm: 'password' }
++  { name: 'wipe', label: 'COMMANDS.WIPE', platforms: ['android', 'ios'], confirm: 'device-name' }
+ ];
+ 
+ function rolesFor(command) {

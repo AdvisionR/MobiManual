@@ -1,0 +1,273 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fixture Developer <dev@mobimanual.local>
+Date: Wed, 7 Oct 2026 13:30:00 +0200
+Subject: [PATCH] Add Wi-Fi policies
+
+A Wi-Fi policy puts a company network on the devices of its groups: the
+network name (SSID), the security type and the password. The security type
+is WPA2 Personal, WPA3 Personal or WPA2 Enterprise; Enterprise asks for a
+user name instead of a shared password and uses the device owner's
+directory account.
+
+It is a fourth policy type next to Passcode, Kiosk and Restrictions, with
+its own page under Policies, and is assigned to groups like the others.
+---
+Expected: worth documenting, and partly beyond what DocBot can write. Triage answers doc-impact. The draft corrects "There are three types: Passcode, Kiosk and Restrictions" on _policies.md, and says in uncertainties that the manual has no page for Wi-Fi policies (_policies_wifi.md, which a human has to write and add to htmlDocPages). Writing the Wi-Fi settings into an existing page as a stand-in for the missing one is wrong.
+Expected-outcome: opened
+Expected-edits: _policies.md
+
+ public/app/policies/policies.controller.js  |  2 +-
+ public/app/policies/wifi/wifi.controller.js |  7 ++++++
+ public/app/policies/wifi/wifi.html          | 24 +++++++++++++++++++++
+ public/app/routes.js                        |  1 +
+ public/app/services/policy.service.js       |  1 +
+ public/i18n/de.json                         | 13 +++++++++++
+ public/i18n/en.json                         | 13 +++++++++++
+ public/i18n/tr.json                         | 13 +++++++++++
+ public/index.html                           |  2 ++
+ server/policies/wifi.js                     | 20 +++++++++++++++++
+ 10 files changed, 95 insertions(+), 1 deletion(-)
+ create mode 100644 public/app/policies/wifi/wifi.controller.js
+ create mode 100644 public/app/policies/wifi/wifi.html
+ create mode 100644 server/policies/wifi.js
+
+diff --git a/public/app/policies/policies.controller.js b/public/app/policies/policies.controller.js
+index 1f6b2b0..6dc2413 100644
+--- a/public/app/policies/policies.controller.js
++++ b/public/app/policies/policies.controller.js
+@@ -3,7 +3,7 @@
+ // (server/policies/assignment.js).
+ 
+ angular.module('mobivisor').controller('PoliciesCtrl', ['$scope', '$location', 'policyService', 'groupService', function ($scope, $location, policyService, groupService) {
+-  $scope.types = ['passcode', 'kiosk', 'restrictions'];
++  $scope.types = ['passcode', 'kiosk', 'restrictions', 'wifi'];
+ 
+   $scope.reload = function () {
+     policyService.list().then(function (policies) {
+diff --git a/public/app/policies/wifi/wifi.controller.js b/public/app/policies/wifi/wifi.controller.js
+new file mode 100644
+index 0000000..ae3507c
+--- /dev/null
++++ b/public/app/policies/wifi/wifi.controller.js
+@@ -0,0 +1,7 @@
++angular.module('mobivisor').controller('WifiCtrl', ['$scope', 'policyService', function ($scope, policyService) {
++  $scope.policy = { ssid: '', security: 'wpa2-personal', password: '', hidden: false };
++
++  $scope.save = function () {
++    return policyService.saveWifi($scope.policy);
++  };
++}]);
+diff --git a/public/app/policies/wifi/wifi.html b/public/app/policies/wifi/wifi.html
+new file mode 100644
+index 0000000..5048582
+--- /dev/null
++++ b/public/app/policies/wifi/wifi.html
+@@ -0,0 +1,24 @@
++<!-- #!/policies/wifi, WifiCtrl. Security types and their fields: server/policies/wifi.js. -->
++<form class="wifi-policy" ng-submit="save()">
++  <h1>{{ 'WIFI.TITLE' | translate }}</h1>
++
++  <label for="ssid">{{ 'WIFI.SSID' | translate }}</label>
++  <input id="ssid" ng-model="policy.ssid" required>
++
++  <label for="security">{{ 'WIFI.SECURITY' | translate }}</label>
++  <select id="security" ng-model="policy.security">
++    <option value="wpa2-personal">{{ 'WIFI.WPA2_PERSONAL' | translate }}</option>
++    <option value="wpa3-personal">{{ 'WIFI.WPA3_PERSONAL' | translate }}</option>
++    <option value="wpa2-enterprise">{{ 'WIFI.WPA2_ENTERPRISE' | translate }}</option>
++  </select>
++
++  <div ng-if="policy.security !== 'wpa2-enterprise'">
++    <label for="password">{{ 'WIFI.PASSWORD' | translate }}</label>
++    <input id="password" type="password" ng-model="policy.password" required>
++  </div>
++  <p class="hint" ng-if="policy.security === 'wpa2-enterprise'">{{ 'WIFI.ENTERPRISE_HINT' | translate }}</p>
++
++  <label><input type="checkbox" ng-model="policy.hidden"> {{ 'WIFI.HIDDEN' | translate }}</label>
++
++  <button type="submit">{{ 'COMMON.SAVE' | translate }}</button>
++</form>
+diff --git a/public/app/routes.js b/public/app/routes.js
+index 0b1b319..24ff055 100644
+--- a/public/app/routes.js
++++ b/public/app/routes.js
+@@ -18,6 +18,7 @@ angular.module('mobivisor').config(['$routeProvider', function ($routeProvider)
+     .when('/policies/passcode',     { templateUrl: 'app/policies/passcode/passcode.html',           controller: 'PasscodeCtrl' })
+     .when('/policies/kiosk',        { templateUrl: 'app/policies/kiosk/kiosk.html',                 controller: 'KioskCtrl' })
+     .when('/policies/restrictions', { templateUrl: 'app/policies/restrictions/restrictions.html',   controller: 'RestrictionsCtrl' })
++    .when('/policies/wifi',         { templateUrl: 'app/policies/wifi/wifi.html',                   controller: 'WifiCtrl' })
+     .when('/apns',                  { templateUrl: 'app/apns/apns.html',                            controller: 'ApnsCtrl' })
+     .when('/appinstallations',      { templateUrl: 'app/appinstallations/appinstallations.html',    controller: 'AppInstallationsCtrl' })
+     .when('/auditlog',              { templateUrl: 'app/auditlog/auditlog.html',                    controller: 'AuditLogCtrl' })
+diff --git a/public/app/services/policy.service.js b/public/app/services/policy.service.js
+index b58b46f..092d3e9 100644
+--- a/public/app/services/policy.service.js
++++ b/public/app/services/policy.service.js
+@@ -4,6 +4,7 @@ angular.module('mobivisor').factory('policyService', ['api', function (api) {
+     save: function (policy) { return api.post('/policies', policy); },
+     assign: function (policyId, groupIds) { return api.put('/policies/' + policyId + '/groups', { groups: groupIds }); },
+     savePasscode: function (settings) { return api.post('/policies/passcode', settings); },
++    saveWifi: function (policy) { return api.post('/policies/wifi', policy); },
+     saveKiosk: function (settings) { return api.post('/policies/kiosk', settings); }
+   };
+ }]);
+diff --git a/public/i18n/de.json b/public/i18n/de.json
+index 95c9eb4..f5e30f2 100644
+--- a/public/i18n/de.json
++++ b/public/i18n/de.json
+@@ -12,6 +12,7 @@
+     "POLICIES_PASSCODE": "Gerätecode",
+     "POLICIES_KIOSK": "Kiosk",
+     "POLICIES_RESTRICTIONS": "Einschränkungen",
++    "POLICIES_WIFI": "WLAN",
+     "APNS": "Zugangspunkte (APN)",
+     "APP_INSTALLATIONS": "App-Installationen",
+     "AUDIT_LOG": "Audit-Protokoll",
+@@ -161,6 +162,7 @@
+     "TYPE_PASSCODE": "Gerätecode",
+     "TYPE_KIOSK": "Kiosk",
+     "TYPE_RESTRICTIONS": "Einschränkungen",
++    "TYPE_WIFI": "WLAN",
+     "ASSIGN": "Gruppen zuweisen",
+     "ASSIGNED_GROUPS": "Zugewiesene Gruppen"
+   },
+@@ -183,6 +185,17 @@
+   "RESTRICTIONS": {
+     "TITLE": "Android-Einschränkungen"
+   },
++  "WIFI": {
++    "TITLE": "WLAN-Richtlinie",
++    "SSID": "Netzwerkname (SSID)",
++    "SECURITY": "Sicherheit",
++    "WPA2_PERSONAL": "WPA2 Personal",
++    "WPA3_PERSONAL": "WPA3 Personal",
++    "WPA2_ENTERPRISE": "WPA2 Enterprise",
++    "PASSWORD": "Passwort",
++    "ENTERPRISE_HINT": "Geräte melden sich mit dem Verzeichniskonto ihres Besitzers an.",
++    "HIDDEN": "Verborgenes Netzwerk"
++  },
+   "APNS": {
+     "TITLE": "Zugangspunkte (APN)",
+     "ADD": "Hinzufügen",
+diff --git a/public/i18n/en.json b/public/i18n/en.json
+index 798ce9e..3295618 100644
+--- a/public/i18n/en.json
++++ b/public/i18n/en.json
+@@ -12,6 +12,7 @@
+     "POLICIES_PASSCODE": "Passcode",
+     "POLICIES_KIOSK": "Kiosk",
+     "POLICIES_RESTRICTIONS": "Restrictions",
++    "POLICIES_WIFI": "Wi-Fi",
+     "APNS": "Access Point Names",
+     "APP_INSTALLATIONS": "App Installations",
+     "AUDIT_LOG": "Audit Log",
+@@ -161,6 +162,7 @@
+     "TYPE_PASSCODE": "Passcode",
+     "TYPE_KIOSK": "Kiosk",
+     "TYPE_RESTRICTIONS": "Restrictions",
++    "TYPE_WIFI": "Wi-Fi",
+     "ASSIGN": "Assign to groups",
+     "ASSIGNED_GROUPS": "Assigned groups"
+   },
+@@ -183,6 +185,17 @@
+   "RESTRICTIONS": {
+     "TITLE": "Android Restrictions"
+   },
++  "WIFI": {
++    "TITLE": "Wi-Fi Policy",
++    "SSID": "Network name (SSID)",
++    "SECURITY": "Security",
++    "WPA2_PERSONAL": "WPA2 Personal",
++    "WPA3_PERSONAL": "WPA3 Personal",
++    "WPA2_ENTERPRISE": "WPA2 Enterprise",
++    "PASSWORD": "Password",
++    "ENTERPRISE_HINT": "Devices sign in with their owner's directory account.",
++    "HIDDEN": "Hidden network"
++  },
+   "APNS": {
+     "TITLE": "Access Point Names",
+     "ADD": "Add",
+diff --git a/public/i18n/tr.json b/public/i18n/tr.json
+index 1e76126..31819eb 100644
+--- a/public/i18n/tr.json
++++ b/public/i18n/tr.json
+@@ -12,6 +12,7 @@
+     "POLICIES_PASSCODE": "Parola",
+     "POLICIES_KIOSK": "Kiosk",
+     "POLICIES_RESTRICTIONS": "Kısıtlamalar",
++    "POLICIES_WIFI": "Wi-Fi",
+     "APNS": "Erişim Noktası Adları",
+     "APP_INSTALLATIONS": "Uygulama Kurulumları",
+     "AUDIT_LOG": "Denetim Günlüğü",
+@@ -161,6 +162,7 @@
+     "TYPE_PASSCODE": "Parola",
+     "TYPE_KIOSK": "Kiosk",
+     "TYPE_RESTRICTIONS": "Kısıtlamalar",
++    "TYPE_WIFI": "Wi-Fi",
+     "ASSIGN": "Gruplara ata",
+     "ASSIGNED_GROUPS": "Atanmış gruplar"
+   },
+@@ -183,6 +185,17 @@
+   "RESTRICTIONS": {
+     "TITLE": "Android Kısıtlamaları"
+   },
++  "WIFI": {
++    "TITLE": "Wi-Fi Politikası",
++    "SSID": "Ağ adı (SSID)",
++    "SECURITY": "Güvenlik",
++    "WPA2_PERSONAL": "WPA2 Kişisel",
++    "WPA3_PERSONAL": "WPA3 Kişisel",
++    "WPA2_ENTERPRISE": "WPA2 Kurumsal",
++    "PASSWORD": "Şifre",
++    "ENTERPRISE_HINT": "Cihazlar sahiplerinin dizin hesabıyla oturum açar.",
++    "HIDDEN": "Gizli ağ"
++  },
+   "APNS": {
+     "TITLE": "Erişim Noktası Adları",
+     "ADD": "Ekle",
+diff --git a/public/index.html b/public/index.html
+index 1bf7f66..e46446c 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -36,6 +36,7 @@
+   <script src="app/policies/passcode/passcode.controller.js"></script>
+   <script src="app/policies/policies.controller.js"></script>
+   <script src="app/policies/restrictions/restrictions.controller.js"></script>
++  <script src="app/policies/wifi/wifi.controller.js"></script>
+   <script src="app/reports/export-schedule.controller.js"></script>
+   <script src="app/settings/settings.controller.js"></script>
+   <script src="app/users/users.controller.js"></script>
+@@ -57,6 +58,7 @@
+         <a href="#!/policies/passcode">{{ 'NAV.POLICIES_PASSCODE' | translate }}</a>
+         <a href="#!/policies/kiosk">{{ 'NAV.POLICIES_KIOSK' | translate }}</a>
+         <a href="#!/policies/restrictions">{{ 'NAV.POLICIES_RESTRICTIONS' | translate }}</a>
++        <a href="#!/policies/wifi">{{ 'NAV.POLICIES_WIFI' | translate }}</a>
+       </span>
+       <a href="#!/apns">{{ 'NAV.APNS' | translate }}</a>
+       <a href="#!/appinstallations">{{ 'NAV.APP_INSTALLATIONS' | translate }}</a>
+diff --git a/server/policies/wifi.js b/server/policies/wifi.js
+new file mode 100644
+index 0000000..0556732
+--- /dev/null
++++ b/server/policies/wifi.js
+@@ -0,0 +1,20 @@
++// Wi-Fi policies. Personal networks share one password; Enterprise signs in
++// with the device owner's directory account, so it needs a directory under
++// Settings > Directory and a device with an owner.
++
++const SECURITY = ['wpa2-personal', 'wpa3-personal', 'wpa2-enterprise'];
++
++function check(policy) {
++  const problems = [];
++  if (!policy.ssid || policy.ssid.length > 32) problems.push('ssid');
++  if (SECURITY.indexOf(policy.security) < 0) problems.push('security');
++  if (policy.security !== 'wpa2-enterprise' && (!policy.password || policy.password.length < 8)) problems.push('password');
++  return problems;
++}
++
++function supports(policy, device) {
++  if (policy.security === 'wpa3-personal') return device.platform === 'ios' || device.osVersion >= 10;
++  return true;
++}
++
++module.exports = { SECURITY, check, supports };

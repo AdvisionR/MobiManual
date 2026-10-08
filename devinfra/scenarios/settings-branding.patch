@@ -1,0 +1,166 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fixture Developer <dev@mobimanual.local>
+Date: Wed, 7 Oct 2026 16:20:00 +0200
+Subject: [PATCH] Let administrators upload a company logo
+
+Settings gets a Branding section. A logo uploaded there replaces the
+MobiVisor logo in the top bar of the console and on the sign-in page.
+PNG and SVG files up to 1 MB are accepted. Remove logo brings back the
+MobiVisor logo.
+---
+Expected: worth documenting. Triage answers doc-impact. New functionality that fits an existing page: the draft adds a Branding section to _settings.md with the upload, the accepted files and Remove logo. A mention under "Signing in" on chapter1.md is fine as well.
+Expected-outcome: opened
+Expected-edits: _settings.md
+Expected-may-edit: chapter1.md
+
+ public/app/settings/settings.controller.js | 12 ++++++++++++
+ public/app/settings/settings.html          |  9 +++++++++
+ public/i18n/de.json                        |  6 +++++-
+ public/i18n/en.json                        |  6 +++++-
+ public/i18n/tr.json                        |  6 +++++-
+ public/index.html                          |  2 +-
+ public/login.html                          |  1 +
+ server/settings/branding.js                | 15 +++++++++++++++
+ 8 files changed, 53 insertions(+), 4 deletions(-)
+ create mode 100644 server/settings/branding.js
+
+diff --git a/public/app/settings/settings.controller.js b/public/app/settings/settings.controller.js
+index 858b0b0..7754be5 100644
+--- a/public/app/settings/settings.controller.js
++++ b/public/app/settings/settings.controller.js
+@@ -19,6 +19,18 @@ angular.module('mobivisor').controller('SettingsCtrl', ['$scope', 'api', functio
+     });
+   };
+ 
++  $scope.uploadLogo = function (file) {
++    return api.post('/settings/branding/logo', file).then(function (branding) {
++      $scope.settings.branding = branding;
++    });
++  };
++
++  $scope.removeLogo = function () {
++    return api.delete('/settings/branding/logo').then(function () {
++      $scope.settings.branding = {};
++    });
++  };
++
+   $scope.save = function (section) {
+     return api.put('/settings/' + section, $scope.settings[section]);
+   };
+diff --git a/public/app/settings/settings.html b/public/app/settings/settings.html
+index a381d01..c7f2f03 100644
+--- a/public/app/settings/settings.html
++++ b/public/app/settings/settings.html
+@@ -34,6 +34,15 @@
+     <button ng-click="save('email')">{{ 'COMMON.SAVE' | translate }}</button>
+   </section>
+ 
++  <section>
++    <h2>{{ 'SETTINGS.BRANDING' | translate }}</h2>
++    <img class="logo-preview" ng-src="{{ settings.branding.logoUrl || 'img/mobivisor.svg' }}">
++    <input type="file" id="logo" accept=".png,.svg">
++    <p class="hint">{{ 'SETTINGS.LOGO_HINT' | translate }}</p>
++    <button ng-click="uploadLogo()">{{ 'SETTINGS.UPLOAD_LOGO' | translate }}</button>
++    <button ng-click="removeLogo()" ng-if="settings.branding.logoUrl">{{ 'SETTINGS.REMOVE_LOGO' | translate }}</button>
++  </section>
++
+   <section>
+     <h2>{{ 'SETTINGS.SECURITY' | translate }}</h2>
+     <label for="timeout">{{ 'SETTINGS.SESSION_TIMEOUT' | translate }}</label>
+diff --git a/public/i18n/de.json b/public/i18n/de.json
+index 95c9eb4..cb56eca 100644
+--- a/public/i18n/de.json
++++ b/public/i18n/de.json
+@@ -235,7 +235,11 @@
+     "SMTP_HOST": "SMTP-Server",
+     "SENDER": "Absenderadresse",
+     "SECURITY": "Sicherheit",
+-    "SESSION_TIMEOUT": "Sitzungs-Timeout (Minuten)"
++    "SESSION_TIMEOUT": "Sitzungs-Timeout (Minuten)",
++    "BRANDING": "Branding",
++    "UPLOAD_LOGO": "Logo hochladen",
++    "REMOVE_LOGO": "Logo entfernen",
++    "LOGO_HINT": "PNG oder SVG, höchstens 1 MB. Erscheint in der oberen Leiste und auf der Anmeldeseite."
+   },
+   "REPORTS": {
+     "EXPORT_TITLE": "Geplanter Export",
+diff --git a/public/i18n/en.json b/public/i18n/en.json
+index 798ce9e..fb7227b 100644
+--- a/public/i18n/en.json
++++ b/public/i18n/en.json
+@@ -235,7 +235,11 @@
+     "SMTP_HOST": "SMTP server",
+     "SENDER": "Sender address",
+     "SECURITY": "Security",
+-    "SESSION_TIMEOUT": "Session timeout (minutes)"
++    "SESSION_TIMEOUT": "Session timeout (minutes)",
++    "BRANDING": "Branding",
++    "UPLOAD_LOGO": "Upload logo",
++    "REMOVE_LOGO": "Remove logo",
++    "LOGO_HINT": "PNG or SVG, at most 1 MB. Shown in the top bar and on the sign-in page."
+   },
+   "REPORTS": {
+     "EXPORT_TITLE": "Scheduled export",
+diff --git a/public/i18n/tr.json b/public/i18n/tr.json
+index 1e76126..e0b3c3c 100644
+--- a/public/i18n/tr.json
++++ b/public/i18n/tr.json
+@@ -235,7 +235,11 @@
+     "SMTP_HOST": "SMTP sunucusu",
+     "SENDER": "Gönderen adresi",
+     "SECURITY": "Güvenlik",
+-    "SESSION_TIMEOUT": "Oturum zaman aşımı (dakika)"
++    "SESSION_TIMEOUT": "Oturum zaman aşımı (dakika)",
++    "BRANDING": "Marka",
++    "UPLOAD_LOGO": "Logo yükle",
++    "REMOVE_LOGO": "Logoyu kaldır",
++    "LOGO_HINT": "PNG veya SVG, en fazla 1 MB. Üst çubukta ve oturum açma sayfasında gösterilir."
+   },
+   "REPORTS": {
+     "EXPORT_TITLE": "Zamanlanmış dışa aktarma",
+diff --git a/public/index.html b/public/index.html
+index 1bf7f66..c1c2e43 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -42,7 +42,7 @@
+ </head>
+ <body>
+   <header class="topbar">
+-    <a href="#!/dashboard" class="brand">MobiVisor</a>
++    <a href="#!/dashboard" class="brand"><img ng-src="{{ session.logoUrl || 'img/mobivisor.svg' }}" alt="MobiVisor"></a>
+     <nav>
+       <a href="#!/dashboard">{{ 'NAV.DASHBOARD' | translate }}</a>
+       <a href="#!/devices">{{ 'NAV.DEVICES' | translate }}</a>
+diff --git a/public/login.html b/public/login.html
+index 4cc7c27..c232b59 100644
+--- a/public/login.html
++++ b/public/login.html
+@@ -10,6 +10,7 @@
+   <script src="i18n-static.js" defer></script>
+ </head>
+ <body class="sign-in">
++  <img class="brand" src="/branding/logo" alt="">
+   <form method="post" action="/signin">
+     <h1 data-i18n="SIGN_IN.TITLE"></h1>
+     <label for="login" data-i18n="SIGN_IN.LOGIN"></label>
+diff --git a/server/settings/branding.js b/server/settings/branding.js
+new file mode 100644
+index 0000000..9607bd9
+--- /dev/null
++++ b/server/settings/branding.js
+@@ -0,0 +1,15 @@
++// The company logo shown in the console's top bar and on the sign-in page in
++// place of the MobiVisor logo. /branding/logo serves it, or the MobiVisor logo
++// when none is set.
++
++const TYPES = ['image/png', 'image/svg+xml'];
++const MAX_BYTES = 1024 * 1024;
++
++function check(file) {
++  const problems = [];
++  if (TYPES.indexOf(file.type) < 0) problems.push('type');
++  if (file.size > MAX_BYTES) problems.push('size');
++  return problems;
++}
++
++module.exports = { check, TYPES, MAX_BYTES };

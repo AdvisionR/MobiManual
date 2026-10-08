@@ -1,0 +1,62 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fixture Developer <dev@mobimanual.local>
+Date: Thu, 8 Oct 2026 09:00:00 +0200
+Subject: [PATCH] Call the retire command unenroll in the code
+
+The MDM protocol and the agent call this operation unenroll, and the
+mismatch keeps confusing people reading the server code next to the
+agent's. The command is now named unenroll in the code and the API.
+
+The console still shows Retire: the labels are unchanged. The API keeps
+accepting "retire" as an alias, for customers' scripts.
+---
+Expected: not worth documenting. Triage answers no-doc-impact: the identifiers change, the label in en.json stays Retire, and nobody using the console sees a difference. The mirror of retire-label: a draft that renames Retire on any page documents a rename that did not happen.
+Expected-outcome: no-doc-impact
+
+ public/app/devices/devices.html |  2 +-
+ server/commands/definitions.js  | 12 ++++++++++--
+ 2 files changed, 11 insertions(+), 3 deletions(-)
+
+diff --git a/public/app/devices/devices.html b/public/app/devices/devices.html
+index 138491e..91d1c4a 100644
+--- a/public/app/devices/devices.html
++++ b/public/app/devices/devices.html
+@@ -17,7 +17,7 @@
+     <select ng-model="target" ng-options="g.name for g in groups"></select>
+     <button ng-click="moveToGroup(target)" ng-disabled="!target">{{ 'DEVICES.ACTION_MOVE' | translate }}</button>
+     <button ng-click="send('lock')">{{ 'DEVICES.ACTION_COMMAND' | translate }}</button>
+-    <button ng-click="send('retire')" ng-if="session.role === 'administrator'">{{ 'DEVICES.ACTION_RETIRE' | translate }}</button>
++    <button ng-click="send('unenroll')" ng-if="session.role === 'administrator'">{{ 'DEVICES.ACTION_RETIRE' | translate }}</button>
+   </div>
+ 
+   <table class="device-list">
+diff --git a/server/commands/definitions.js b/server/commands/definitions.js
+index ad4999c..408121a 100644
+--- a/server/commands/definitions.js
++++ b/server/commands/definitions.js
+@@ -9,10 +9,18 @@ const COMMANDS = [
+   { name: 'ring', label: 'COMMANDS.RING', platforms: ['android'], durationSeconds: 120 },
+   { name: 'clear-passcode', label: 'COMMANDS.CLEAR_PASSCODE', platforms: ['android', 'ios'], supervisedOnly: true },
+   { name: 'update-os', label: 'COMMANDS.UPDATE_OS', platforms: ['ios'], supervisedOnly: true },
+-  { name: 'retire', label: 'COMMANDS.RETIRE', platforms: ['android', 'ios'] },
++  { name: 'unenroll', label: 'COMMANDS.RETIRE', platforms: ['android', 'ios'] },
+   { name: 'wipe', label: 'COMMANDS.WIPE', platforms: ['android', 'ios'], confirm: 'password' }
+ ];
+ 
++// Names the API still accepts, for scripts written against older versions.
++const ALIASES = { retire: 'unenroll' };
++
++function byName(name) {
++  const canonical = ALIASES[name] || name;
++  return COMMANDS.find((command) => command.name === canonical);
++}
++
+ function rolesFor(command) {
+   return Object.keys(ROLES).filter((role) =>
+     ROLES[role].includes('*') || ROLES[role].includes('commands.' + command.name));
+@@ -22,4 +30,4 @@ function definitions() {
+   return COMMANDS.map((command) => ({ ...command, roles: rolesFor(command) }));
+ }
+ 
+-module.exports = { COMMANDS, definitions };
++module.exports = { COMMANDS, ALIASES, byName, definitions };

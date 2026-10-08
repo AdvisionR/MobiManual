@@ -1,0 +1,91 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fixture Developer <dev@mobimanual.local>
+Date: Thu, 8 Oct 2026 11:15:00 +0200
+Subject: [PATCH] Give the device list's unlabelled controls an accessible name
+
+Screen readers announced the row check boxes of the device list as
+"check box" and the language menu as "combo box", with nothing to say
+what they were for. They now carry an aria-label from the locale files.
+Nothing changes on screen.
+---
+Expected: not worth documenting. Triage answers no-doc-impact: templates and en.json change, but only for screen readers, and the manual describes nothing they announce.
+Expected-outcome: no-doc-impact
+
+ public/app/devices/devices.html | 2 +-
+ public/i18n/de.json             | 4 ++++
+ public/i18n/en.json             | 4 ++++
+ public/i18n/tr.json             | 4 ++++
+ public/index.html               | 2 +-
+ 5 files changed, 14 insertions(+), 2 deletions(-)
+
+diff --git a/public/app/devices/devices.html b/public/app/devices/devices.html
+index 138491e..c8f7403 100644
+--- a/public/app/devices/devices.html
++++ b/public/app/devices/devices.html
+@@ -31,7 +31,7 @@
+       <th>{{ 'DEVICES.COL_STATUS' | translate }}</th>
+     </tr>
+     <tr ng-repeat="device in devices">
+-      <td><input type="checkbox" ng-model="selected[device.id]"></td>
++      <td><input type="checkbox" ng-model="selected[device.id]" aria-label="{{ 'A11Y.SELECT_DEVICE' | translate:{ device: device.name } }}"></td>
+       <td><a href="#!/devices/{{ device.id }}">{{ device.name }}</a></td>
+       <td>{{ device.platform }}</td>
+       <td>{{ device.owner }}</td>
+diff --git a/public/i18n/de.json b/public/i18n/de.json
+index 95c9eb4..de56fd1 100644
+--- a/public/i18n/de.json
++++ b/public/i18n/de.json
+@@ -35,6 +35,10 @@
+     "SAVE": "Speichern",
+     "SEARCH": "Suchen"
+   },
++  "A11Y": {
++    "SELECT_DEVICE": "{{device}} auswählen",
++    "LANGUAGE": "Sprache der Konsole"
++  },
+   "SIGN_IN": {
+     "TITLE": "Anmelden",
+     "LOGIN": "Anmeldename",
+diff --git a/public/i18n/en.json b/public/i18n/en.json
+index 798ce9e..53e126b 100644
+--- a/public/i18n/en.json
++++ b/public/i18n/en.json
+@@ -35,6 +35,10 @@
+     "SAVE": "Save",
+     "SEARCH": "Search"
+   },
++  "A11Y": {
++    "SELECT_DEVICE": "Select {{device}}",
++    "LANGUAGE": "Console language"
++  },
+   "SIGN_IN": {
+     "TITLE": "Sign in",
+     "LOGIN": "Login name",
+diff --git a/public/i18n/tr.json b/public/i18n/tr.json
+index 1e76126..4b9507e 100644
+--- a/public/i18n/tr.json
++++ b/public/i18n/tr.json
+@@ -35,6 +35,10 @@
+     "SAVE": "Kaydet",
+     "SEARCH": "Ara"
+   },
++  "A11Y": {
++    "SELECT_DEVICE": "{{device}} seç",
++    "LANGUAGE": "Konsol dili"
++  },
+   "SIGN_IN": {
+     "TITLE": "Oturum aç",
+     "LOGIN": "Giriş adı",
+diff --git a/public/index.html b/public/index.html
+index 1bf7f66..d10fda4 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -68,7 +68,7 @@
+     </nav>
+     <div class="tools">
+       <help-link></help-link>
+-      <select ng-model="language" ng-change="useLanguage(language)" title="{{ 'NAV.LANGUAGE' | translate }}">
++      <select ng-model="language" ng-change="useLanguage(language)" title="{{ 'NAV.LANGUAGE' | translate }}" aria-label="{{ 'A11Y.LANGUAGE' | translate }}">
+         <option value="en">English</option>
+         <option value="tr">Türkçe</option>
+         <option value="de">Deutsch</option>

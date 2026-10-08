@@ -1,0 +1,42 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fixture Developer <dev@mobimanual.local>
+Date: Thu, 8 Oct 2026 12:00:00 +0200
+Subject: [PATCH] Ring for one minute instead of two
+
+Two minutes of ringing at full volume drew complaints from open-plan
+offices, and one minute is enough to find a device. The Device Commands
+page of the manual is updated here.
+---
+Expected: not worth documenting beyond what the author did. _devicescommands.md, the only page that states how long Ring lasts, is edited in this merge request, so DocBot sees it as already edited, and triage answers no-doc-impact. The counterpart of retire-label, where the author missed pages.
+Expected-outcome: no-doc-impact
+
+ public/doc/en/_devicescommands.md | 2 +-
+ server/commands/definitions.js    | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/public/doc/en/_devicescommands.md b/public/doc/en/_devicescommands.md
+index 6a3f134..97cd1c1 100644
+--- a/public/doc/en/_devicescommands.md
++++ b/public/doc/en/_devicescommands.md
+@@ -16,7 +16,7 @@ lists every command, where it runs, and who may send it.
+ ## What each command does
+ 
+ - **Lock** locks the screen. The user unlocks it with the device passcode.
+-- **Ring** plays a sound for 2 minutes, even when the device is muted.
++- **Ring** plays a sound for 1 minute, even when the device is muted.
+ - **Clear passcode** removes the device passcode, so the user can set a new one.
+   A passcode policy still requires one at the next unlock.
+ - **Update OS** installs the iOS update the device has downloaded.
+diff --git a/server/commands/definitions.js b/server/commands/definitions.js
+index ad4999c..76a56e9 100644
+--- a/server/commands/definitions.js
++++ b/server/commands/definitions.js
+@@ -6,7 +6,7 @@ const { ROLES } = require('../auth/permissions');
+ 
+ const COMMANDS = [
+   { name: 'lock', label: 'COMMANDS.LOCK', platforms: ['android', 'ios'] },
+-  { name: 'ring', label: 'COMMANDS.RING', platforms: ['android'], durationSeconds: 120 },
++  { name: 'ring', label: 'COMMANDS.RING', platforms: ['android'], durationSeconds: 60 },
+   { name: 'clear-passcode', label: 'COMMANDS.CLEAR_PASSCODE', platforms: ['android', 'ios'], supervisedOnly: true },
+   { name: 'update-os', label: 'COMMANDS.UPDATE_OS', platforms: ['ios'], supervisedOnly: true },
+   { name: 'retire', label: 'COMMANDS.RETIRE', platforms: ['android', 'ios'] },

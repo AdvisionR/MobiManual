@@ -1,0 +1,87 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fixture Developer <dev@mobimanual.local>
+Date: Thu, 8 Oct 2026 13:10:00 +0200
+Subject: [PATCH] Remove the unreleased account expiry feature
+
+Account expiry never left its flag: the customers who asked for it
+manage expiry in their directory, and nobody else wanted it. The flag,
+the field in the Add user form and its labels are removed.
+---
+Expected: not worth documenting. Triage answers no-doc-impact: the feature was never switched on, so the manual never described it and no reader loses anything. A removal that looks like it takes a field away from users.
+Expected-outcome: no-doc-impact
+
+ public/app/features.js      | 1 -
+ public/app/users/users.html | 6 ------
+ public/i18n/de.json         | 2 --
+ public/i18n/en.json         | 2 --
+ public/i18n/tr.json         | 2 --
+ 5 files changed, 13 deletions(-)
+
+diff --git a/public/app/features.js b/public/app/features.js
+index 2fb2293..ea20d5c 100644
+--- a/public/app/features.js
++++ b/public/app/features.js
+@@ -5,7 +5,6 @@
+ 
+ angular.module('mobivisor')
+   .constant('FEATURES', {
+-    accountExpiry: false
+   })
+   .run(['$rootScope', 'FEATURES', function ($rootScope, FEATURES) {
+     $rootScope.FEATURES = FEATURES;
+diff --git a/public/app/users/users.html b/public/app/users/users.html
+index 62adcf5..dfba429 100644
+--- a/public/app/users/users.html
++++ b/public/app/users/users.html
+@@ -35,12 +35,6 @@
+     <label for="role">{{ 'USERS.ROLE' | translate }}</label>
+     <select id="role" ng-model="draft.role" ng-options="role as ('USERS.ROLE_' + role.toUpperCase() | translate) for role in roles" required></select>
+ 
+-    <div ng-if="FEATURES.accountExpiry">
+-      <label for="expires">{{ 'USERS.ACCOUNT_EXPIRES' | translate }}</label>
+-      <input id="expires" type="date" ng-model="draft.expires">
+-      <p class="hint">{{ 'USERS.ACCOUNT_EXPIRES_HINT' | translate }}</p>
+-    </div>
+-
+     <button type="submit" ng-disabled="addUser.$invalid">{{ 'COMMON.SAVE' | translate }}</button>
+   </form>
+ 
+diff --git a/public/i18n/de.json b/public/i18n/de.json
+index 95c9eb4..3cc027d 100644
+--- a/public/i18n/de.json
++++ b/public/i18n/de.json
+@@ -132,8 +132,6 @@
+     "ROLE_ADMINISTRATOR": "Administrator",
+     "ROLE_HELPDESK": "Helpdesk",
+     "ROLE_AUDITOR": "Auditor",
+-    "ACCOUNT_EXPIRES": "Konto läuft ab",
+-    "ACCOUNT_EXPIRES_HINT": "Optional. Ab diesem Datum kann sich das Konto nicht mehr an der Konsole anmelden. Vom Benutzer registrierte Geräte bleiben verwaltet.",
+     "DISABLE": "Deaktivieren",
+     "ENABLE": "Aktivieren",
+     "RESET_PASSWORD": "Passwort zurücksetzen",
+diff --git a/public/i18n/en.json b/public/i18n/en.json
+index 798ce9e..74db0b2 100644
+--- a/public/i18n/en.json
++++ b/public/i18n/en.json
+@@ -132,8 +132,6 @@
+     "ROLE_ADMINISTRATOR": "Administrator",
+     "ROLE_HELPDESK": "Helpdesk",
+     "ROLE_AUDITOR": "Auditor",
+-    "ACCOUNT_EXPIRES": "Account expires",
+-    "ACCOUNT_EXPIRES_HINT": "Optional. From this date the account can no longer sign in to the console. Devices the user enrolled stay managed.",
+     "DISABLE": "Disable",
+     "ENABLE": "Enable",
+     "RESET_PASSWORD": "Reset password",
+diff --git a/public/i18n/tr.json b/public/i18n/tr.json
+index 1e76126..17186fd 100644
+--- a/public/i18n/tr.json
++++ b/public/i18n/tr.json
+@@ -132,8 +132,6 @@
+     "ROLE_ADMINISTRATOR": "Yönetici",
+     "ROLE_HELPDESK": "Yardım Masası",
+     "ROLE_AUDITOR": "Denetçi",
+-    "ACCOUNT_EXPIRES": "Hesap bitiş tarihi",
+-    "ACCOUNT_EXPIRES_HINT": "İsteğe bağlı. Bu tarihten itibaren hesap konsolda oturum açamaz. Kullanıcının kaydettiği cihazlar yönetilmeye devam eder.",
+     "DISABLE": "Devre dışı bırak",
+     "ENABLE": "Etkinleştir",
+     "RESET_PASSWORD": "Şifreyi sıfırla",

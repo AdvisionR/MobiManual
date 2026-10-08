@@ -1,0 +1,46 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fixture Developer <dev@mobimanual.local>
+Date: Thu, 8 Oct 2026 09:45:00 +0200
+Subject: [PATCH] Include the whole To day in the Audit Log filter
+
+Filtering the Audit Log from 1 to 3 March left out the entries of
+3 March: the To date was sent as midnight at its start. It is now sent as
+the end of that day, so the range includes both days it names.
+---
+Expected: not worth documenting. Triage answers no-doc-impact. _auditlog.md says "a date range with From and To" and never said the To day was left out, so the fix makes the filter do what the page already describes. A fix of the dashboard-count-fix kind, where the manual is silent rather than explicit.
+Expected-outcome: no-doc-impact
+
+ public/app/auditlog/auditlog.controller.js | 14 ++++++++++++--
+ 1 file changed, 12 insertions(+), 2 deletions(-)
+
+diff --git a/public/app/auditlog/auditlog.controller.js b/public/app/auditlog/auditlog.controller.js
+index 6d4cb63..736e4e3 100644
+--- a/public/app/auditlog/auditlog.controller.js
++++ b/public/app/auditlog/auditlog.controller.js
+@@ -1,14 +1,24 @@
+ angular.module('mobivisor').controller('AuditLogCtrl', ['$scope', 'api', function ($scope, api) {
+   $scope.filter = { user: '', action: '', from: null, to: null };
+ 
++  // The API compares times; a date alone would be midnight at its start, which
++  // would leave the To day out of the range.
++  function query(filter) {
++    var q = angular.extend({}, filter);
++    if (q.to) {
++      q.to = new Date(q.to.getFullYear(), q.to.getMonth(), q.to.getDate(), 23, 59, 59, 999);
++    }
++    return q;
++  }
++
+   $scope.reload = function () {
+-    api.get('/audit', $scope.filter).then(function (entries) {
++    api.get('/audit', query($scope.filter)).then(function (entries) {
+       $scope.entries = entries;
+     });
+   };
+ 
+   $scope.exportCsv = function () {
+-    return api.get('/audit/export.csv', $scope.filter);
++    return api.get('/audit/export.csv', query($scope.filter));
+   };
+ 
+   $scope.reload();

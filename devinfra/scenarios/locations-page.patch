@@ -1,0 +1,235 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fixture Developer <dev@mobimanual.local>
+Date: Wed, 7 Oct 2026 15:00:00 +0200
+Subject: [PATCH] Add a Locations page with each device's last known position
+
+Administrators asked where their devices are without opening each one.
+The new Locations page, under Devices in the menu, shows the last position
+each device reported on a map, with the time of the report. Selecting a
+pin opens the device.
+
+Devices report their position at check-in, and only when the user has
+granted MobiVisor Agent the location permission. Positions older than 30
+days are not shown. Only administrators can open the page.
+---
+Expected: worth documenting, but no existing page is wrong. The manual has no page for Locations, and DocBot cannot create one, so the right result hands it to a human: the draft names the missing page (_locations.md) in uncertainties and answers needs-human. Describing Locations on _devices.md or another existing page as a stand-in for the missing one is wrong.
+Expected-outcome: needs-human
+
+ public/app/locations/locations.controller.js | 11 +++++++++++
+ public/app/locations/locations.html          | 19 +++++++++++++++++++
+ public/app/routes.js                         |  1 +
+ public/app/services/location.service.js      |  6 ++++++
+ public/i18n/de.json                          |  7 +++++++
+ public/i18n/en.json                          |  7 +++++++
+ public/i18n/tr.json                          |  7 +++++++
+ public/index.html                            |  3 +++
+ server/devices/locations.js                  | 16 ++++++++++++++++
+ server/protocol/android/checkin.js           |  2 ++
+ 10 files changed, 79 insertions(+)
+ create mode 100644 public/app/locations/locations.controller.js
+ create mode 100644 public/app/locations/locations.html
+ create mode 100644 public/app/services/location.service.js
+ create mode 100644 server/devices/locations.js
+
+diff --git a/public/app/locations/locations.controller.js b/public/app/locations/locations.controller.js
+new file mode 100644
+index 0000000..6951e7e
+--- /dev/null
++++ b/public/app/locations/locations.controller.js
+@@ -0,0 +1,11 @@
++angular.module('mobivisor').controller('LocationsCtrl', ['$scope', '$location', 'locationService', function ($scope, $location, locationService) {
++  $scope.positions = [];
++
++  locationService.latest().then(function (positions) {
++    $scope.positions = positions;
++  });
++
++  $scope.open = function (device) {
++    $location.path('/devices/' + device.id);
++  };
++}]);
+diff --git a/public/app/locations/locations.html b/public/app/locations/locations.html
+new file mode 100644
+index 0000000..584a5d2
+--- /dev/null
++++ b/public/app/locations/locations.html
+@@ -0,0 +1,19 @@
++<!-- #!/locations, LocationsCtrl. Administrators only (server/auth/permissions.js). -->
++<div class="locations">
++  <h1>{{ 'LOCATIONS.TITLE' | translate }}</h1>
++  <p class="hint">{{ 'LOCATIONS.HINT' | translate }}</p>
++  <div class="map" device-map="positions" on-select="open(device)"></div>
++  <table>
++    <tr>
++      <th>{{ 'DEVICES.COL_NAME' | translate }}</th>
++      <th>{{ 'DEVICES.COL_OWNER' | translate }}</th>
++      <th>{{ 'LOCATIONS.REPORTED' | translate }}</th>
++    </tr>
++    <tr ng-repeat="p in positions">
++      <td><a href="#!/devices/{{ p.device.id }}">{{ p.device.name }}</a></td>
++      <td>{{ p.device.owner }}</td>
++      <td>{{ p.reportedAt | date:'short' }}</td>
++    </tr>
++  </table>
++  <p ng-if="!positions.length">{{ 'LOCATIONS.NONE' | translate }}</p>
++</div>
+diff --git a/public/app/routes.js b/public/app/routes.js
+index 0b1b319..2335f09 100644
+--- a/public/app/routes.js
++++ b/public/app/routes.js
+@@ -11,6 +11,7 @@ angular.module('mobivisor').config(['$routeProvider', function ($routeProvider)
+     .when('/groups',                { templateUrl: 'app/groups/groups.html',                        controller: 'GroupsCtrl' })
+     .when('/devices',               { templateUrl: 'app/devices/devices.html',                      controller: 'DevicesCtrl' })
+     .when('/devices/:id',           { templateUrl: 'app/devices/device-detail.html',                controller: 'DeviceDetailCtrl' })
++    .when('/locations',             { templateUrl: 'app/locations/locations.html',                  controller: 'LocationsCtrl' })
+     .when('/devicescommands',       { templateUrl: 'app/devicescommands/devicescommands.html',      controller: 'DeviceCommandsCtrl' })
+     .when('/enrollment/android',    { templateUrl: 'app/enrollment/android/android-enrollment.html', controller: 'AndroidEnrollmentCtrl' })
+     .when('/enrollment/ios',        { templateUrl: 'app/enrollment/ios/enrollment-wizard.html',     controller: 'EnrollmentWizardCtrl' })
+diff --git a/public/app/services/location.service.js b/public/app/services/location.service.js
+new file mode 100644
+index 0000000..0f689f3
+--- /dev/null
++++ b/public/app/services/location.service.js
+@@ -0,0 +1,6 @@
++angular.module('mobivisor').factory('locationService', ['api', function (api) {
++  return {
++    // The last position each device reported, at most MAX_AGE_DAYS old (server/devices/locations.js).
++    latest: function () { return api.get('/locations'); }
++  };
++}]);
+diff --git a/public/i18n/de.json b/public/i18n/de.json
+index 95c9eb4..5c19591 100644
+--- a/public/i18n/de.json
++++ b/public/i18n/de.json
+@@ -2,6 +2,7 @@
+   "NAV": {
+     "DASHBOARD": "Dashboard",
+     "DEVICES": "Geräte",
++    "LOCATIONS": "Standorte",
+     "COMMANDS": "Gerätebefehle",
+     "GROUPS": "Gruppen",
+     "USERS": "Benutzer",
+@@ -93,6 +94,12 @@
+     "STATE_EXPIRED": "Abgelaufen",
+     "STATE_FAILED": "Fehlgeschlagen"
+   },
++  "LOCATIONS": {
++    "TITLE": "Standorte",
++    "HINT": "Die letzte Position, die jedes Gerät in den vergangenen 30 Tagen gemeldet hat. Geräte melden ihre Position nur, wenn der Benutzer es erlaubt hat.",
++    "REPORTED": "Gemeldet",
++    "NONE": "Kein Gerät hat eine Position gemeldet."
++  },
+   "COMMANDS": {
+     "TITLE": "Gerätebefehle",
+     "COMMAND": "Befehl",
+diff --git a/public/i18n/en.json b/public/i18n/en.json
+index 798ce9e..c84cde8 100644
+--- a/public/i18n/en.json
++++ b/public/i18n/en.json
+@@ -2,6 +2,7 @@
+   "NAV": {
+     "DASHBOARD": "Dashboard",
+     "DEVICES": "Devices",
++    "LOCATIONS": "Locations",
+     "COMMANDS": "Device Commands",
+     "GROUPS": "Groups",
+     "USERS": "Users",
+@@ -93,6 +94,12 @@
+     "STATE_EXPIRED": "Expired",
+     "STATE_FAILED": "Failed"
+   },
++  "LOCATIONS": {
++    "TITLE": "Locations",
++    "HINT": "The last position each device reported in the past 30 days. Devices report their position only if the user allowed it.",
++    "REPORTED": "Reported",
++    "NONE": "No device has reported a position."
++  },
+   "COMMANDS": {
+     "TITLE": "Device Commands",
+     "COMMAND": "Command",
+diff --git a/public/i18n/tr.json b/public/i18n/tr.json
+index 1e76126..7948107 100644
+--- a/public/i18n/tr.json
++++ b/public/i18n/tr.json
+@@ -2,6 +2,7 @@
+   "NAV": {
+     "DASHBOARD": "Gösterge Paneli",
+     "DEVICES": "Cihazlar",
++    "LOCATIONS": "Konumlar",
+     "COMMANDS": "Cihaz Komutları",
+     "GROUPS": "Gruplar",
+     "USERS": "Kullanıcılar",
+@@ -93,6 +94,12 @@
+     "STATE_EXPIRED": "Süresi doldu",
+     "STATE_FAILED": "Başarısız"
+   },
++  "LOCATIONS": {
++    "TITLE": "Konumlar",
++    "HINT": "Her cihazın son 30 gün içinde bildirdiği son konum. Cihazlar konumlarını yalnızca kullanıcı izin verdiyse bildirir.",
++    "REPORTED": "Bildirildi",
++    "NONE": "Hiçbir cihaz konum bildirmedi."
++  },
+   "COMMANDS": {
+     "TITLE": "Cihaz Komutları",
+     "COMMAND": "Komut",
+diff --git a/public/index.html b/public/index.html
+index 1bf7f66..3548e5e 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -20,6 +20,7 @@
+   <script src="app/services/policy.service.js"></script>
+   <script src="app/services/dep.service.js"></script>
+   <script src="app/services/department.service.js"></script>
++  <script src="app/services/location.service.js"></script>
+   <script src="app/services/report.service.js"></script>
+   <script src="app/services/schema.service.js"></script>
+   <script src="app/apns/apns.controller.js"></script>
+@@ -32,6 +33,7 @@
+   <script src="app/enrollment/android/android-enrollment.controller.js"></script>
+   <script src="app/enrollment/ios/enrollment-wizard.controller.js"></script>
+   <script src="app/groups/groups.controller.js"></script>
++  <script src="app/locations/locations.controller.js"></script>
+   <script src="app/policies/kiosk/kiosk.controller.js"></script>
+   <script src="app/policies/passcode/passcode.controller.js"></script>
+   <script src="app/policies/policies.controller.js"></script>
+@@ -46,6 +48,7 @@
+     <nav>
+       <a href="#!/dashboard">{{ 'NAV.DASHBOARD' | translate }}</a>
+       <a href="#!/devices">{{ 'NAV.DEVICES' | translate }}</a>
++      <a href="#!/locations" ng-if="session.role === 'administrator'">{{ 'NAV.LOCATIONS' | translate }}</a>
+       <a href="#!/devicescommands">{{ 'NAV.COMMANDS' | translate }}</a>
+       <a href="#!/groups">{{ 'NAV.GROUPS' | translate }}</a>
+       <a href="#!/users">{{ 'NAV.USERS' | translate }}</a>
+diff --git a/server/devices/locations.js b/server/devices/locations.js
+new file mode 100644
+index 0000000..4eb5aed
+--- /dev/null
++++ b/server/devices/locations.js
+@@ -0,0 +1,16 @@
++// Last known positions. Devices send a position with each check-in when the
++// user has granted the agent the location permission. Older positions are
++// not shown.
++
++const MAX_AGE_DAYS = 30;
++
++function latest(db, now) {
++  const since = new Date(now.getTime() - MAX_AGE_DAYS * 24 * 60 * 60 * 1000);
++  return db.positions.aggregate([
++    { $match: { reportedAt: { $gte: since } } },
++    { $sort: { reportedAt: -1 } },
++    { $group: { _id: '$device', position: { $first: '$$ROOT' } } }
++  ]);
++}
++
++module.exports = { latest, MAX_AGE_DAYS };
+diff --git a/server/protocol/android/checkin.js b/server/protocol/android/checkin.js
+index 392ca58..57b9142 100644
+--- a/server/protocol/android/checkin.js
++++ b/server/protocol/android/checkin.js
+@@ -7,4 +7,6 @@ function schedule(device) {
+   return { device: device.id, everyMinutes: CHECKIN_INTERVAL_MINUTES };
+ }
+ 
++// A check-in may carry { latitude, longitude, accuracy }; see devices/locations.js.
++
+ module.exports = { schedule, CHECKIN_INTERVAL_MINUTES };

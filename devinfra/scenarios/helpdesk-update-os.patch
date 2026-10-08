@@ -1,0 +1,30 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fixture Developer <dev@mobimanual.local>
+Date: Wed, 7 Oct 2026 09:40:00 +0200
+Subject: [PATCH] Let helpdesk staff install iOS updates
+
+Most "my iPad needs the update" tickets land with the helpdesk, who had
+to hand each one to an administrator. Helpdesk may now send Update OS.
+
+Retire and Wipe stay with administrators.
+---
+Expected: worth documenting. Triage answers doc-impact. A one-line permission change that makes two tables wrong: the draft adds Update OS to the Helpdesk row of the Roles table on _users.md, and Helpdesk to the Update OS row on _devicescommands.md.
+Expected-outcome: opened
+Expected-edits: _users.md _devicescommands.md
+
+ server/auth/permissions.js | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/server/auth/permissions.js b/server/auth/permissions.js
+index 7f8b6f2..68a1564 100644
+--- a/server/auth/permissions.js
++++ b/server/auth/permissions.js
+@@ -5,7 +5,7 @@ const ROLES = {
+   administrator: ['*'],
+   helpdesk: [
+     'devices.read', 'devices.move', 'devices.department',
+-    'commands.lock', 'commands.ring', 'commands.clear-passcode',
++    'commands.lock', 'commands.ring', 'commands.clear-passcode', 'commands.update-os',
+     'groups.read', 'policies.read', 'apps.read', 'users.read'
+   ],
+   auditor: [

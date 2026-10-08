@@ -1,0 +1,45 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fixture Developer <dev@mobimanual.local>
+Date: Wed, 7 Oct 2026 09:10:00 +0200
+Subject: [PATCH] Give new accounts 72 hours to set their password
+
+New users often get their invitation on a Friday afternoon and find the
+link expired on Monday morning. The link in the mail for a new account is
+now valid for 72 hours.
+
+Password reset links stay at 48 hours: the user asked for the reset and is
+waiting for the mail.
+---
+Expected: worth documenting. Triage answers doc-impact. The draft changes "valid for 48 hours" to 72 hours under "Adding a user" on _users.md, and leaves the 48 hours under "Resetting a password" on the same page as they are. Changing both is wrong.
+Expected-outcome: opened
+Expected-edits: _users.md
+
+ server/auth/invitation.js | 10 ++++++----
+ 1 file changed, 6 insertions(+), 4 deletions(-)
+
+diff --git a/server/auth/invitation.js b/server/auth/invitation.js
+index 89059ee..ac3661c 100644
+--- a/server/auth/invitation.js
++++ b/server/auth/invitation.js
+@@ -1,15 +1,17 @@
+ // New local users, and users whose password is reset, get an email with a link
+-// to set a password. The link works once.
++// to set a password. The link works once. A new account's link lasts longer:
++// its user did not ask for the mail and may not read it the same day.
+ 
+ const crypto = require('crypto');
+ 
+-const LINK_VALID_HOURS = 48;
++const LINK_VALID_HOURS = { invitation: 72, reset: 48 };
+ 
+-function issue(user, now) {
++function issue(user, now, kind) {
++  const hours = LINK_VALID_HOURS[kind || 'invitation'];
+   return {
+     user: user.id,
+     token: crypto.randomBytes(32).toString('hex'),
+-    expires: new Date(now.getTime() + LINK_VALID_HOURS * 60 * 60 * 1000)
++    expires: new Date(now.getTime() + hours * 60 * 60 * 1000)
+   };
+ }
+ 

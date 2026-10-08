@@ -1,0 +1,45 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fixture Developer <dev@mobimanual.local>
+Date: Wed, 7 Oct 2026 11:05:00 +0200
+Subject: [PATCH] Remove CSV export from the Audit Log
+
+The export ran the whole query in one request and has timed out for most
+installations with more than a few months of entries since 4.2. It is
+removed until it comes back as a background job that mails the file.
+
+Filtering and reading the Audit Log are unchanged.
+---
+Expected: worth documenting. Triage answers doc-impact. The draft removes the Export CSV sentence under "Finding entries" on _auditlog.md, and corrects "Export the entries you need to keep longer" under "Retention", which now asks for something the console cannot do. Leaving either is wrong.
+Expected-outcome: opened
+Expected-edits: _auditlog.md
+
+ public/app/auditlog/auditlog.controller.js | 4 ----
+ public/app/auditlog/auditlog.html          | 1 -
+ 2 files changed, 5 deletions(-)
+
+diff --git a/public/app/auditlog/auditlog.controller.js b/public/app/auditlog/auditlog.controller.js
+index 6d4cb63..834b7d1 100644
+--- a/public/app/auditlog/auditlog.controller.js
++++ b/public/app/auditlog/auditlog.controller.js
+@@ -7,9 +7,5 @@ angular.module('mobivisor').controller('AuditLogCtrl', ['$scope', 'api', functio
+     });
+   };
+ 
+-  $scope.exportCsv = function () {
+-    return api.get('/audit/export.csv', $scope.filter);
+-  };
+-
+   $scope.reload();
+ }]);
+diff --git a/public/app/auditlog/auditlog.html b/public/app/auditlog/auditlog.html
+index f73e6f4..2911711 100644
+--- a/public/app/auditlog/auditlog.html
++++ b/public/app/auditlog/auditlog.html
+@@ -6,7 +6,6 @@
+     <input ng-model="filter.action" ng-change="reload()" placeholder="{{ 'AUDIT.COL_ACTION' | translate }}">
+     <label>{{ 'AUDIT.FILTER_FROM' | translate }} <input type="date" ng-model="filter.from" ng-change="reload()"></label>
+     <label>{{ 'AUDIT.FILTER_TO' | translate }} <input type="date" ng-model="filter.to" ng-change="reload()"></label>
+-    <button ng-click="exportCsv()">{{ 'COMMON.EXPORT_CSV' | translate }}</button>
+   </div>
+   <table>
+     <tr>
