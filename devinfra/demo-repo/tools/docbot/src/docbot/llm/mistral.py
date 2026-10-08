@@ -26,7 +26,8 @@ from mistralai.client.utils import BackoffStrategy, RetryConfig
 
 from docbot.llm import LLMError, Tool, ToolCall, ToolResult, Turn
 
-# Medium 3.5 reasons before it answers: one call took over 120 s on 2026-10-01.
+# One Medium 3.5 call took over 120 s on 2026-10-01. reasoning_effort is never sent, so
+# each model reasons by its own default: Medium 3.5 does not, Large 4 does (2026-10-08).
 TIMEOUT_MS = 300_000
 # Retries 429 and 5xx: 1 s, growing by half each time, up to 30 s apart and 5 minutes in all.
 RETRIES = RetryConfig("backoff", BackoffStrategy(1_000, 30_000, 1.5, 300_000), retry_connection_errors=True)

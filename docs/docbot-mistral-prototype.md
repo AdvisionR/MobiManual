@@ -315,6 +315,107 @@ change reaches the stack's Jenkins after `./scripts/seed-project.sh`. On a lapto
 `--repo` is a clone of the stack's project. Entries dated before this one use the old
 flags.
 
+**2026-10-08: Mistral Large 4, and reasoning on Medium [EVIDENCE].** Mistral Large 4
+came out as a public preview on 2026-10-06. The model comparison on docs.mistral.ai
+rates it faster than Medium 3.5, four marks out of four against two, and equal in
+performance, four out of four each **[DOCS]**. It lists the launch price, and labels the
+two models v26.10 and v26.04. Our key has it **[EVIDENCE]**, from the API's model list:
+`mistral-large-4`, alias `mistral-large-4-0`, 524k tokens of context, reasoning and
+function calling. Its rate limit is 32M tokens a minute, against 500k for Medium, from
+the response headers. `mistral-large-latest` still names `mistral-large-2512`. From
+Mistral's announcement and changelog **[DOCS]**: $1.36 in, $0.14 cached and $4.18 out
+per million tokens, at half price for two weeks from 2026-10-06. "The reinforcement
+learning run behind this preview is still in flight", and the open weights are due by
+the end of October. The API has no dated ID for v26.10, as Medium has
+`mistral-medium-2604`. Whether `mistral-large-4-0` stays fixed while that run goes on
+is not documented **[UNKNOWN]**.
+
+- **Large 4 reasons when `reasoning_effort` is unset, and Medium does not
+  [EVIDENCE].** The same one-question request: Large 4 answered with a thinking chunk,
+  1,144 output tokens in 27 s. Medium answered with 19 tokens in 0.4 s and no thinking.
+  The adapter sends no `reasoning_effort`, so changing `DOCBOT_LLM_MODEL` alone also
+  turns reasoning on. The adapter's comment said Medium 3.5 reasons before it answers;
+  it was corrected the same day.
+- **Medium accepts `reasoning_effort` `high` and `none` only [EVIDENCE].** The API
+  refuses `low` and `medium`.
+
+**The fixture suite on three settings [EVIDENCE]**, through `update_manual` with GitLab
+replayed from a local repository, as `test_live_update.py` does, and scored against
+each patch's `Expected-` lines. Each setting ran the 27 cases once (11 scenarios in
+both modes, and the 5 comment kinds), then the 9 scenarios that reach drafting twice
+more in both modes: 63 runs. Large 4's costs are at its launch price, with its list
+price in brackets:
+
+| | Large 4, only the model changed | Large 4, `reasoning_effort="none"` | Medium 3.5, as configured |
+|---|---|---|---|
+| Runs that met their expectation | **50 of 63** | 41 of 63 | 44 of 63 |
+| Cost per run | $0.014 ($0.027) | $0.007 ($0.013) | $0.016 |
+| Median time per run | 27 s | 15 s | 7 s |
+| Slowest run | 353 s | 308 s | 26 s |
+| Out of the 20 tool calls | 7 | 8 | 0 |
+| A call past the adapter's 300 s timeout | 1 | 1 | 0 |
+| Output tokens | 161k | 32k | 42k |
+| Misnamed calls | 0 | 0 | 0 |
+
+Where the settings differ:
+
+| Case | Large 4 | Large 4, no reasoning | Medium |
+|---|---|---|---|
+| `retire-label`, both modes | 6 of 6 | 0 of 6 | 0 of 6: the Roles table on `_users.md` is never edited |
+| Kiosk exit-passcode step | 6 of 6 | 6 of 6 | 4 of 6 |
+| `account-expiry`, `--diff-only` | 3 of 3 | 3 of 3 | 2 of 3: `no-change` instead of `needs-human` |
+| `account-expiry`, repo mode | 2 of 3: out of calls once | 0 of 3: out of calls | 3 of 3 |
+| `lost-mode-dark` and `dashboard-count-fix`, both modes | 0 of 12 | 0 of 12 | 0 of 12 |
+
+- **Large 4's gain is in the search, as far as this suite shows.** On `retire-label`
+  it searches the stem `retir` every time and finds the Roles table, which says
+  "retiring". Medium searches `Retire|Retired|retire|retired`, which cannot match
+  "retiring", and never reads `_users.md`. Question 37.
+- **Both negatives fail on every setting.** Triage answers `doc-impact` for
+  `lost-mode-dark`, a feature behind a flag that stays off, and for
+  `dashboard-count-fix`, a fix that makes the product match the manual. Drafting then
+  writes Lost mode into `_devicescommands.md`, or reads on and finds nothing to change.
+  Large 4 fails these more expensively: out of calls, `needs-human`, and its slowest
+  runs. Question 36.
+- **Large 4 is slower, and the preview endpoint stalls.** Its median run took 3.7 times
+  as long as Medium's, and twice as long with reasoning off. Each Large 4 setting lost
+  one run to a single call that passed 300 s, with reasoning off as well, so the
+  endpoint stalled. Long reasoning was not the cause. Artificial Analysis measures 116
+  output tokens a second against Medium's 165 (third-party, not reproduced here).
+- **The comparison's speed rating does not hold on 2026-10-08 [EVIDENCE].** Raw
+  generation with reasoning off on both, 800 tokens of prose streamed, three times
+  each: Large 4 wrote 37 to 77 tokens a second after the first byte, Medium 112 to 131.
+  The first byte took 0.6 to 0.9 s against 0.3 to 0.4 s. Whether Large 4 gets faster
+  once the preview's load settles is **[UNKNOWN]**.
+- **Cheaper per token is not cheaper per run.** Large 4 writes 3.9 times Medium's
+  output tokens. At list price a run costs 1.7 times Medium's, and 0.86 times at the
+  launch price. Artificial Analysis has $1.13 against $0.50 per task of its index. With
+  reasoning off, Large 4 is cheaper than Medium even at list price, and meets the
+  fewest expectations.
+
+**Medium with `reasoning_effort="high"` [EVIDENCE]**, the 27 cases once, $1.49 against
+$0.47 for Medium as configured on the same cases. 16 of 27 met their expectation,
+against 20 of 27. Six runs ran out of the 20 calls, against none in Medium's 63 runs
+without reasoning: `ios-department`, `devices-filter`, `account-expiry` and
+`dashboard-count-fix` in repo mode, and `kiosk-passcode` and `passcode-history` with
+`--diff-only`. Every call in those runs was answered without an error. The model
+searched and re-read the same pages, one call a turn, and never submitted.
+`retire-label` still left out `_users.md`, and triage still answered `doc-impact` for
+both negatives. The median run took 33 s against 7 s, with 93k output tokens against
+14k.
+
+| Option | Verdict |
+|---|---|
+| **Medium 3.5, `reasoning_effort` unset** | **Kept.** "Mistral Medium 3.5 for DocBot" in "Decisions of 2026-10-01" stands |
+| Large 4 in Medium's place, nothing else changed | **Not now [PROPOSED].** It met the most expectations, but it is 3.7 times slower, costs more per run at list price, stalls past the timeout, and is a preview with no dated ID, whose training is still going on. Retest when it is generally available, on an ID that stays fixed |
+| Large 4 with reasoning off | **Rejected [PROPOSED].** The cheapest per run, but it met the fewest expectations and is still twice as slow as Medium |
+| Medium with `reasoning_effort="high"` | **Rejected [PROPOSED].** It fails cases Medium passes without it and fixes none that Medium fails, at three times the cost |
+
+When Large 4 is retested, the adapter should send `reasoning_effort` explicitly, since
+the two models default differently, and the 300 s timeout and the 20-call cap need a
+second look **[PROPOSED]**. The runner, every `result.json` and the per-run figures
+are in `devinfra/.runtime/experiments/large-4-2026-10-08/`. $3.78 in all.
+
 ---
 
 ## Decisions of 2026-10-01
@@ -767,3 +868,5 @@ Numbering continues from the repo-access doc.
 | 33 | ~~Is the existing `MISTRAL_API_KEY` on a paid plan or on the free Experiment tier?~~ **Answered 2026-09-30: a paid plan, with usage credits**, so inputs are not used for training by default | — |
 | 34 | Does Mistral's data processing agreement confirm EU hosting, and does prompt caching still work under ZDR? | The real repository on Mistral |
 | 35 | Should triage get the repo tools in repo mode? Today it has none in either mode, so a change whose effect only the code shows, such as a feature flag (`account-expiry`), can end at `no-doc-impact` before drafting can search. Searching at triage costs on every merge that reaches the model, not only on those with doc impact | Repo mode's value on changes like `account-expiry` |
+| 36 | What does triage need to answer `no-doc-impact` for `lost-mode-dark` (a flag that stays off) and `dashboard-count-fix` (a fix that makes the product match the manual)? Every model and setting tried on 2026-10-08 answered `doc-impact` for both. Candidates: the flag's value from the repository (see question 35), the page the fix concerns, or a rule in the prompt | Silence on merges that change nothing a reader sees |
+| 37 | Should `search_manual` or the drafting prompt steer the model to word stems? On `retire-label`, Medium searched `Retire\|Retired\|retire\|retired`, which misses "retiring" in the Roles table on `_users.md`, 0 times out of 8. Large 4 searched `retir` and found it every time | Renames on Medium, and pages that use another form of the word |
