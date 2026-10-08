@@ -68,7 +68,8 @@ code.
 ([`triage.py:59`](src/docbot/drafting/triage.py#L59)).
 [`test_a_valid_answer_comes_back`](tests/test_triage.py#L20) checks two things:
 - the stored texts are the ones the model was given
-- the task holds the diff, the headings and the edited-page marker
+- the task holds the merge request's title and description, the diff, the headings
+  and the edited-page marker
 
 **Out** ([`submit_triage`](src/docbot/drafting/triage.py#L37)):
 

@@ -25,6 +25,8 @@ def test_a_valid_answer_comes_back():
     (opened,) = llm.opened
     assert opened["tools"] == ["submit_triage"]
     assert opened["cache_key"] == "docbot-aaaaaaaaaaaa-triage"
+    assert "# Merge request !12: Give kiosk policies their own exit passcode" in opened["task"]
+    assert "A new field." in opened["task"]
     assert "+exitPasscode" in opened["task"]
     assert "    ## Filters" in opened["task"]
     assert "_devices.md (already edited in this merge request)" in opened["task"]
