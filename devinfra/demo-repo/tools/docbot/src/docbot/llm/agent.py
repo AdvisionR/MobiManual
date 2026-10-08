@@ -11,7 +11,7 @@ from collections.abc import Callable
 
 from docbot.llm import Conversation, ToolCall, ToolResult
 
-MAX_CALLS = 20
+MAX_CALLS = 25
 
 Handler = Callable[[dict], str]
 

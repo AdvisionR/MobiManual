@@ -11,6 +11,7 @@ from typer.testing import CliRunner
 
 from docbot import cli
 from docbot.gitlab import GitLab
+from docbot.llm import agent
 
 ENV = {"DOCBOT_GITLAB_URL": "http://gl", "DOCBOT_PROJECT": "root/mobivisor-console", "DOCBOT_GITLAB_TOKEN": "token",
        "MISTRAL_API_KEY": "key", "DOCBOT_LLM_MODEL": "model"}
@@ -27,7 +28,7 @@ def invoke(monkeypatch, forge, llm, *args):
     ([triaged(), drafted(KIOSK_EDIT)], [], "opened", ["triage  doc-impact", "draft   _policies_kiosk.md edit"]),
     ([triaged(), drafted(KIOSK_EDIT)], ["--dry-run"], "dry-run", ["triage  doc-impact", "+++ b/public/doc/en/"]),
     ([triaged(decision="no-doc-impact")], [], "no-doc-impact", ["triage  no-doc-impact"]),
-    ([triaged(decision="maybe") for _ in range(20)], [], "needs-human", ["triage  stopped: no valid submit_triage"]),
+    ([triaged(decision="maybe") for _ in range(agent.MAX_CALLS)], [], "needs-human", ["triage  stopped: no valid submit_triage"]),
 ])
 def test_stdout_is_the_result_and_stderr_narrates_each_conversation(monkeypatch, turns, args, outcome, narrated):
     result = invoke(monkeypatch, Forge(commit_mrs=[merged()]), FakeLLM(*turns), "--diff-only", *args)

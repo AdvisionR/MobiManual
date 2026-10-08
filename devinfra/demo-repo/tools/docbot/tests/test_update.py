@@ -8,6 +8,7 @@ import pytest
 from fakes import FakeLLM, submit
 
 from docbot.gitlab import GitLab, GitLabError
+from docbot.llm import agent
 from docbot.update import MAX_DIFF_CHARS, update_manual
 
 SHA = "a" * 40
@@ -188,10 +189,10 @@ def test_ignored_files_do_not_count_towards_the_size_limit():
 
 
 def test_a_triage_that_never_validates_needs_a_human():
-    turns = [triaged(decision="maybe") for _ in range(20)]
+    turns = [triaged(decision="maybe") for _ in range(agent.MAX_CALLS)]
     result = run(Forge(commit_mrs=[merged()]), FakeLLM(*turns))
     assert result["outcome"] == "needs-human"
-    assert result["reason"] == "triage: no valid submit_triage within 20 tool calls"
+    assert result["reason"] == f"triage: no valid submit_triage within {agent.MAX_CALLS} tool calls"
 
 
 def test_a_repository_without_a_doc_map_is_an_error():

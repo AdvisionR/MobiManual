@@ -84,7 +84,7 @@ Triage does not choose pages. That is drafting's job.
 ## Drafting
 
 [`propose()`](src/docbot/drafting/proposal.py#L80): one conversation, with at most
-[20 tool calls](src/docbot/llm/agent.py#L14).
+[25 tool calls](src/docbot/llm/agent.py#L14).
 
 **In** ([system prompt](src/docbot/drafting/proposal.py#L26), [task](src/docbot/drafting/proposal.py#L159)):
 the same merge request, diff and table of contents as triage, plus these tools:
@@ -105,7 +105,7 @@ the same merge request, diff and table of contents as triage, plus these tools:
 A proposal is accepted only if it [validates](src/docbot/drafting/proposal.py#L118):
 - every page exists and is answered once
 - every `find` matches exactly once
-- at most 5 pages are edited
+- at most 10 pages are edited
 
 If it does not validate, the error goes back to the model, which tries again within
 the same call budget.

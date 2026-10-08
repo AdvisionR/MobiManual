@@ -21,7 +21,7 @@ from docbot.llm.agent import ToolError
 SCHEMA = "docbot.proposal/3"
 DECISIONS = ("edit", "no-change", "needs-human")
 # One merge rarely needs more; a proposal that edits more goes back to the model. A guard for the prototype.
-MAX_EDITED_PAGES = 5
+MAX_EDITED_PAGES = 10
 
 SYSTEM = """\
 You keep the user manual of {product} true to what it does. You are given a merged \

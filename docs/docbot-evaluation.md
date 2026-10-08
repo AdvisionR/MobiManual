@@ -288,18 +288,169 @@ reach the author, who knows the change best.
 The third looks strongest on this evidence. Testing it takes `wifi-policy`,
 `locations-page` and `settings-branding`, about $0.50 at two runs per mode **[PROPOSED]**.
 
-### Lower the false positives at triage: not tested here **[PROPOSED]**
+### Lower the false positives at triage **[PROPOSED]**
 
 The four fixture kinds and the four Zulip kinds suggest what to try (question 36):
 
 - Rules for the kinds seen: hidden flags, fixes that match the manual, error handling,
   accessibility, and API documentation.
-- Page text for the pages triage names. That is affordable on the fixture's 18 pages,
-  but not for Zulip's 464.
+- Page text for the pages triage names, with a quote that is checked. Tested below.
 - The repo and manual search tools (question 35).
 
-Each can be scored on the 4 fixture negatives and the 7 Zulip commits, with the fixture's
-14 positives and Zulip's 9 to check that none is lost, for about $0.50 a round.
+### Follow-up: triage with page text and a checked quote **[EVIDENCE]**
+
+Tested the same day, as two variants of triage in
+`devinfra/.runtime/experiments/eval-2026-10-08/quote.py`. DocBot's code is unchanged.
+Both answer `doc-impact` only with evidence of one of three kinds:
+
+- `wrong`: a sentence of a page the change makes false, quoted;
+- `missing`: what a reader now lacks, with the passage it belongs next to, quoted;
+- `new-page`: what a page the manual lacks would describe.
+
+A quote that is not on the page, whitespace aside, goes back to the model as a refusal.
+The variants differ in how triage gets the text:
+
+| Variant | How triage gets the text | Suits |
+|---|---|---|
+| `quote-text` | The whole English manual in the prompt, before the change: about 4k tokens on the fixture | A manual the fixture's size |
+| `quote-tools` | The table of contents as today, plus `read_page` and `search_manual`, at most 8 calls | Any size: Zulip's help centre is about 225k tokens |
+
+| | Baseline | `quote-text` | `quote-tools` |
+|---|---|---|---|
+| Fixture positives found | 14 of 14 | 14 of 14 | 14 of 14 |
+| Fixture false positives, 14 negatives × 2 runs | 8 of 28 | 4 of 28 | 5 of 28 |
+| Zulip positives found | 9 of 9 | — | 8 of 9: one ran out of its 8 calls |
+| Zulip baseline false positives still `doc-impact` | 7 of 7 | — | 5 of 7; 1 fixed, 1 ran out of calls |
+| Cost per triage, fixture / Zulip | $0.002 / $0.024 | $0.008 / — | $0.008 / $0.06 |
+
+What the quote fixes, and what it does not:
+
+- **It fixes claims the page itself disproves.** `dashboard-count-fix` (the page already
+  says retired devices are not counted) and `drop-account-expiry` (the page never
+  mentions the field): `no-doc-impact` in every run of both variants. `quote-text` also
+  got `auditlog-to-date-fix` right in both runs.
+- **It does not fix "the page could say more".** Every remaining false positive on both
+  sets is `missing` evidence with a real quote. Examples: "the page does not explain
+  that the To date now includes the entire day", or, for `apns-retry`, that pushes are
+  now retried. On Zulip, 5 of the 7 false positives came back this way: accessibility,
+  error handling, and detail below the page. A check in code can confirm that a quote
+  is on the page, not that the reader needs what it says is missing.
+- **It does not fix `lost-mode-dark`.** The model names the flag ("users will notice this
+  command once the flag is enabled") and answers `doc-impact` with real quotes, in every
+  run of both variants.
+- **It broke one case: `ring-duration-documented`, 2 of 2 with `quote-text`.** The quote
+  is the sentence the author already corrected in this merge request. One answer's own
+  `why` ends with "no doc impact remains", and still says `doc-impact`.
+- **The tools variant can run out of calls**: 2 of 16 Zulip runs searched for all 8
+  calls and never answered, one of them a real positive. That would be `needs-human`,
+  which nobody sees today. On the fixture it also made more `missing` claims than
+  full text did (`apns-retry`, `auditlog-to-date-fix`).
+- **Prompt caching works across runs of the same merge.** The second fixture run of each
+  case cost a third of the first, because the commit, and with it the cache key, was the
+  same. Across different merges the key differs, so nothing is shared. Placing the manual
+  first, under a key that changes only with the manual, would let every merge reuse it
+  **[UNKNOWN]**, untested.
+
+**Verdict [PROPOSED]:**
+
+- **Keep the evidence, and stop expecting it to cut false positives on its own.** It makes
+  every `doc-impact` point at a page and a passage, which roadmap item 1 asks for under
+  "Show exact reasons during triage". It refuses invented claims, and drafting could
+  start from it.
+- **The real-world false positives need a narrower `missing`.** Candidates, each
+  testable for under $1 a round:
+  - `missing` only for a new control, step or setting the change adds, with its label
+    taken from the diff and checked there in code. That would remove most Zulip false
+    positives, which add no label. But `account-expiry`'s label is not in its diff,
+    only in the code.
+  - The rules for the kinds seen (flags, accessibility, error handling).
+  - A refusal for quotes from lines this merge request added to a page, aimed at
+    `ring-duration-documented`.
+- **Prefer full text where it fits.** On the fixture it cost the same as the tools, never
+  ran out of calls, and had fewer false positives. It was not run on Zulip, whose help
+  centre does not fit. How large MobiVisor's real English manual is decides whether it
+  fits **[UNKNOWN]**.
+
+Cost: $1.54, on `mistral-medium-3-5`.
+
+### Second follow-up: what counts as missing **[EVIDENCE]**
+
+The `missing` claims of the first follow-up split cleanly:
+
+- **On the real positives, each claim names a new thing a reader works with**: a filter,
+  a step, a field, a setting, a section, a permission, a menu action or a shortcut.
+- **On the false positives, each claim describes how something the manual already
+  covers now behaves**: retries, an inclusive date, topics left out of a digest,
+  typeahead matching, keyboard focus, an error message.
+- **The exception is `lost-mode-dark`**: a new command, but behind a flag that stays off.
+
+That gives the narrowed definition, tested in two rounds as `narrow.py` in the same
+directory. DocBot's code is unchanged.
+
+**Missing** is a new thing a reader operates, usable as soon as the change merges: a
+field, button, menu item, option, setting, filter, step, command, permission or
+shortcut. It is missing when a page describes the screen or task it belongs to and does
+not mention it. A change to how something already documented behaves is not missing:
+it counts only if it makes a sentence false (`wrong`).
+
+Each rule the code checks, and why:
+
+| Check | Refuses | Aimed at |
+|---|---|---|
+| `missing` and `new-page` carry a label, found on a line the change adds | A label the change does not contain | Detail claims with nothing new to name; an invented label ("Expiration date" for **Account expires**) |
+| The label is not on a line the change removes | Labels of things the change only modified | Zulip "Other views": an existing icon made keyboard-accessible |
+| The label is not only in comments | Examples in code comments | Zulip `channel:automated testing` |
+| A change that switches something on may give that line as its label | — | `account-expiry`: the field's label is in `en.json`, the diff is the flag |
+| A `wrong` quote is not from lines this merge request added to the page | The author's own corrected sentence | `ring-duration-documented` |
+
+The first round had only the first and last checks. The second added the middle three
+(`narrow2-*`). The Zulip results are single runs.
+
+| | Baseline | `narrow2-text` | `narrow2-tools` |
+|---|---|---|---|
+| Fixture positives found | 14 of 14 | 28 of 28 (2 runs) | 14 of 14 |
+| Fixture false positives | 8 of 28 | **0 of 28** | 2 of 14 |
+| Zulip positives found | 9 of 9 | — | 9 of 9 |
+| Zulip baseline false positives still `doc-impact` | 7 of 7 | — | **1 of 7** |
+| Cost per triage, fixture / Zulip | $0.002 / $0.024 | about $0.006 uncached / — | about $0.008 / $0.04 |
+
+- **On the fixture, full text plus the narrowed `missing` is right in every run**, 56
+  of 56. That includes `lost-mode-dark`, by the definition alone ("usable as soon as
+  the change merges"), and `ring-duration-documented`, by the author-line refusal.
+- **Without the flag-line rule, `account-expiry` was lost** in both first-round runs: the
+  model invented the label "Expiration date", and the refusal sent it to
+  `no-doc-impact`. With the rule, it gave `accountExpiry: true` and was right twice.
+- **On Zulip, the one false positive left is the Slack import's new error message.** It
+  gave the HTML id `slack-import-error` as its label. That id is new and outside a
+  comment, so the code cannot refuse it, and an error message is not a thing a reader
+  operates.
+- **The tools variant slips on judgement where full text does not**:
+  - `lost-mode-dark` in both rounds, reading "usable as soon as merged" as "usable once
+    the flag is on";
+  - one `drop-account-expiry` run that called still-true steps `wrong`.
+
+  `wrong` has no check beyond the quote existing.
+- **The call limit, raised from 20 to 25 the same day, helped.** The tools variant got
+  25 instead of the first follow-up's 8, and recovered `ae588277af`, which had run out
+  at 8 calls. The longest Zulip triage took 21 calls.
+
+**Verdict [PROPOSED]:**
+
+- **The narrowed `missing` with its checks is worth taking into DocBot's triage.** It is
+  the first variant that removes most false positives on both sets without losing a
+  positive.
+- **The evidence is tuned to the same 14 fixture negatives and 7 Zulip commits it is
+  measured on.** Before adopting it, run it on fresh data:
+  - a new random Zulip sample, compared with the baseline's 12%;
+  - the 51 Zulip commits the baseline got right, where the tools variant could add new
+    false positives, as `drop-account-expiry` showed;
+  - more Zulip commits whose authors edited help.
+
+  That is about $3 to $5.
+- **Full text where the manual fits, tools where it does not**, as after the first
+  follow-up. The size of MobiVisor's English manual decides **[UNKNOWN]**.
+
+Cost of both rounds: $2.50.
 
 ### Smaller fixes
 
