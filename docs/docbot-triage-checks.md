@@ -5,6 +5,8 @@ follow-up: what counts as missing" in [docbot-evaluation.md](docbot-evaluation.m
 model calls; no cost.
 **Relationship to other documents:** answers one question about that follow-up: how
 much of `narrow2`'s result comes from the checks in code, and how much from the prompt.
+Since 2026-10-13, DocBot's triage keeps only the checks that the page exists and the
+quote is on it ("Decisions of 2026-10-13" in [the prototype doc](docbot-mistral-prototype.md)).
 Tags as in the foundation doc: **[EVIDENCE]**, **[UNKNOWN]**.
 
 ---

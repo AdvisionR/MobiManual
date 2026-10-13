@@ -416,6 +416,39 @@ the two models default differently, and the 300 s timeout and the 20-call cap ne
 second look **[PROPOSED]**. The runner, every `result.json` and the per-run figures
 are in `devinfra/.runtime/experiments/large-4-2026-10-08/`. $3.78 in all.
 
+This verdict was superseded on 2026-10-13: see the next entry, and "Decisions of
+2026-10-13".
+
+**2026-10-13: Large 4 and the evidence-based triage in DocBot [EVIDENCE].** Large 4 was
+retested with `narrow2-text` triage (whole manual in the prompt, evidence required),
+and then made the default, with these changes in `tools/docbot/`:
+
+- **Triage is `docbot.triage/4`.** It reads every page in full, and answers
+  `doc-impact` with `wrong`, `missing` or `new-page` evidence. The definition of
+  `missing` now says that a flag switched on makes what it hid usable.
+- **Only checks that look something up stay**: a page named in the evidence exists, and
+  its quote is on that page. The checks that judged the evidence are gone.
+- **The drafting prompt says to describe the product as merged**, without its history
+  or plans.
+- **`DOCBOT_LLM_MODEL=mistral-large-4-0`, and `DOCBOT_LLM_REASONING_EFFORT=high`**, a new
+  required setting.
+- **`MAX_CALLS` is 35**, up from 25.
+
+The fixture, 24 scenarios in both modes and the 5 comment kinds, twice each:
+
+| | Medium, 2026-10-08 | Large 4 + checks, 2026-10-13 | Large 4 as built, 2026-10-13 |
+|---|---|---|---|
+| Expected outcome and pages | 82 of 115 | 99 of 106 | 98 of 106 |
+| Triage: changes with doc impact found | — | 52 of 56 | 53 of 56 |
+| Triage: false positives | — | 0 of 48 | 1 of 48 |
+| Median time, change with doc impact | 8 s | 28 s | 31 s |
+| Cost per run, change with doc impact | $0.018 | $0.013 at half price | $0.015 at half price |
+
+The second column ran `narrow2-text` patched into DocBot, with the checks, without the
+flag and "as merged" rules, and with `reasoning_effort` unset. Where the three differ is in
+[the Large 4 results](docbot-large-4-narrow2.md), "Ported into DocBot". $0.91 for the
+last run, plus about $0.10 for probes; Large 4 at its launch price.
+
 ---
 
 ## Decisions of 2026-10-01
@@ -424,7 +457,8 @@ are in `devinfra/.runtime/experiments/large-4-2026-10-08/`. $3.78 in all.
 cheaper per draft than Medium with `named`, and fails where the judgement is hard:
 it passes over a feature that a flag turns on, at triage, where nothing is drafted
 after it, and it leaves out a step the change needs. `DOCBOT_LLM_MODEL` stays
-`mistral-medium-3-5`.
+`mistral-medium-3-5`. **Superseded on 2026-10-13** by "Mistral Large 4 for DocBot" in
+"Decisions of 2026-10-13". "Large" here is Large 3.
 
 **Triage decides whether a merge affects the manual; drafting decides which pages
 [DECIDED 2026-10-01].** This replaces the LLM draft plan's triage that names the pages
@@ -441,7 +475,8 @@ What comes with it, built the same day:
 - **`docbot.triage/2`** has only `decision` and `reason`. Triage still reads the
   table of contents **[PROPOSED]**: it is how triage knows what the manual covers, and
   on Medium it caught the flag case with it. Triage without the table of contents was
-  not tried.
+  not tried. **Superseded on 2026-10-13**: triage reads the whole manual and gives
+  evidence (`docbot.triage/4`, "Decisions of 2026-10-13").
 - **`docbot.proposal/2`**: drafting gets `read_page` and `search_manual`, plus the repo
   tools with `--context repo`, and may edit any page in the manual. It lists the pages
   it edits or that need a human, and may list pages it read and left as `no-change`.
@@ -534,6 +569,81 @@ command on `update_manual`'s real results.
 | `MISTRAL_DEBUG=1` in the Jenkinsfile | **Rejected.** It logs every request to the console, and each request repeats the whole conversation, so a 15-turn run logs the task 15 times. It shows Mistral's wire format, not DocBot's tools, and it would change with the provider |
 | The raw request and response per turn, as the sketch above planned | **Rejected.** The same repetition, in the file instead of the log |
 | **What DocBot sent and got back, once each** | **Chosen.** Provider-neutral, and each text is stored once. A tool result is capped at 500 lines of at most 300 characters. By its token counts, the `ios-department` run through Jenkins would have grown by about 10 KB **[PROPOSED]**; Zulip's 15k-token table of contents goes in twice, once per task |
+
+---
+
+## Decisions of 2026-10-13
+
+The evidence is in [the evaluation](docbot-evaluation.md),
+[the checks results](docbot-triage-checks.md) and
+[the Large 4 results](docbot-large-4-narrow2.md). All four decisions rest on the fixture
+only. They were not first run on fresh data, as the evaluation's "Second follow-up"
+asked **[UNKNOWN]**.
+
+**Mistral Large 4 for DocBot [DECIDED 2026-10-13].** `DOCBOT_LLM_MODEL` is
+`mistral-large-4-0`. This supersedes "Mistral Medium 3.5 for DocBot".
+
+| Option | Verdict |
+|---|---|
+| Medium 3.5, as decided on 2026-10-01 | **Replaced.** It misses the Roles table in `retire-label` 6 of 6, the step or rule in `kiosk-passcode` and `ios-department` 2 of 6 each, and the missing page in `locations-page` 3 of 4. 5 of its 149 `find` snippets were not on the page |
+| **Large 4, reasoning on** | **Chosen.** Those points right in 4 of 4, apart from `locations-page` at 2 of 4. 0 of 92 `find` snippets off. Slower, a median of 31 s against 8 s for a change with doc impact, and about 1.6 times Medium's cost there at list price. DocBot runs after the merge, so neither matters at a few cents per merge |
+| Wait until Large 4 is generally available | **Rejected.** Switching back is one setting, and Medium stays the fallback. The fixture is rerun when the model behind the ID changes |
+| Large 4 with reasoning off, Medium with reasoning | **Rejected** on 2026-10-08, under "Progress" |
+
+**Risk [UNKNOWN]:** Large 4 is a public preview. It has no dated ID, and Mistral says the
+training behind it is still going on, so these results may not hold. The half price
+ends about 2026-10-20.
+
+**The reasoning effort is a required setting [DECIDED 2026-10-13].**
+`DOCBOT_LLM_REASONING_EFFORT` is `high`, and it is sent with every request. Verified
+**[EVIDENCE]**:
+- Large 4 accepts `high` and `none` only. `low`, `medium` and `xhigh` come back as
+  400, as for Medium.
+- With nothing sent, Large 4 reasons. `high` gave the same output size on the fixture:
+  a median of 1,374 output tokens per change with doc impact, against 1,421 with
+  nothing sent.
+
+| Option | Verdict |
+|---|---|
+| Send nothing | **Rejected.** The model's default decides, and it differs: switching back to Medium would also switch reasoning off, unseen |
+| A default per model in code | **Rejected.** A second place to keep in step with the model setting |
+| **A required setting** | **Chosen.** A missing one exits with code 2 before any call, like the other settings |
+
+**Triage reads the whole manual and answers with evidence [DECIDED 2026-10-13].**
+`docbot.triage/4` is the evaluation's `narrow2-text`:
+- every page in full, before the change;
+- `doc-impact` only with `wrong`, `missing` or `new-page` evidence;
+- the narrowed `missing`, plus a sentence on flags.
+
+This replaces `docbot.triage/3`.
+
+| Option | Verdict |
+|---|---|
+| The table of contents, a decision and a reason (`docbot.triage/3`) | **Replaced.** 12 of 42 false positives on the fixture, 7 of 58 on Zulip, each decided from the headings alone, without the pages' text |
+| `narrow2-text` with all its checks | **Rejected.** On Large 4 the checks turned `account-expiry` from right to wrong in 3 of 4 runs, and caught nothing it got wrong |
+| `narrow2-tools`: the table of contents, with `read_page` and `search_manual` | **Kept for a manual that does not fit.** It judges worse on the fixture (`lost-mode-dark`), and can run out of calls. MobiVisor's English manual, about 25k to 29k tokens, fits |
+| **`narrow2-text`, with only the checks that look something up** | **Chosen.** A page named in the evidence must exist, and its quote must be on it. That keeps the evidence fit to show, as roadmap item 1 asks under "Show exact reasons during triage". Large 4 named a page by its title in about 1 answer in 10 |
+
+What it did on the fixture **[EVIDENCE]**:
+- **The flag sentence did not fix `account-expiry`**: 1 of 4. Large 4 sees that the flag
+  turns the feature on, but not the field it shows, which is in code outside the diff.
+  Question 35 stands.
+- **Without the author-line check**, `ring-duration-documented` was a false positive in
+  1 of 4 runs. Drafting then changed nothing, so no docs merge request opens.
+- **Zulip's help centre**, about 225k tokens, now goes into every triage of the Zulip
+  replay.
+
+**Drafting describes the product as merged [DECIDED 2026-10-13].** One rule in the
+prompt: "Leave out its history and its plans: what it used to do, and what the merge
+request says will come later." The results **[EVIDENCE]**:
+- The plan in `auditlog-export-removed`'s merge request ("it will come back as a
+  background job") went into the manual in 2 of 4 runs before, 0 of 4 after.
+- "No longer" in `kiosk-passcode`'s drafts went from 2 runs to none.
+
+| Option | Verdict |
+|---|---|
+| Words like "no longer" or "will" refused in code | **Rejected.** They can be right: `account-expiry`'s field hint says the account "can no longer sign in" |
+| **A rule in the drafting prompt** | **Chosen** |
 
 ---
 
@@ -867,6 +977,6 @@ Numbering continues from the repo-access doc.
 |---|---|---|
 | 33 | ~~Is the existing `MISTRAL_API_KEY` on a paid plan or on the free Experiment tier?~~ **Answered 2026-09-30: a paid plan, with usage credits**, so inputs are not used for training by default | — |
 | 34 | Does Mistral's data processing agreement confirm EU hosting, and does prompt caching still work under ZDR? | The real repository on Mistral |
-| 35 | Should triage get the repo tools in repo mode? Today it has none in either mode, so a change whose effect only the code shows, such as a feature flag (`account-expiry`), can end at `no-doc-impact` before drafting can search. Searching at triage costs on every merge that reaches the model, not only on those with doc impact | Repo mode's value on changes like `account-expiry` |
-| 36 | What does triage need to answer `no-doc-impact` for `lost-mode-dark` (a flag that stays off) and `dashboard-count-fix` (a fix that makes the product match the manual)? Every model and setting tried on 2026-10-08 answered `doc-impact` for both. Candidates: the flag's value from the repository (see question 35), the page the fix concerns, or a rule in the prompt | Silence on merges that change nothing a reader sees |
-| 37 | Should `search_manual` or the drafting prompt steer the model to word stems? On `retire-label`, Medium searched `Retire\|Retired\|retire\|retired`, which misses "retiring" in the Roles table on `_users.md`, 0 times out of 8. Large 4 searched `retir` and found it every time | Renames on Medium, and pages that use another form of the word |
+| 35 | Should triage get the repo tools in repo mode? Today it has none in either mode, so a change whose effect only the code shows, such as a feature flag (`account-expiry`), can end at `no-doc-impact` before drafting can search. Searching at triage costs on every merge that reaches the model, not only on those with doc impact. On 2026-10-13, with a sentence on flags in the prompt, Large 4 still stopped `account-expiry` at triage in 3 of 4 runs | Repo mode's value on changes like `account-expiry` |
+| 36 | ~~What does triage need to answer `no-doc-impact` for `lost-mode-dark` (a flag that stays off) and `dashboard-count-fix` (a fix that makes the product match the manual)?~~ **Answered 2026-10-13: the page text and the narrowed definition of `missing`** (`docbot.triage/4`). Both were `no-doc-impact` in every run, on Medium (2 of 2 each) and on Large 4 (4 of 4 each) | — |
+| 37 | Should `search_manual` or the drafting prompt steer the model to word stems? On `retire-label`, Medium searched `Retire\|Retired\|retire\|retired`, which misses "retiring" in the Roles table on `_users.md`, 0 times out of 8. Large 4 searched `retir` and found it every time. **Moot while Large 4 is the model**: 4 of 4 on 2026-10-13 | Renames on Medium, and pages that use another form of the word |

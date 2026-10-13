@@ -1,7 +1,10 @@
 # DocBot — Mistral Large 4 with `narrow2-text` triage, against Medium
 
-**Status:** results, 2026-10-13. One run of the fixture suite on Large 4, compared
-with Medium's runs of 2026-10-08. Cost $0.80 at Large 4's launch price ($1.60 at list).
+**Status:** results, 2026-10-13. Two runs of the fixture suite on Large 4, compared
+with Medium's runs of 2026-10-08:
+- the first with `narrow2-text` patched in, $0.80 at Large 4's launch price ($1.60 at
+  list);
+- the second on DocBot as built from it, under "Ported into DocBot", $0.91 ($1.82).
 **Relationship to other documents:** `narrow2-text` is described under "Second follow-up:
 what counts as missing" in [docbot-evaluation.md](docbot-evaluation.md). Medium's weak
 points are from that document. The checks are measured in
@@ -122,3 +125,84 @@ On the 14 scenarios that need an edit:
 - **No run ran out of calls.** The most calls one draft used was 27 (`wifi-policy`), then 24
   (`kiosk-passcode`). On 2026-10-08, with 20 calls, 7 of Large 4's 63 runs ran out.
 - **No call passed the 300 s timeout.** On 2026-10-08, one did.
+
+## Ported into DocBot
+
+The second run, on 2026-10-13, is DocBot as built from the first. The runs are in
+`devinfra/.runtime/experiments/large-4-port-2026-10-13/`. What differs from the first
+run:
+
+- **Triage is DocBot's own `docbot.triage/4`.** The prompt is `narrow2-text`'s, plus
+  two sentences:
+  - a flag switched on makes what it hid usable;
+  - name each page as the manual does.
+- **Only the checks that look something up are kept**: the page exists, and the quote is
+  on it.
+- **The drafting prompt** says to describe the product as merged, without its history
+  or plans.
+- **`reasoning_effort` is `high`**, sent with every request. It was unset in the first
+  run.
+- **The model is `mistral-large-4-0`**, an alias of `mistral-large-4`.
+
+### Short answer **[EVIDENCE]**
+
+- **The same score**: 98 of 106 runs, against 99. On scenarios that need an edit, 49
+  of 56 both times.
+- **The "as merged" rule worked**: the merge request's plans went into the manual in
+  0 of 4 runs, against 2 of 4.
+- **The flag sentence did not fix `account-expiry`**: 1 of 4, against 0 of 4.
+- **Without the author-line check**, 1 false positive in 48 triage runs.
+- **`locations-page` fell to 2 of 4**, from 4 of 4.
+
+### Triage
+
+| | Large 4 + checks | As built |
+|---|---|---|
+| Positives found | 52 of 56 | 53 of 56 |
+| False positives | 0 of 48 | 1 of 48 |
+| Refusals | 18: page names 12, missing labels 3, label on a removed line 2, no evidence 1 | 9, all page names |
+
+**`account-expiry`:**
+
+| Run | Answer |
+|---|---|
+| repo 0 | `doc-impact`, with the flag line as the label. The draft added the **Account expires** step |
+| repo 1, diff 0, diff 1 | `no-doc-impact`. One reason: the flag "turns on account expiry that was already implemented but hidden; the manual never mentions account expiry, but the diff shows no new user-facing field" |
+
+**`ring-duration-documented`, diff 0**: `doc-impact`, quoting "**Ring** plays a sound for
+1 minute", the sentence the author had already corrected. Its own `why` says the change
+"matches what the manual already says". Drafting changed nothing, so the outcome was
+`no-change`.
+
+### Drafting
+
+| Point | Medium | Large 4 + checks | As built |
+|---|---|---|---|
+| `retire-label`: the Roles table on `_users.md` | 0 of 6 | 4 of 4 | 4 of 4 |
+| `kiosk-passcode`: the **Exit passcode** step | 4 of 6 | 4 of 4 | 4 of 4 |
+| `ios-department`: **Finish** waits for a department | 4 of 6 | 4 of 4 | 4 of 4 |
+| `locations-page`: `needs-human`, the missing page named, no stand-in edits | 1 of 4 | 4 of 4 | 2 of 4 |
+| `wifi-policy`: the missing page named | 2 of 4 | 4 of 4 | 4 of 4 |
+| `wifi-policy`: `_settings.md` edited | 0 of 4 | 3 of 4 | 3 of 4 |
+| `auditlog-export-removed`: the merge request's plan in the manual | 0 of 4 | 2 of 4 | 0 of 4 |
+| `passcode-history`: a sentence explaining the setting, besides the row | 1 of 6 | 3 of 4 | 3 of 4 |
+| `find` snippets not on the page | 5 of 149 | 0 of 93 | 0 of 92 |
+
+`locations-page`'s two misses:
+- `diff 0` added "Only administrators can open the Locations page." to `_users.md`.
+- `repo 1` ran out of its 35 calls. Its outcome, `needs-human`, is the expected one, so
+  the runner passes it, but it named no missing page.
+
+### Calls, time and cost
+
+On the 14 scenarios that need an edit:
+
+| | Large 4 + checks | As built |
+|---|---|---|
+| Median run | 28 s | 31 s |
+| Slowest run | 232 s | 356 s |
+| Cost per run | $0.013 at launch price, $0.026 at list | $0.015 at launch price, $0.030 at list |
+| Median output tokens | 1,421 | 1,374 |
+| Runs out of calls | 0 | 1 of 106 |
+
+No call passed the 300 s timeout.

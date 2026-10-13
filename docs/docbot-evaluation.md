@@ -7,8 +7,12 @@ triage gives false positives, with the two ideas listed there: "even if unsure, 
 to proposal" and a three-way triage answer.
 **Relationship to other documents:** builds on "Progress" in
 [the Mistral prototype doc](docbot-mistral-prototype.md), whose 2026-10-08 Medium runs on
-the first 11 scenarios are reused here. Nothing in DocBot's code was changed. Tags as in
-the foundation doc: **[DECIDED]**, **[EVIDENCE]**, **[PROPOSED]**, **[UNKNOWN]**.
+the first 11 scenarios are reused here. Nothing in DocBot's code was changed for this
+evaluation. **Since 2026-10-13**, DocBot's triage is `narrow2-text`, without the checks
+that judge the evidence, and its model is Large 4. See "Decisions of 2026-10-13" in the
+prototype doc. Where this document describes triage, it means the triage of
+2026-10-08. Tags as in the foundation doc: **[DECIDED]**, **[EVIDENCE]**,
+**[PROPOSED]**, **[UNKNOWN]**.
 
 ---
 
@@ -294,7 +298,8 @@ The four fixture kinds and the four Zulip kinds suggest what to try (question 36
 
 - Rules for the kinds seen: hidden flags, fixes that match the manual, error handling,
   accessibility, and API documentation.
-- Page text for the pages triage names, with a quote that is checked. Tested below.
+- Page text for the pages triage names, with a quote that is checked. Tested below, and
+  in DocBot since 2026-10-13 as the whole manual's text.
 - The repo and manual search tools (question 35).
 
 ### Follow-up: triage with page text and a checked quote **[EVIDENCE]**
@@ -449,6 +454,15 @@ The first round had only the first and last checks. The second added the middle 
   That is about $3 to $5.
 - **Full text where the manual fits, tools where it does not**, as after the first
   follow-up. MobiVisor's English manual fits (next section).
+
+**Adopted on 2026-10-13 [DECIDED], in part.** DocBot's triage is `narrow2-text`, on Large 4.
+- **Dropped**: the checks that judge the evidence (label on an added line, not on a
+  removed line, not only in comments, not the author's own line). On Large 4 they cost
+  `account-expiry` 3 of 4 runs and caught nothing ([the checks results](docbot-triage-checks.md)).
+- **Kept**: the checks that the page exists and the quote is on it.
+- **Not done first**: the run on fresh data above.
+
+See "Decisions of 2026-10-13" in the prototype doc.
 
 Cost of both rounds: $2.50.
 

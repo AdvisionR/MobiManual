@@ -183,8 +183,8 @@ one: integration means copying the directory and the Jenkinsfile stage.
 against a separate image and explains when the bot should move out. To ship a
 change into the stack, re-seed with `./scripts/seed-project.sh`.
 
-The decisions are in `src/docbot/drafting/`: which changed files matter, which
-pages triage names, and the edits drafting proposes. Keep them in the package
+The decisions are in `src/docbot/drafting/`: which changed files matter, whether
+triage finds doc impact, and the pages and edits drafting proposes. Keep them in the package
 and out of the `Jenkinsfile`: a CLI can be run and
 tested on a laptop, and Groovy inside a pipeline cannot. That is not a
 stylistic preference — it is what makes this loop possible, with no build, no
@@ -195,7 +195,7 @@ export DOCBOT_GITLAB_URL=http://gitlab.orb.local DOCBOT_PROJECT=root/mobivisor-c
 export DOCBOT_GITLAB_TOKEN=$(sed -n 's/^GITLAB_PAT=//p' .runtime/gitlab.env)
 cd demo-repo/tools/docbot
 git -C ../../../.runtime/mr-work fetch -q   # the clone open-test-mr.sh made, now with the merge commit
-uv run --env-file .env docbot update-manual --sha <a merge commit on main> --repo ../../../.runtime/mr-work --dry-run   # .env holds the model key
+uv run --env-file .env docbot update-manual --sha <a merge commit on main> --repo ../../../.runtime/mr-work --dry-run   # .env holds the model key, model and reasoning effort (see .env.example)
 uv run pytest
 ```
 
@@ -208,7 +208,11 @@ history. Zulip keeps its help centre in its repository, and
 `zulip/cases.json` lists commits that changed the product and the help pages together,
 and commits that change nothing a user sees. For each one, triage decides whether the
 code change has doc impact, and drafting finds and edits pages in the whole help
-centre as it was before. The author's own edit is the reference:
+centre as it was before. The author's own edit is the reference.
+
+Triage reads the whole manual, and Zulip's help centre is about 225k tokens. Each
+triage costs about $0.31 at Large 4's list price before caching. A full replay of the
+9 commits in both modes is about 18 triages, a few dollars before drafting:
 
 ```bash
 ./scripts/fetch-zulip.sh
