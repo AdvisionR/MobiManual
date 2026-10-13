@@ -448,9 +448,37 @@ The first round had only the first and last checks. The second added the middle 
 
   That is about $3 to $5.
 - **Full text where the manual fits, tools where it does not**, as after the first
-  follow-up. The size of MobiVisor's English manual decides **[UNKNOWN]**.
+  follow-up. MobiVisor's English manual fits (next section).
 
 Cost of both rounds: $2.50.
+
+### MobiVisor's manual fits in the prompt **[EVIDENCE]**
+
+Measured on 2026-10-08 from `docs/combined.html`, the English manual as one page (the
+146-page PDF). Measured locally; nothing was sent to a model.
+
+| | Fixture | MobiVisor |
+|---|---|---|
+| Text | 17k characters, 2.8k words | 116k characters, 18k words |
+| Tokens, estimated from characters and words | about 4k | about 25k to 29k |
+| Headings | 53 | 191, about 1k tokens as a table of contents |
+
+- **Full text fits.** The manual, the prompt and a diff at the 100,000-character limit
+  come to about 55k tokens, of a 256k context.
+- **About $0.05 per triage, uncached**: some 31k input tokens at $1.5 per million, and
+  up to $0.09 with a diff at the limit. A retry after a refusal resends it at the cached
+  price. `narrow2-tools` cost $0.04 on Zulip.
+- **Caching the manual across merges is not worth doing first.** It needs a cache key
+  from the manual, not the commit, and the "already edited" marker moved out of the
+  manual into the part after it. It saves at most $0.04 per merge, and only when merges
+  land within the cache's lifetime **[UNKNOWN]**.
+- **Full text was tested on 4k tokens, not on 29k [UNKNOWN].** Seven times the text
+  gives the model more sentences to call `wrong` and more to search for the one that is.
+- **The manual repeats itself and mixes languages.** "Kiosk Modes" appears word for word
+  under both Call Blacklists and Permission Grant States, and "System Update Policies"
+  under both Permission Grant States and Wifi Configurations. A change that makes one copy
+  wrong makes both wrong, and drafting would have to edit both. The iOS note under
+  Location Reporting is in Turkish. Both are for "Doc-Checking during Proposal".
 
 ### Smaller fixes
 
