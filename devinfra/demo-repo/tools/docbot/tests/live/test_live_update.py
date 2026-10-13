@@ -2,7 +2,7 @@
 
 Costs credits, so it only runs when asked:
 
-    DOCBOT_LLM_MODEL=mistral-medium-3-5 uv run --env-file .env pytest -m live -s -k update
+    DOCBOT_LLM_MODEL=mistral-large-4-0 DOCBOT_LLM_REASONING_EFFORT=high uv run --env-file .env pytest -m live -s -k update
 
 The laptop dry run without the stack: each scenario from devinfra/scenarios, and
 each comment kind of open-test-mr.sh, is committed onto the fixture, and
@@ -94,7 +94,8 @@ def dry_run(checkout: Path, base: str, head: str, case: str, context: str) -> di
     forge = LocalForge(checkout, base, head)
     gitlab = GitLab("http://gitlab.invalid", "root/mobivisor-console", "token",
                     transport=httpx2.MockTransport(forge.handle))
-    result = update_manual(gitlab, MistralLLM(settings.api_key, settings.model), head, dry_run=True,
+    llm = MistralLLM(settings.api_key, settings.model, reasoning_effort=settings.reasoning_effort)
+    result = update_manual(gitlab, llm, head, dry_run=True,
                            repo=Repo(str(checkout), head) if context == "repo" else None)
     RESULTS.mkdir(parents=True, exist_ok=True)
     (RESULTS / f"{case}-{context}.json").write_text(json.dumps(result, indent=2) + "\n")

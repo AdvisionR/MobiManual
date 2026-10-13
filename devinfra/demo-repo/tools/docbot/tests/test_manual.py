@@ -1,4 +1,4 @@
-"""The manual as the model sees it: the table of contents, read_page and search_manual."""
+"""The manual as the model sees it: its full text, the table of contents, read_page and search_manual."""
 
 import pytest
 
@@ -45,6 +45,14 @@ def test_contents_lists_pages_in_order_with_headings_and_marks_edited_ones():
         "cover_page.md\n"
         "_devices.md\n    # Devices\n    ## Filters\n"
         "_devices_id.md (already edited in this merge request)\n    # Device details")
+
+
+def test_text_holds_every_page_in_order_fenced_and_marks_edited_ones():
+    manual = Manual({"_devices.md": "# Devices\n\n```bash\nls\n```\n",
+                     "_devices_id.md": "# Device details\n"})
+    assert manual.text(edited=["_devices_id.md"]) == (
+        "## Page _devices.md\n\n````markdown\n# Devices\n\n```bash\nls\n```\n````\n\n"
+        "## Page _devices_id.md (already edited in this merge request)\n\n````markdown\n# Device details\n````\n")
 
 
 def test_a_front_matter_title_is_the_first_heading():

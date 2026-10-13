@@ -7,7 +7,7 @@ Nothing merges itself.
 
 ## Flow
 
-[`update_manual()`](src/docbot/update.py#L36) takes one commit on `main`:
+[`update_manual()`](src/docbot/update.py#L32) takes one commit on `main`:
 
 1. **Resolve** the merge request that produced it ([`resolve()`](src/docbot/resolve.py#L30)).
    If it is not a merge to `main`, or is DocBot's own (label `docbot-generated`): `skipped`.
@@ -16,15 +16,15 @@ Nothing merges itself.
 3. **Filter** the diff with the ignore list in `doc-map.json`
    ([`ignore.select()`](src/docbot/drafting/ignore.py#L25)): tests, CI, lock files,
    DocBot itself, the manual. If nothing is left: `skipped`, with no model call. If
-   what is left is more than [100,000 characters](src/docbot/update.py#L33) of diff:
+   what is left is more than [100,000 characters](src/docbot/update.py#L29) of diff:
    `needs-human`, with no model call.
 4. **Triage** (model): does the change make the manual wrong or incomplete? If not:
    `no-doc-impact`. See [Triage](#triage).
 5. **Draft** (model): find the affected pages and propose edits to them. If nothing
    is edited: `no-change` or `needs-human`. See [Drafting](#drafting).
 6. **Publish**: one commit on `docbot/mr-<iid>`, and a docs merge request labelled
-   `docbot-generated` ([`update.py`](src/docbot/update.py#L99)). Its description
-   carries the model's reasons ([`_description()`](src/docbot/update.py#L120)).
+   `docbot-generated` ([`update.py`](src/docbot/update.py#L95)). Its description
+   carries the model's reasons ([`_description()`](src/docbot/update.py#L116)).
    `--dry-run` stops before this step and prints the diff.
 
 The manual is the set of English pages listed in `htmlDocPages` in `gruntfile.js`,
@@ -38,62 +38,93 @@ Imports point one way: the top level uses `drafting/`, and `drafting/` uses `llm
 
 ## Triage
 
-[`triage()`](src/docbot/drafting/triage.py#L48): one conversation with one tool.
+[`triage()`](src/docbot/drafting/triage.py#L89): one conversation with one tool. The
+model reads the whole manual, and answers `doc-impact` only with evidence that points
+into it.
 
-**In.** [`update.py:76`](src/docbot/update.py#L76) hands triage four things: the
+**In.** [`update.py:72`](src/docbot/update.py#L72) hands triage four things: the
 merge request, the diffs that were not ignored, the manual, and the pages the merge
-request edited. [`_task()`](src/docbot/drafting/triage.py#L71) writes them into one
-user message:
+request edited. [`_task()`](src/docbot/drafting/triage.py#L131) writes them into one
+user message, the manual first:
 
 | Input | Written into the task at | Comes from |
 |---|---|---|
-| Merge request title, with its `!iid` | [`change.py:6`](src/docbot/drafting/change.py#L6), `mr['title']` | GitLab `GET /repository/commits/:sha/merge_requests` ([`gitlab.py:54`](src/docbot/gitlab.py#L54)), via [`update.py:39`](src/docbot/update.py#L39) |
+| Every page in full, under its name, in manual order | [`manual.py:95`](src/docbot/drafting/manual.py#L95) | `htmlDocPages` in `gruntfile.js`. The pages are read from GitLab at [`update.py:69`](src/docbot/update.py#L69) |
+| The marker "already edited in this merge request" | [`manual.py:94`](src/docbot/drafting/manual.py#L94) | manual pages in the diff ([`ignore.py:39`](src/docbot/drafting/ignore.py#L39)) |
+| Merge request title, with its `!iid` | [`change.py:6`](src/docbot/drafting/change.py#L6), `mr['title']` | GitLab `GET /repository/commits/:sha/merge_requests` ([`gitlab.py:54`](src/docbot/gitlab.py#L54)), via [`update.py:35`](src/docbot/update.py#L35) |
 | Merge request description | [`change.py:6`](src/docbot/drafting/change.py#L6), `mr.get("description")` | the same |
-| Diff of each file that is not ignored, with its path | [`change.py:11`](src/docbot/drafting/change.py#L11) | GitLab `GET /merge_requests/:iid/diffs` ([`gitlab.py:61`](src/docbot/gitlab.py#L61)), filtered at [`update.py:63`](src/docbot/update.py#L63) |
-| Page names, in manual order | [`manual.py:86`](src/docbot/drafting/manual.py#L86) | `htmlDocPages` in `gruntfile.js`. The pages are read from GitLab at [`update.py:72`](src/docbot/update.py#L72) |
-| Headings of each page | [`manual.py:87`](src/docbot/drafting/manual.py#L87) | the same pages |
-| The marker "already edited in this merge request" | [`manual.py:86`](src/docbot/drafting/manual.py#L86) | manual pages in the diff ([`ignore.py:39`](src/docbot/drafting/ignore.py#L39)) |
+| Diff of each file that is not ignored, with its path | [`change.py:11`](src/docbot/drafting/change.py#L11) | GitLab `GET /merge_requests/:iid/diffs` ([`gitlab.py:61`](src/docbot/gitlab.py#L61)), filtered at [`update.py:59`](src/docbot/update.py#L59) |
 
-[`triage.py:72`](src/docbot/drafting/triage.py#L72) puts the merge request and the
-diffs into the task, and [`triage.py:74`](src/docbot/drafting/triage.py#L74) adds the
-table of contents.
+The manual comes first because it is the same for every merge at one manual version.
+The fixture's manual is about 4k tokens. MobiVisor's English manual is about 25k to
+29k, which also fits.
 
-**Sent.** [`triage.py:51`](src/docbot/drafting/triage.py#L51) builds the system prompt
-and the task. [`triage.py:52`](src/docbot/drafting/triage.py#L52) opens the
+**Sent.** [`triage.py:92`](src/docbot/drafting/triage.py#L92) builds the system prompt
+and the task. [`triage.py:93`](src/docbot/drafting/triage.py#L93) opens the
 conversation with them and one tool, `submit_triage`.
-[`mistral.py:53`](src/docbot/llm/mistral.py#L53) makes the two texts the first two
-messages, and [`mistral.py:57`](src/docbot/llm/mistral.py#L57) sends them, with the
-tool, on every turn. That is all the model gets: triage reads no page and searches no
-code.
+[`mistral.py:64`](src/docbot/llm/mistral.py#L64) makes the two texts the first two
+messages, and [`mistral.py:68`](src/docbot/llm/mistral.py#L68) sends them, with the
+tool, on every turn. Triage searches no code.
+
+The [system prompt](src/docbot/drafting/triage.py#L33) defines doc impact by evidence of
+three kinds:
+- `wrong`: a sentence the change makes false, quoted.
+- `missing`: a new thing a reader operates, usable as soon as the change is merged, on a
+  screen or task a page describes but does not mention it. A flag switched on makes what
+  it hid usable; something behind a flag that stays off is not usable yet.
+- `new-page`: a screen or feature that no page covers.
+
+A change to how something already documented behaves counts only if it makes a
+sentence false.
+
+**Validated** ([`validate()`](src/docbot/drafting/triage.py#L103)): only what can be
+looked up. Every page named in the evidence must be in the manual, and its quote on that
+page, whitespace aside. A refusal goes back to the model, which tries again.
+
+Whether the evidence is right is the model's call. Four checks that judged it were
+tried on 2026-10-13 and left out:
+- a label must be on a line the change adds
+- a label must not be on a line it removes
+- a label must not be only in comments
+- a quote must not be a line the author added
+
+They turned a right answer wrong for Large 4 and caught nothing it got wrong.
 
 **Checked.** Each run stores the exact system prompt and task in `result.json`
-([`triage.py:59`](src/docbot/drafting/triage.py#L59)).
-[`test_a_valid_answer_comes_back`](tests/test_triage.py#L20) checks two things:
-- the stored texts are the ones the model was given
-- the task holds the merge request's title and description, the diff, the headings
-  and the edited-page marker
+([`triage.py:100`](src/docbot/drafting/triage.py#L100)).
+- [`test_a_valid_answer_comes_back`](tests/test_triage.py#L23): the stored texts are
+  the ones the model was given.
+- [`test_the_task_holds_the_whole_manual_then_the_change`](tests/test_triage.py#L36):
+  the task holds every page, the edited-page marker, the merge request's title and
+  description, and the diff, in that order.
 
-**Out** ([`submit_triage`](src/docbot/drafting/triage.py#L37)):
+**Out** ([`submit_triage`](src/docbot/drafting/triage.py#L69)):
 
 - `decision`: `doc-impact` or `no-doc-impact`
 - `reason`: one or two sentences on what the change does for a user. This becomes
   "Why the manual changes" in the docs merge request.
+- `evidence`: for `doc-impact`, a list. Each item has:
+  - `kind` and `why`
+  - `page` and `quote` for `wrong` and `missing`
+  - `label` for `missing` and `new-page`
+
+  It is kept in `result.json`, not shown in the docs merge request.
 
 Triage does not choose pages. That is drafting's job.
 
 ## Drafting
 
-[`propose()`](src/docbot/drafting/proposal.py#L80): one conversation, with at most
-[25 tool calls](src/docbot/llm/agent.py#L14).
+[`propose()`](src/docbot/drafting/proposal.py#L82): one conversation, with at most
+[35 tool calls](src/docbot/llm/agent.py#L14).
 
-**In** ([system prompt](src/docbot/drafting/proposal.py#L26), [task](src/docbot/drafting/proposal.py#L159)):
-the same merge request, diff and table of contents as triage, plus these tools:
+**In** ([system prompt](src/docbot/drafting/proposal.py#L26), [task](src/docbot/drafting/proposal.py#L161)):
+the same merge request and diff as triage, and the manual's table of contents, plus these tools:
 
 - `read_page` and `search_manual`, over the manual ([`manual.py`](src/docbot/drafting/manual.py#L34))
 - `list_files`, `grep` and `read_file`, over the code at the merge commit
   ([`repo.py`](src/docbot/drafting/repo.py#L20)), unless `--diff-only` is set
 
-**Out** ([`submit_proposal`](src/docbot/drafting/proposal.py#L59)):
+**Out** ([`submit_proposal`](src/docbot/drafting/proposal.py#L61)):
 
 - `pages`: one entry for each page the model edits, hands to a human, or read and left alone
   - `page` and `reason`
@@ -102,7 +133,7 @@ the same merge request, diff and table of contents as triage, plus these tools:
 - `uncertainties`: anything the model is unsure of. Examples: a screenshot that may be
   out of date, or a page the manual lacks.
 
-A proposal is accepted only if it [validates](src/docbot/drafting/proposal.py#L118):
+A proposal is accepted only if it [validates](src/docbot/drafting/proposal.py#L120):
 - every page exists and is answered once
 - every `find` matches exactly once
 - at most 10 pages are edited
@@ -139,57 +170,66 @@ Exit codes:
 
 ## Model, performance and cost
 
-**Model:** `mistral-medium-3-5` (`DOCBOT_LLM_MODEL`), theoretically capable of reasoning. Prices as of
-2026-09-30, per million tokens:
-- input: $1.5
-- cached input: $0.15
-- output: $7.5
+**Model:** `mistral-large-4-0` (`DOCBOT_LLM_MODEL`), with `reasoning_effort` `high`
+(`DOCBOT_LLM_REASONING_EFFORT`). With nothing sent, Large 4 reasons and Medium 3.5
+does not, so the effort is always set. Large 4 has been a public preview since
+2026-10-06. It has no dated ID, and the model behind the alias may still change.
+Prices per million tokens, half price until about 2026-10-20:
+- input: $1.36
+- cached input: $0.14
+- output: $4.18
 
 The API keeps no state, so every turn resends the whole conversation. Cost grows with
-the number of turns, times the size of the diff, the table of contents and the tool
-results. DocBot requests prompt caching, but a hit is not guaranteed. One call took
-over 120 s, so the timeout is 300 s. Responses 429 and 5xx are retried for up to
-5 minutes ([`mistral.py`](src/docbot/llm/mistral.py#L30)).
+the number of turns, times the size of the diff, the manual and the tool results.
+DocBot requests prompt caching, but a hit is not guaranteed. One call took over
+120 s, so the timeout is 300 s. Responses 429 and 5xx are retried for up to
+5 minutes ([`mistral.py`](src/docbot/llm/mistral.py#L33)).
 
-**Measured on 2026-10-01**, with triage and drafting split as they are now, but before
-repo mode became the default on 2026-10-07:
+**Measured on 2026-10-13** on the fixture: the 24 scenarios in `devinfra/scenarios` in
+both modes, and the 5 comment kinds of `open-test-mr.sh`, twice each. That is 106 runs.
 
-- **Demo fixture**: the 5 scenarios in `devinfra/scenarios` at the time, plus the
-  comment kinds of `open-test-mr.sh`, in both modes.
-  - Every outcome was as expected.
-  - $0.16 for 15 runs, about $0.01 per merge.
-- **Zulip replay**: 15 commits from zulip/zulip, against a 464-page help centre, in
-  diff mode.
-  - Triage was right 15 times out of 15: 9 changes with doc impact and 6 refactors.
-  - Page choice: 6 of the 9 existing pages the authors edited. This leaves out one
-    case, which the model answered `needs-human` for the right area. It also edited
-    2 pages the authors did not.
-  - Drafts: 2 the same as the author's, 2 close, 3 partial, 1 misleading, and 1 page
-    with invented labels.
-  - Cost: $1.37 in all. That is $0.024 per refactor and about $0.14 per change with
-    doc impact, at most $0.40 (14 changed files).
-  - Finding the page works. What the draft says is the weak part.
+- 98 runs had the expected outcome and pages.
+- Triage found 53 of 56 changes with doc impact, and answered doc impact for 1 of 48
+  without.
+- The 8 runs that fell short:
+  - `account-expiry`, 3 runs: the change only switches a flag on, and the field it
+    shows is in code the diff does not show. Triage stopped it. See "Known limit".
+  - `wifi-policy`, 3 runs: an edit to `_settings.md` the scenario does not allow. The
+    change supports it: WPA2 Enterprise uses the directory.
+  - `ring-duration-documented`, 1 run: triage quoted the sentence the author had
+    already corrected. Drafting then changed nothing, so no docs merge request opens.
+  - `locations-page`, 1 run: a stand-in sentence about the new page on `_users.md`.
+    One more ran out of its 35 calls. Its outcome, `needs-human`, was the expected
+    one, but it named no missing page.
+- For a change with doc impact: median 31 s, slowest 356 s. $0.015 per merge at
+  half price.
 
-**Why Medium and not Large 3** (`mistral-large-2512`). Large is about 6 times cheaper
-per draft, but fails on the harder calls:
+**Why Large 4 and not Medium 3.5.** Medium is faster, and cheaper than Large 4 at list
+price. It misses more of what a draft needs. Medium's figures are from 2026-10-08:
 
-| | Large 3 | Medium 3.5 |
+| | Medium 3.5 | Large 4 |
 |---|---|---|
-| Triage: a feature that a flag turns on (`account-expiry`) | 1 of 30 | 23 of 24 |
-| Draft: the kiosk exit-passcode step | 0 of 30 | 19 of 19 |
-| Cost per diff-mode draft | about $0.0005 | about $0.003 |
+| `retire-label`: the Roles table's "retiring" | 0 of 6 | 4 of 4 |
+| `kiosk-passcode`: the exit-passcode step | 4 of 6 | 4 of 4 |
+| `ios-department`: **Finish** waits for a department | 4 of 6 | 4 of 4 |
+| `wifi-policy`: names the missing page | 2 of 4 | 4 of 4 |
+| `locations-page`: `needs-human`, page named, no stand-ins | 1 of 4 | 2 of 4 |
+| `find` snippets not on the page | 5 of 149 | 0 of 92 |
+| Median time, change with doc impact | 8 s | 31 s |
 
 **Not measured yet:**
 
-- Repo mode since the redesign. In the first design it cost 3 to 4 times as much as
-  diff mode.
-- Zulip in repo mode, and the scenarios added on 2026-10-07.
+- Zulip with this triage. Its help centre is about 225k tokens, and triage sends all of
+  it with every change.
+- MobiVisor's own manual in triage, about 25k to 29k tokens against the fixture's 4k.
 
 **Known limit:** triage has no repo tools. A change whose effect only the code shows
-can therefore stop at triage.
+can therefore stop at triage. `account-expiry` is the example: the prompt says a flag
+switched on makes what it hid usable, and triage still stopped it in 3 of 4 runs.
 
-The figures come from `docs/docbot-mistral-prototype.md` in the MobiManual
-repository, in "Progress" and "Decisions of 2026-10-01". DocBot does not compute cost
+The figures come from `docs/docbot-large-4-narrow2.md` and
+`docs/docbot-mistral-prototype.md` in the MobiManual repository. The runs are in
+`devinfra/.runtime/experiments/large-4-port-2026-10-13/`. DocBot does not compute cost
 itself. The token counts are in `result.json`.
 
 ## Running
@@ -202,7 +242,8 @@ Settings come from the environment ([`config.py`](src/docbot/config.py)):
 | `DOCBOT_PROJECT` | `root/mobivisor-console` |
 | `DOCBOT_GITLAB_TOKEN` | A token with `api` scope |
 | `MISTRAL_API_KEY` | The model provider's key |
-| `DOCBOT_LLM_MODEL` | `mistral-medium-3-5` |
+| `DOCBOT_LLM_MODEL` | `mistral-large-4-0` |
+| `DOCBOT_LLM_REASONING_EFFORT` | `high`, or `none`. Large 4 and Medium 3.5 accept nothing else |
 
 On a laptop, with [uv](https://docs.astral.sh/uv/), copy `.env.example` to `.env`,
 which is gitignored. Then:

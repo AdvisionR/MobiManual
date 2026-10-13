@@ -1,6 +1,6 @@
 """Triage and drafting replayed on zulip/zulip's history. Costs credits, so it only runs when asked:
 
-    DOCBOT_LLM_MODEL=mistral-medium-3-5 uv run --env-file .env pytest -m live -s -k zulip
+    DOCBOT_LLM_MODEL=mistral-large-4-0 DOCBOT_LLM_REASONING_EFFORT=high uv run --env-file .env pytest -m live -s -k zulip
 
 devinfra/zulip/cases.json lists commits that changed the product and its help
 centre together, and commits that change nothing a user sees. Each is replayed
@@ -65,7 +65,7 @@ def unified(old: str, new: str, name: str) -> str:
 
 def replay(tmp_path: Path, head: str, context: str) -> dict:
     settings = config.load_llm()
-    llm = MistralLLM(settings.api_key, settings.model)
+    llm = MistralLLM(settings.api_key, settings.model, reasoning_effort=settings.reasoning_effort)
     head = git(REPO, "rev-parse", head).strip()
     help_root = SETUP["help"]
     base = git(REPO, "rev-parse", f"{head}^").strip()

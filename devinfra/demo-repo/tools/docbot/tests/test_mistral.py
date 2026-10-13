@@ -3,6 +3,7 @@
 import httpx2
 import pytest
 from mistralai.client.models import ChatCompletionResponse
+from mistralai.client.types import UNSET
 
 from docbot.llm import LLMError, Tool, ToolResult
 from docbot.llm.mistral import RETRIES, MistralLLM
@@ -40,8 +41,8 @@ class FakeClient:
         return answer
 
 
-def conversation(client, tools=(GREP, SUBMIT)):
-    return MistralLLM("key", "mistral-medium-3-5", client=client).conversation(
+def conversation(client, tools=(GREP, SUBMIT), reasoning_effort=None):
+    return MistralLLM("key", "mistral-medium-3-5", client=client, reasoning_effort=reasoning_effort).conversation(
         "system text", "task text", list(tools), cache_key="docbot-abc-draft")
 
 
@@ -57,6 +58,21 @@ def test_a_request_carries_tools_forced_tool_use_and_the_cache_key():
     assert request["messages"] == [{"role": "system", "content": "system text"},
                                    {"role": "user", "content": "task text"}]
     assert [(c.id, c.name, c.arguments) for c in turn.calls] == [("a1", "grep", {"pattern": "kiosk"})]
+
+
+def test_the_reasoning_effort_is_sent_on_every_request_when_given():
+    client = FakeClient(response([tool_call("a1", "grep", {})]), response([tool_call("a2", "grep", {})]))
+    chat = conversation(client, reasoning_effort="high")
+    chat.step()
+    chat.add_results([ToolResult("a1", "grep", "no match")])
+    chat.step()
+    assert [r["reasoning_effort"] for r in client.requests] == ["high", "high"]
+
+
+def test_without_a_reasoning_effort_the_field_is_left_out():
+    client = FakeClient(response([tool_call("a1", "grep", {})]))
+    conversation(client).step()
+    assert client.requests[0]["reasoning_effort"] is UNSET
 
 
 def test_a_lone_tool_is_named_in_tool_choice():

@@ -10,9 +10,10 @@ pipeline {
   }
 
   environment {
-    DOCBOT_GITLAB_URL = 'http://gitlab.orb.local'
-    DOCBOT_PROJECT    = 'root/mobivisor-console'
-    DOCBOT_LLM_MODEL  = 'mistral-medium-3-5'
+    DOCBOT_GITLAB_URL           = 'http://gitlab.orb.local'
+    DOCBOT_PROJECT              = 'root/mobivisor-console'
+    DOCBOT_LLM_MODEL            = 'mistral-large-4-0'
+    DOCBOT_LLM_REASONING_EFFORT = 'high'
   }
 
   stages {

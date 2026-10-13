@@ -63,7 +63,7 @@ def update_manual_command(
             _usage_error(f"{e}; fetch it, point --repo at a checkout that has it, or pass --diff-only")
 
     gitlab = GitLab(settings.gitlab_url, settings.project, settings.token)
-    llm = MistralLLM(llm_settings.api_key, llm_settings.model)
+    llm = MistralLLM(llm_settings.api_key, llm_settings.model, reasoning_effort=llm_settings.reasoning_effort)
     try:
         result = update_manual(gitlab, llm, sha, dry_run=dry_run, repo=repo)
     except (GitLabError, LLMError) as e:

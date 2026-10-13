@@ -1,6 +1,6 @@
 """The drafting step against the real Mistral API. Costs credits, so it only runs when asked:
 
-    DOCBOT_LLM_MODEL=mistral-medium-3-5 uv run --env-file .env pytest -m live -s
+    DOCBOT_LLM_MODEL=mistral-large-4-0 DOCBOT_LLM_REASONING_EFFORT=high uv run --env-file .env pytest -m live -s
 
 Each scenario from devinfra/scenarios is applied, as a commit, to a throwaway
 repository built from the fixture, and the model drafts with the whole manual,
@@ -50,7 +50,8 @@ def test_the_model_drafts_the_expected_page(tmp_path, scenario, context):
     names = html_doc_pages(git(checkout, "show", f"{head}:gruntfile.js"))
     manual = Manual({name: git(checkout, "show", f"{head}:public/doc/en/{name}") for name in names})
 
-    result = propose(MistralLLM(settings.api_key, settings.model), mr, diffs(checkout, base, head), manual, [], head,
+    llm = MistralLLM(settings.api_key, settings.model, reasoning_effort=settings.reasoning_effort)
+    result = propose(llm, mr, diffs(checkout, base, head), manual, [], head,
                      repo=Repo(str(checkout), head) if context == "repo" else None)
 
     print(f"\n===== {scenario} / {context}\n{json.dumps(result, indent=2)}")

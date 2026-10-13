@@ -111,7 +111,7 @@ def test_a_merge_opens_one_docs_merge_request_editing_every_drafted_page():
     assert "the tr, de translations" in mr["description"]
 
 
-def test_both_conversations_see_the_table_of_contents_and_not_the_ignored_files():
+def test_triage_sees_the_whole_manual_drafting_the_table_of_contents_and_neither_the_ignored_files():
     forge = Forge(commit_mrs=[merged()], diffs=[CODE, SPEC])
     llm = FakeLLM(triaged(), drafted(KIOSK_EDIT))
     result = run(forge, llm)
@@ -119,7 +119,8 @@ def test_both_conversations_see_the_table_of_contents_and_not_the_ignored_files(
     triage_task, draft_task = (opened["task"] for opened in llm.opened)
     for task in (triage_task, draft_task):
         assert "e2e/kiosk.spec.js" not in task
-        assert "_users.md\n    # Users" in task
+    assert "Leaving kiosk mode requires the device passcode." in triage_task
+    assert "_users.md\n    # Users" in draft_task
     assert "read_page" in llm.opened[1]["tools"]
 
 

@@ -13,39 +13,49 @@ tokens either way. The SDK retries 429 and 5xx answers with backoff.
 """
 
 import json
+from typing import cast
 
 import httpx2
 from mistralai.client import Mistral
 from mistralai.client.errors import MistralError, NoResponseError
 from mistralai.client.models import (
     ChatCompletionRequestToolChoiceTypedDict,
+    ReasoningEffort,
     TextChunk,
     ToolTypedDict,
 )
+from mistralai.client.types import UNSET, OptionalNullable
 from mistralai.client.utils import BackoffStrategy, RetryConfig
 
 from docbot.llm import LLMError, Tool, ToolCall, ToolResult, Turn
 
-# One Medium 3.5 call took over 120 s on 2026-10-01. reasoning_effort is never sent, so
-# each model reasons by its own default: Medium 3.5 does not, Large 4 does (2026-10-08).
+# One Medium 3.5 call took over 120 s on 2026-10-01.
 TIMEOUT_MS = 300_000
 # Retries 429 and 5xx: 1 s, growing by half each time, up to 30 s apart and 5 minutes in all.
 RETRIES = RetryConfig("backoff", BackoffStrategy(1_000, 30_000, 1.5, 300_000), retry_connection_errors=True)
 
 
 class MistralLLM:
-    def __init__(self, api_key: str, model: str, client: Mistral | None = None):
+    """reasoning_effort is sent on every request when given. Unsent, each model reasons by its
+    own default: Medium 3.5 does not, Large 4 does. Both accept only "high" and "none" (2026-10-13)."""
+
+    def __init__(self, api_key: str, model: str, client: Mistral | None = None,
+                 reasoning_effort: str | None = None):
         self._client = client or Mistral(api_key=api_key, timeout_ms=TIMEOUT_MS, retry_config=RETRIES)
-        self._model = model
+        self._model, self._effort = model, reasoning_effort
         self.name = f"mistral/{model}"
 
     def conversation(self, system: str, task: str, tools: list[Tool], cache_key: str) -> "MistralConversation":
-        return MistralConversation(self._client, self._model, system, task, tools, cache_key)
+        return MistralConversation(self._client, self._model, system, task, tools, cache_key, self._effort)
 
 
 class MistralConversation:
-    def __init__(self, client: Mistral, model: str, system: str, task: str, tools: list[Tool], cache_key: str):
+    def __init__(self, client: Mistral, model: str, system: str, task: str, tools: list[Tool], cache_key: str,
+                 reasoning_effort: str | None = None):
         self._client, self._model, self._cache_key = client, model, cache_key
+        # UNSET leaves the field out of the request. The API refuses a value the model does not take.
+        self._effort: OptionalNullable[ReasoningEffort] = (
+            cast(ReasoningEffort, reasoning_effort) if reasoning_effort else UNSET)
         self._tools: list[ToolTypedDict] = [
             {"type": "function", "function": {"name": t.name, "description": t.description, "parameters": t.schema}}
             for t in tools]
@@ -57,7 +67,7 @@ class MistralConversation:
         try:
             response = self._client.chat.complete(
                 model=self._model, messages=self._messages, tools=self._tools,
-                tool_choice=self._tool_choice, prompt_cache_key=self._cache_key)
+                tool_choice=self._tool_choice, prompt_cache_key=self._cache_key, reasoning_effort=self._effort)
         except (MistralError, NoResponseError, httpx2.TransportError) as e:
             raise LLMError(f"mistral: {e}") from e
         choice = response.choices[0]

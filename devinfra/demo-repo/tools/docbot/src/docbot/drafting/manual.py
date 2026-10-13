@@ -1,4 +1,4 @@
-"""The manual as the model sees it: a table of contents, and tools to read and search it. Pure.
+"""The manual as the model sees it: its full text, a table of contents, and tools to read and search it. Pure.
 
 In the fixture, the pages are htmlDocPages from gruntfile.js, read with the
 regex scripts/check-missing-doc.js uses, so the manual holds exactly the pages
@@ -6,9 +6,9 @@ the build publishes, in manual order. Build machinery (search.md, break.md) is
 not listed there, so it can never be edited. Only English pages are drafted;
 translations are listed as debt.
 
-Triage reads the table of contents to know what the manual covers. Drafting
-reads it too, and then reads and searches the pages it needs, so the manual
-never has to fit into one prompt.
+Triage reads every page in full, so it can quote what a change makes false.
+Drafting reads the table of contents, and then reads and searches the pages it
+needs.
 """
 
 import difflib
@@ -86,6 +86,14 @@ class Manual:
             lines.append(f"{name} (already edited in this merge request)" if name in edited else name)
             lines += [f"    {h}" for h in headings(text)]
         return "\n".join(lines)
+
+    def text(self, edited: Collection[str] = ()) -> str:
+        """Every page in full, each under its name, marking the pages the merge request already edited."""
+        parts = []
+        for name, text in self.pages.items():
+            marker = " (already edited in this merge request)" if name in edited else ""
+            parts += [f"## Page {name}{marker}", "", "````markdown", text.rstrip("\n"), "````", ""]
+        return "\n".join(parts)
 
     def tools(self) -> tuple[list[Tool], dict[str, Handler]]:
         handlers: dict[str, Handler] = {

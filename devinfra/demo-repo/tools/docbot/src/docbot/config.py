@@ -23,6 +23,7 @@ class Config:
 class LLMConfig:
     api_key: str
     model: str
+    reasoning_effort: str
 
 
 _VARIABLES = {
@@ -31,10 +32,12 @@ _VARIABLES = {
     "token": "DOCBOT_GITLAB_TOKEN",
 }
 
-# Mistral is the only provider so far; DOCBOT_LLM_PROVIDER comes with the second.
+# Mistral is the only provider so far; DOCBOT_LLM_PROVIDER comes with the second. The
+# reasoning effort is required: left to the provider, it changes with the model.
 _LLM_VARIABLES = {
     "api_key": "MISTRAL_API_KEY",
     "model": "DOCBOT_LLM_MODEL",
+    "reasoning_effort": "DOCBOT_LLM_REASONING_EFFORT",
 }
 
 

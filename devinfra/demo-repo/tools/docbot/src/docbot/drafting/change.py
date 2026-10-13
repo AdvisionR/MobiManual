@@ -2,7 +2,7 @@
 
 
 def describe(mr: dict, diffs: list[dict]) -> list[str]:
-    """Markdown lines, for the start of a task."""
+    """Markdown lines for a task: drafting's starts with them, triage's follows the manual."""
     lines = [f"# Merge request !{mr['iid']}: {mr['title']}", "", (mr.get("description") or "").strip(), "",
              "# The change", ""]
     for d in diffs:

@@ -14,14 +14,14 @@ from docbot.gitlab import GitLab
 from docbot.llm import agent
 
 ENV = {"DOCBOT_GITLAB_URL": "http://gl", "DOCBOT_PROJECT": "root/mobivisor-console", "DOCBOT_GITLAB_TOKEN": "token",
-       "MISTRAL_API_KEY": "key", "DOCBOT_LLM_MODEL": "model"}
+       "MISTRAL_API_KEY": "key", "DOCBOT_LLM_MODEL": "model", "DOCBOT_LLM_REASONING_EFFORT": "high"}
 
 
-def invoke(monkeypatch, forge, llm, *args):
+def invoke(monkeypatch, forge, llm, *args, env=ENV):
     monkeypatch.setattr(cli, "GitLab", lambda url, project, token: GitLab(
         url, project, token, transport=httpx2.MockTransport(forge.handle)))
-    monkeypatch.setattr(cli, "MistralLLM", lambda api_key, model: llm)
-    return CliRunner(env=ENV).invoke(cli.app, ["update-manual", "--sha", SHA, *args])
+    monkeypatch.setattr(cli, "MistralLLM", lambda api_key, model, reasoning_effort: llm)
+    return CliRunner(env=env).invoke(cli.app, ["update-manual", "--sha", SHA, *args])
 
 
 @pytest.mark.parametrize("turns, args, outcome, narrated", [
@@ -73,4 +73,13 @@ def test_a_checkout_drafting_cannot_search_is_a_usage_error_before_any_call(monk
     result = invoke(monkeypatch, Forge(commit_mrs=[merged()]), llm, *args)
     assert result.exit_code == 2
     assert message in result.stderr
+    assert llm.opened == []
+
+
+def test_a_missing_reasoning_effort_is_a_configuration_error_before_any_call(monkeypatch):
+    llm = FakeLLM()
+    env = {**ENV, "DOCBOT_LLM_REASONING_EFFORT": ""}  # empty counts as missing, whatever the shell has set
+    result = invoke(monkeypatch, Forge(commit_mrs=[merged()]), llm, "--diff-only", env=env)
+    assert result.exit_code == 2
+    assert "missing setting: DOCBOT_LLM_REASONING_EFFORT" in result.stderr
     assert llm.opened == []

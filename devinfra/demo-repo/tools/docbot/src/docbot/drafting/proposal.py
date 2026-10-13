@@ -39,6 +39,8 @@ can miss a page.
 Rules:
 - Describe only what the change shows. Never invent behaviour, labels or steps. \
 Take UI labels from the code, and write them the way the page already does.
+- Describe the product as it is once the change is merged. Leave out its history \
+and its plans: what it used to do, and what the merge request says will come later.
 - Make the smallest edit that makes the page true. Keep the page's wording, \
 structure and tone everywhere else. If the change makes a sentence wrong, correct \
 that sentence; do not only add a new one next to it.
