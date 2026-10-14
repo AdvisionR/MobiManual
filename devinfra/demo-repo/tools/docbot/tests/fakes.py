@@ -1,5 +1,6 @@
 """A scripted model, for the tests of the steps that talk to one."""
 
+from docbot.drafting.repo import GREP, LIST_FILES, READ_FILE
 from docbot.llm import Tool, ToolCall, ToolResult, Turn
 
 USAGE = {"input_tokens": 10, "cached_tokens": 0, "output_tokens": 5}
@@ -31,3 +32,11 @@ class FakeLLM:
 
     def add_tools(self, tools: list[Tool]) -> None:
         self.opened[-1]["added_tools"] = [*self.opened[-1].get("added_tools", []), *(t.name for t in tools)]
+
+
+class FakeRepo:
+    """The checkout drafting searches: the real code tools, over nothing."""
+
+    def tools(self):
+        return [LIST_FILES, GREP, READ_FILE], {tool.name: lambda arguments: "no matches"
+                                               for tool in (LIST_FILES, GREP, READ_FILE)}

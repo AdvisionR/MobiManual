@@ -63,7 +63,7 @@ def unified(old: str, new: str, name: str) -> str:
                                         fromfile=f"a/{name}", tofile=f"b/{name}"))
 
 
-def replay(tmp_path: Path, head: str, context: str) -> dict:
+def replay(tmp_path: Path, head: str) -> dict:
     settings = config.load_llm()
     llm = MistralLLM(settings.api_key, settings.model, reasoning_effort=settings.reasoning_effort)
     head = git(REPO, "rev-parse", head).strip()
@@ -78,7 +78,7 @@ def replay(tmp_path: Path, head: str, context: str) -> dict:
     changed = [line.split("\t") for line in
                git(REPO, "diff-tree", "-r", "--name-status", base, head, "--", help_root).splitlines()]
     by_author = [path.removeprefix(help_root) for status, path in changed if status == "M"]
-    report: dict = {"commit": head, "title": mr["title"], "context": context, "model": llm.name,
+    report: dict = {"commit": head, "title": mr["title"], "model": llm.name,
                     "files": {"sent": [d["new_path"] for d in selection.relevant], "ignored": selection.ignored},
                     "edited_by_author": by_author,
                     "added_by_author": [path.removeprefix(help_root) for status, path in changed if status == "A"],
@@ -87,16 +87,16 @@ def replay(tmp_path: Path, head: str, context: str) -> dict:
     if selection.relevant:
         drafted = propose(llm, mr, selection.relevant, manual, [], commit, product=SETUP["product"],
                           page_names=SETUP.get("page_names", ""),
-                          repo=Repo(str(REPO), commit) if context == "repo" else None)
+                          repo=Repo(str(REPO), commit))
         report["draft"] = drafted
         edited = drafted.get("edited", {})
         report["drafted"] = {page: unified(manual.pages[page], edited[page], page) for page in edited}
         report["edited_by_model"] = list(edited)
         report["added_by_model"] = [page["page"] for page in drafted.get("new_pages", []) if page["decision"] == "create"]
     RESULTS.mkdir(parents=True, exist_ok=True)
-    (RESULTS / f"{head[:10]}-{context}.json").write_text(json.dumps(report, indent=2))
+    (RESULTS / f"{head[:10]}.json").write_text(json.dumps(report, indent=2))
 
-    print(f"\n===== {head[:10]} / {context}: {mr['title']}\n  doc impact: {doc_impact(report)}"
+    print(f"\n===== {head[:10]}: {mr['title']}\n  doc impact: {doc_impact(report)}"
           f"\n  author edited: {by_author} (added {report['added_by_author']})"
           f"\n  model edited:  {report.get('edited_by_model')} (added {report.get('added_by_model')})")
     return report
@@ -109,16 +109,15 @@ def doc_impact(report: dict) -> bool:
         entry["decision"] != "no-change" for entry in proposal.get("pages", []))
 
 
-@pytest.mark.parametrize("context", ["diff", "repo"])
 @pytest.mark.parametrize("case", SETUP["cases"], ids=lambda case: case["commit"][:10])
-def test_a_help_change_is_found_and_drafted(tmp_path, case, context):
-    report = replay(tmp_path, case["commit"], context)
+def test_a_help_change_is_found_and_drafted(tmp_path, case):
+    report = replay(tmp_path, case["commit"])
     assert report["draft"]["outcome"] == "submitted", report["draft"].get("reason")
     assert doc_impact(report)
 
 
 @pytest.mark.parametrize("case", SETUP.get("negatives", []), ids=lambda case: case["commit"][:10])
 def test_a_change_nobody_sees_has_no_doc_impact(tmp_path, case):
-    report = replay(tmp_path, case["commit"], "diff")
+    report = replay(tmp_path, case["commit"])
     assert report.get("draft", {}).get("outcome", "submitted") == "submitted", report["draft"].get("reason")
     assert not doc_impact(report)

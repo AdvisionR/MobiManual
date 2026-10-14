@@ -40,13 +40,13 @@ Imports point one way: the top level uses `drafting/`, and `drafting/` uses `llm
 
 ## Drafting
 
-[`propose()`](src/docbot/drafting/proposal.py#L165): one conversation, with at most
+[`propose()`](src/docbot/drafting/proposal.py#L164): one conversation, with at most
 [35 tool calls](src/docbot/llm/agent.py#L19). The model decides whether the change
 affects the manual at all, and if it does, which pages to change and how.
 
 **In.** [`update.py:75`](src/docbot/update.py#L75) hands drafting four things: the
 merge request, the diffs that were not ignored, the manual, and the pages the merge
-request edited. [`_task()`](src/docbot/drafting/proposal.py#L338) writes them into one
+request edited. [`_task()`](src/docbot/drafting/proposal.py#L335) writes them into one
 user message:
 
 | Input | Written into the task at | Comes from |
@@ -62,18 +62,17 @@ these tools:
 
 - `read_page` and `search_manual`, over the manual ([`manual.py`](src/docbot/drafting/manual.py#L34))
 - `list_files`, `grep` and `read_file`, over the code at the merge commit
-  ([`repo.py`](src/docbot/drafting/repo.py#L20)), unless `--diff-only` is set. They
-  answer what the diff does not show: whether a user notices the change at all, and
-  what they see.
+  ([`repo.py`](src/docbot/drafting/repo.py#L20)). They answer what the diff does not
+  show: whether a user notices the change at all, and what they see.
 
-**Sent.** [`proposal.py:175`](src/docbot/drafting/proposal.py#L175) builds the system
-prompt and the task. [`proposal.py:177`](src/docbot/drafting/proposal.py#L177) opens
+**Sent.** [`proposal.py:173`](src/docbot/drafting/proposal.py#L173) builds the system
+prompt and the task. [`proposal.py:175`](src/docbot/drafting/proposal.py#L175) opens
 the conversation with them, the tools, and `submit_proposal`.
 [`mistral.py:62`](src/docbot/llm/mistral.py#L62) makes the two texts the first two
 messages, and [`mistral.py:66`](src/docbot/llm/mistral.py#L66) sends them, with the
 tools, on every turn.
 
-**When a page needs changing.** The [system prompt](src/docbot/drafting/proposal.py#L39)
+**When a page needs changing.** The [system prompt](src/docbot/drafting/proposal.py#L38)
 gives two reasons:
 - wrong: a sentence of the page is false once the change is merged.
 - missing: the change adds a new thing a reader operates, usable as soon as it is
@@ -88,11 +87,11 @@ instead, and must not name a new page for something that belongs on a page the m
 has, such as a new field on a screen a page describes. In MobiVisor, a console screen's
 page is named after its route, because that is the page the screen's **Help** link
 opens: `/policies/kiosk` has `_policies_kiosk.md`
-([`PAGE_NAMES`](src/docbot/drafting/proposal.py#L32)). A change to how something already documented behaves needs an edit only if it makes a
+([`PAGE_NAMES`](src/docbot/drafting/proposal.py#L31)). A change to how something already documented behaves needs an edit only if it makes a
 sentence false. A change nobody using the product notices needs none, and the model
 then submits no pages.
 
-**Out** ([`submit_proposal`](src/docbot/drafting/proposal.py#L97)):
+**Out** ([`submit_proposal`](src/docbot/drafting/proposal.py#L96)):
 
 - `reason`: one or two sentences on what the change does for a user, or that it does
   nothing a user notices. This becomes "Why the manual changes" in the docs merge
@@ -113,12 +112,14 @@ a missing one nobody wrote, is `needs-human`, and anything else `no-doc-impact`.
 is no separate decision field, and no second submit tool for "nothing to change":
 either would say nothing the pages do not, and could disagree with them.
 
-A proposal is accepted only if it [validates](src/docbot/drafting/proposal.py#L222):
+A proposal is accepted only if it [validates](src/docbot/drafting/proposal.py#L218):
 - `reason` is not empty
 - every page exists and is answered once
 - every `find` matches exactly once
 - at most 10 pages are edited
-- every missing page is one the manual does not have
+- no missing page is named like a page that exists, because a file that exists cannot
+  be created. Whether a page is really missing is the model's call: a page under
+  another name, such as `_users_groups.md` next to `_groups_users.md`, is not caught.
 
 If it does not validate, the error goes back to the model, which tries again within
 the same call budget.
@@ -130,19 +131,19 @@ over a broken line join the next line of the same paragraph.
 
 A proposal that names pages in `missing_pages` does not end the conversation. Its
 accepted `submit_proposal` gets the task of writing them back
-([`WRITE_PAGES`](src/docbot/drafting/proposal.py#L148)), and only then does the model
+([`WRITE_PAGES`](src/docbot/drafting/proposal.py#L147)), and only then does the model
 get a second submit tool, `submit_new_pages`
-([`proposal.py:190`](src/docbot/drafting/proposal.py#L190)), with
+([`proposal.py:187`](src/docbot/drafting/proposal.py#L187)), with
 [35 more tool calls](src/docbot/llm/agent.py#L19). It keeps the conversation, and so
 the code and pages it has read.
 
-The decision comes first, on its own, for three reasons:
-- whether a page is missing is decided and validated before anything is written, so
-  writing a page is never the way around editing the one that should change
-- the edits to existing pages are accepted, whatever happens to the new pages
+The decision comes first, on its own:
+- the model says which pages are missing, and what each will describe, before it writes
+  any, in the same answer as its edits to the pages the manual has
+- those edits are accepted whatever happens to the new pages
 - the model cannot see a tool that creates pages until it has said which ones are missing
 
-**Out** ([`submit_new_pages`](src/docbot/drafting/proposal.py#L128)), for each page
+**Out** ([`submit_new_pages`](src/docbot/drafting/proposal.py#L127)), for each page
 named in `missing_pages`:
 - `decision`: `create`, or `needs-human` for a page the model cannot write from what it
   knows
@@ -152,7 +153,7 @@ named in `missing_pages`:
 
 `uncertainties` names the screenshots the new pages need, among anything else.
 
-It is accepted only if it [validates](src/docbot/drafting/proposal.py#L272): every
+It is accepted only if it [validates](src/docbot/drafting/proposal.py#L269): every
 missing page answered once and no other, a title on every page, `after` a page in the
 manual, and no images, because no screenshot of a new screen exists yet. If writing
 stops without a valid answer, the edits still go out, and the missing pages are listed
@@ -167,13 +168,13 @@ request asks the reviewer to register it by hand. The page is English only: the 
 then reports it missing in the other languages, as translation debt.
 
 **Checked.** Each run stores the exact system prompt and task in `result.json`
-([`proposal.py:202`](src/docbot/drafting/proposal.py#L202)).
+([`proposal.py:199`](src/docbot/drafting/proposal.py#L199)).
 - [`test_the_model_reads_the_page_it_chose_then_edits_it`](tests/test_proposal.py#L52):
   the stored texts are the ones the model was given, and a page's text reaches the
   model only through `read_page`.
-- [`test_the_task_marks_the_pages_the_merge_request_edited`](tests/test_proposal.py#L86):
+- [`test_the_task_marks_the_pages_the_merge_request_edited`](tests/test_proposal.py#L85):
   the table of contents marks the pages the author already edited.
-- [`test_a_missing_page_is_written_only_after_the_proposal_is_accepted`](tests/test_proposal.py#L99):
+- [`test_a_missing_page_is_written_only_after_the_proposal_is_accepted`](tests/test_proposal.py#L98):
   `submit_new_pages` is added only once the proposal is accepted, and the writing goes
   on in the same conversation.
 - [`test_a_page_the_manual_lacks_is_created_and_joins_the_page_list`](tests/test_update.py#L122):
@@ -231,18 +232,27 @@ price. It misses more of what a draft needs. Medium's figures are from 2026-10-0
 | `find` snippets not on the page | 5 of 149 | 0 of 92 |
 | Median time, change with doc impact | 8 s | 31 s |
 
-**Not measured yet** for drafting as it is now:
-- how often it finds the changes that need a page changed, and stays silent on the
-  ones that do not, on the scenarios in `devinfra/scenarios` and the comment kinds of
-  `open-test-mr.sh`
-- the time and cost per merge. Every merge that reaches the model costs a whole
-  drafting conversation, including those that change nothing a user sees.
-- Zulip, and MobiVisor's own manual
+**Measured on 2026-10-14** on the fixture: the 30 scenarios in `devinfra/scenarios` and
+the 5 comment kinds of `open-test-mr.sh`, twice each. That is 70 runs.
+
+- All 70 had the expected outcome, and edited and created the expected pages. It found
+  all 40 changes that needed a page changed or created, and stayed silent on all 30
+  that did not.
+- On reading, 68 are right. In both runs of `commands-tab-rework`, the draft renames
+  **Retry** right, but also describes the history's paging and its loading and empty
+  states, which the scenario counts as below the manual's level of detail.
+- It created `_locations.md` and `_policies_wifi.md` in both of their runs, each
+  registered after the right page, and wrote nothing about them on other pages.
+- $0.52 for the 70 runs at half price. A change that needs no page changed: median
+  14 s, $0.004. One that does: median 24 s, slowest 179 s, $0.011.
+
+**Not measured yet:** Zulip, and MobiVisor's own manual.
 
 The model figures come from `docs/docbot-large-4-narrow2.md` and
-`docs/docbot-mistral-prototype.md` in the MobiManual repository. The runs are in
-`devinfra/.runtime/experiments/large-4-port-2026-10-13/`. DocBot does not compute cost
-itself. The token counts are in `result.json`.
+`docs/docbot-mistral-prototype.md` in the MobiManual repository, and the measurement
+above from `docs/docbot-drafting-alone.md`. The runs are in
+`devinfra/.runtime/experiments/`. DocBot does not compute cost itself. The token counts
+are in `result.json`.
 
 ## Running
 
@@ -268,7 +278,6 @@ uv run --env-file .env pytest -m live -s -k update   # calls the real model and 
 
 - `--sha` defaults to `HEAD` of the working directory.
 - `--repo` defaults to the working directory, and must contain the merge commit.
-- `--diff-only` drafts without searching the code.
 - `-k update` runs each scenario through `update-manual`, against a GitLab replayed
   from git. Results go to `devinfra/.runtime/docbot-results/`.
 - `-k zulip` replays zulip/zulip, where `devinfra/` has it set up.

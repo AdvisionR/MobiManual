@@ -5,7 +5,7 @@ import os
 
 import httpx2
 import pytest
-from fakes import FakeLLM
+from fakes import FakeLLM, FakeRepo
 from test_update import (
     KIOSK_EDIT,
     LOCATIONS,
@@ -27,7 +27,10 @@ ENV = {"DOCBOT_GITLAB_URL": "http://gl", "DOCBOT_PROJECT": "root/mobivisor-conso
        "MISTRAL_API_KEY": "key", "DOCBOT_LLM_MODEL": "model", "DOCBOT_LLM_REASONING_EFFORT": "high"}
 
 
-def invoke(monkeypatch, forge, llm, *args, env=ENV):
+def invoke(monkeypatch, forge, llm, *args, env=ENV, checkout=True):
+    """update-manual, with the checkout replaced by FakeRepo unless checkout is False."""
+    if checkout:
+        monkeypatch.setattr(cli, "Repo", lambda path, sha: FakeRepo())
     monkeypatch.setattr(cli, "GitLab", lambda url, project, token: GitLab(
         url, project, token, transport=httpx2.MockTransport(forge.handle)))
     monkeypatch.setattr(cli, "MistralLLM", lambda api_key, model, reasoning_effort: llm)
@@ -45,7 +48,7 @@ def invoke(monkeypatch, forge, llm, *args, env=ENV):
     ([drafted(reason="") for _ in range(agent.MAX_CALLS)], [], "needs-human", ["draft   stopped: no valid submit_proposal"]),
 ])
 def test_stdout_is_the_result_and_stderr_narrates_each_conversation(monkeypatch, turns, args, outcome, narrated):
-    result = invoke(monkeypatch, Forge(commit_mrs=[merged()]), FakeLLM(*turns), "--diff-only", *args)
+    result = invoke(monkeypatch, Forge(commit_mrs=[merged()]), FakeLLM(*turns), *args)
     assert result.exit_code == 0, result.stderr
     assert json.loads(result.stdout)["outcome"] == outcome
     for line in narrated:
@@ -55,45 +58,30 @@ def test_stdout_is_the_result_and_stderr_narrates_each_conversation(monkeypatch,
 def test_drafting_searches_the_working_directory_by_default(monkeypatch):
     opened = []
 
-    class Checkout:
-        def __init__(self, path: str, sha: str):
-            opened.append((path, sha))
+    def checkout(path: str, sha: str):
+        opened.append((path, sha))
+        return FakeRepo()
 
-        def tools(self):
-            return [], {}
-
-    monkeypatch.setattr(cli, "Repo", Checkout)
-    result = invoke(monkeypatch, Forge(commit_mrs=[merged()]), FakeLLM(drafted(KIOSK_EDIT)))
+    monkeypatch.setattr(cli, "Repo", checkout)
+    result = invoke(monkeypatch, Forge(commit_mrs=[merged()]), FakeLLM(drafted(KIOSK_EDIT)), checkout=False)
     assert result.exit_code == 0, result.stderr
     assert opened == [(os.getcwd(), SHA)]
-    assert json.loads(result.stdout)["draft"]["context"] == "repo"
 
 
-def test_diff_only_drafts_from_the_diff_alone(monkeypatch, tmp_path):
-    monkeypatch.chdir(tmp_path)  # not a checkout, so a search would have failed
-    result = invoke(monkeypatch, Forge(commit_mrs=[merged()]), FakeLLM(drafted(KIOSK_EDIT)), "--diff-only")
-    assert result.exit_code == 0, result.stderr
-    assert json.loads(result.stdout)["draft"]["context"] == "diff"
-
-
-@pytest.mark.parametrize("args, message", [
-    ([], "or pass --diff-only"),
-    (["--repo", "."], "or pass --diff-only"),
-    (["--diff-only", "--repo", "."], "--repo has nothing to do"),
-])
-def test_a_checkout_drafting_cannot_search_is_a_usage_error_before_any_call(monkeypatch, tmp_path, args, message):
+@pytest.mark.parametrize("args", [[], ["--repo", "."]])
+def test_a_checkout_drafting_cannot_search_is_a_usage_error_before_any_call(monkeypatch, tmp_path, args):
     monkeypatch.chdir(tmp_path)  # not a checkout, so it has no merge commit
     llm = FakeLLM()
-    result = invoke(monkeypatch, Forge(commit_mrs=[merged()]), llm, *args)
+    result = invoke(monkeypatch, Forge(commit_mrs=[merged()]), llm, *args, checkout=False)
     assert result.exit_code == 2
-    assert message in result.stderr
+    assert "fetch it, or point --repo at a checkout that has it" in result.stderr
     assert llm.opened == []
 
 
 def test_a_missing_reasoning_effort_is_a_configuration_error_before_any_call(monkeypatch):
     llm = FakeLLM()
     env = {**ENV, "DOCBOT_LLM_REASONING_EFFORT": ""}  # empty counts as missing, whatever the shell has set
-    result = invoke(monkeypatch, Forge(commit_mrs=[merged()]), llm, "--diff-only", env=env)
+    result = invoke(monkeypatch, Forge(commit_mrs=[merged()]), llm, env=env)
     assert result.exit_code == 2
     assert "missing setting: DOCBOT_LLM_REASONING_EFFORT" in result.stderr
     assert llm.opened == []

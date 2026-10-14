@@ -90,40 +90,46 @@ class LocalForge:
         return httpx2.Response(404, json={"message": "404 Not Found"})
 
 
-def dry_run(checkout: Path, base: str, head: str, case: str, context: str) -> dict:
+def dry_run(checkout: Path, base: str, head: str, case: str) -> dict:
     settings = config.load_llm()
     forge = LocalForge(checkout, base, head)
     gitlab = GitLab("http://gitlab.invalid", "root/mobivisor-console", "token",
                     transport=httpx2.MockTransport(forge.handle))
     llm = MistralLLM(settings.api_key, settings.model, reasoning_effort=settings.reasoning_effort)
-    result = update_manual(gitlab, llm, head, dry_run=True,
-                           repo=Repo(str(checkout), head) if context == "repo" else None)
+    result = update_manual(gitlab, llm, head, Repo(str(checkout), head), dry_run=True)
     RESULTS.mkdir(parents=True, exist_ok=True)
-    (RESULTS / f"{case}-{context}.json").write_text(json.dumps(result, indent=2) + "\n")
-    print(f"\n===== {case} / {context}: {result['outcome']}\n{result.get('reason') or result.get('diff', '')}")
+    (RESULTS / f"{case}.json").write_text(json.dumps(result, indent=2) + "\n")
+    print(f"\n===== {case}: {result['outcome']}\n{result.get('reason') or result.get('diff', '')}")
     return result
 
 
-@pytest.mark.parametrize("context", ["diff", "repo"])
-@pytest.mark.parametrize("scenario", SCENARIO_NAMES)
-def test_update_scenario(tmp_path, scenario, context):
-    checkout = tmp_path / "repo"
-    base = fixture_repo(FIXTURE, checkout)
-    head = apply_patch(checkout, PATCHES[scenario])
-    result = dry_run(checkout, base, head, scenario, context)
-    fields = expectations(PATCHES[scenario])
-    diff_only = context == "diff" and "outcome-diff-only" in fields
-    outcome = fields["outcome-diff-only"] if diff_only else fields["outcome"]
-    must = set() if diff_only else set(fields.get("edits", "").split())
-    may = set(fields.get("may-edit", "").split())
-    creates = set() if diff_only else set(fields.get("creates", "").split())
-    # A dry run stops where it would open the docs merge request.
-    assert result["outcome"] == ("dry-run" if outcome == "opened" else outcome), result.get("reason")
+def verdict(result: dict, fields: dict[str, str]) -> str | None:
+    """None if a dry run ended as a scenario's Expected- lines say (replay.expectations), else how it did not.
+
+    Only the outcome and which pages are edited and created are checked, not what the edits say.
+    """
+    must, may = set(fields.get("edits", "").split()), set(fields.get("may-edit", "").split())
+    creates = set(fields.get("creates", "").split())
     draft = result.get("draft") or {}
     edited = set(draft.get("edited") or {})
     created = {page["page"] for page in draft.get("new_pages") or [] if page["decision"] == "create"}
-    assert must <= edited <= must | may, f"edited {sorted(edited)}, expected {sorted(must)} (may also: {sorted(may)})"
-    assert created == creates, f"created {sorted(created)}, expected {sorted(creates)}"
+    # A dry run stops where it would open the docs merge request.
+    if result["outcome"] != ("dry-run" if fields["outcome"] == "opened" else fields["outcome"]):
+        return f"outcome {result['outcome']}, expected {fields['outcome']}: {result.get('reason')}"
+    if not must <= edited <= must | may:
+        return f"edited {sorted(edited)}, expected {sorted(must)} (may also: {sorted(may)})"
+    if created != creates:
+        return f"created {sorted(created)}, expected {sorted(creates)}"
+    return None
+
+
+@pytest.mark.parametrize("scenario", SCENARIO_NAMES)
+def test_update_scenario(tmp_path, scenario):
+    checkout = tmp_path / "repo"
+    base = fixture_repo(FIXTURE, checkout)
+    head = apply_patch(checkout, PATCHES[scenario])
+    problem = verdict(dry_run(checkout, base, head, scenario), expectations(PATCHES[scenario]))
+    assert problem is None, problem
 
 
 @pytest.mark.parametrize("kind", list(KINDS))
@@ -132,5 +138,5 @@ def test_update_kind(tmp_path, kind):
     checkout = tmp_path / "repo"
     base = fixture_repo(FIXTURE, checkout)
     head = stamp(checkout, files, kind)
-    result = dry_run(checkout, base, head, f"kind-{kind}", "diff")
+    result = dry_run(checkout, base, head, f"kind-{kind}")
     assert result["outcome"] == expected, result.get("reason")

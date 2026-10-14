@@ -69,11 +69,10 @@ done
 
 # What DocBot should end with. A scenario's patch states it below its "---":
 # Expected-outcome, the pages it must edit (Expected-edits), the pages it may
-# also edit (Expected-may-edit), the pages it must create (Expected-creates),
-# and, where --diff-only changes the answer, Expected-outcome-diff-only. A kind only appends a comment, so it ends at
+# also edit (Expected-may-edit), and the pages it must create (Expected-creates). A kind only appends a comment, so it ends at
 # no-doc-impact, or at skipped when doc-map.json ignores every file.
 PATCH=""
-EXPECT_EDITS=""; EXPECT_MAY_EDIT=""; EXPECT_CREATES=""; EXPECT_OUTCOME_DIFF_ONLY=""
+EXPECT_EDITS=""; EXPECT_MAY_EDIT=""; EXPECT_CREATES=""
 FOUND=$(find scenarios -mindepth 2 -maxdepth 2 -name "${KIND}.patch")
 if [ "$(printf '%s' "$FOUND" | grep -c .)" -gt 1 ]; then
   printf '\n  !! scenario %s is in more than one folder:\n%s\n\n' "$KIND" "$FOUND" >&2
@@ -86,7 +85,6 @@ if [ -n "$FOUND" ]; then
   EXPECT_EDITS=$(sed -n 's/^Expected-edits: //p' "$PATCH")
   EXPECT_MAY_EDIT=$(sed -n 's/^Expected-may-edit: //p' "$PATCH")
   EXPECT_CREATES=$(sed -n 's/^Expected-creates: //p' "$PATCH")
-  EXPECT_OUTCOME_DIFF_ONLY=$(sed -n 's/^Expected-outcome-diff-only: //p' "$PATCH")
 else
   EXPECT_OUTCOME=no-doc-impact
   case "$KIND" in
@@ -270,7 +268,7 @@ mkdir -p .runtime/mr-results
 SAVED=".runtime/mr-results/${KIND}-${STAMP}.json"
 if curl -sf -u "$AUTH" -o "$SAVED" "$BASE/job/docbot/job/main/${NUM}/artifact/result.json"; then
   EXPECT="$EXPECT" EXPECT_OUTCOME="$EXPECT_OUTCOME" EXPECT_EDITS="$EXPECT_EDITS" EXPECT_MAY_EDIT="$EXPECT_MAY_EDIT" \
-  EXPECT_CREATES="$EXPECT_CREATES" EXPECT_OUTCOME_DIFF_ONLY="$EXPECT_OUTCOME_DIFF_ONLY" python3 - "$SAVED" <<'PY'
+  EXPECT_CREATES="$EXPECT_CREATES" python3 - "$SAVED" <<'PY'
 import json, os, sys, textwrap
 
 r = json.load(open(sys.argv[1]))
@@ -279,9 +277,6 @@ want = os.environ["EXPECT_OUTCOME"]
 must = os.environ["EXPECT_EDITS"].split()
 may = os.environ["EXPECT_MAY_EDIT"].split()
 creates = os.environ["EXPECT_CREATES"].split()
-# With --diff-only, a scenario whose edit needs the code ends at needs-human, editing nothing.
-if os.environ["EXPECT_OUTCOME_DIFF_ONLY"] and draft.get("context") == "diff":
-    want, must, creates = os.environ["EXPECT_OUTCOME_DIFF_ONLY"], [], []
 
 
 def say(label, text, width=11):
@@ -308,7 +303,7 @@ for key in ("reason", "error"):
         say(key, r[key])
 if draft:
     calls = sum(len(t["calls"]) for t in draft["turns"])
-    say("draft", f"{draft.get('context')} mode, {calls} tool calls")
+    say("draft", f"{calls} tool calls")
     proposal = draft.get("proposal") or {}
     if proposal.get("reason") and proposal["reason"] != r.get("reason"):
         say("why", proposal["reason"])

@@ -56,7 +56,7 @@ change to a person.
 
 | Scenario | Expected | Change | What it tests |
 |---|---|---|---|
-| `account-expiry` | edit | A feature flag turns on an optional expiry date in the Add user form | Writing from code the diff does not show: the diff is the flag. Needs repo mode |
+| `account-expiry` | edit | A feature flag turns on an optional expiry date in the Add user form | Writing from code the diff does not show: the diff is the flag |
 | `lost-mode-dark` | silent | A Lost mode command is merged behind a flag that stays off | Silence on a feature nobody can see yet; the counterpart of `account-expiry` |
 | `drop-account-expiry` | silent | The unreleased account expiry feature is removed | Silence on removing something that was never switched on |
 
@@ -136,15 +136,12 @@ Expected-outcome: opened
 Expected-edits: _devices_id.md _devicescommands.md
 Expected-may-edit: chapter1.md
 Expected-creates: _locations.md
-Expected-outcome-diff-only: needs-human
 ```
 
 `Expected:` describes the right result in words, for a person to judge the
 draft by. The other lines are what the tools check: update-manual's outcome,
-the pages that must be edited, the pages that may be edited as well, the pages
-the manual lacks that must be created (no other page may be), and, where
-`--diff-only` cannot write the edit, the outcome then (with no page edited or
-created).
+the pages that must be edited, the pages that may be edited as well, and the
+pages the manual lacks that must be created (no other page may be).
 `git am` leaves everything between `---` and the diff out of the commit message,
 so the expectation never reaches the merge request description the model reads.
 
@@ -155,9 +152,10 @@ created or left to a human, a check of the pages against `Expected-edits` and
 `.runtime/mr-results/`.
 
 `tests/live/test_live_update.py` in `demo-repo/tools/docbot/` runs every
-scenario through `update-manual` without the stack, in repo mode and with
-`--diff-only`, and writes each result to `.runtime/docbot-results/`, to compare
-against the `Expected:` line. `tests/live/test_live_mistral.py` runs drafting
+scenario through `update-manual` without the stack, checks the outcome and the
+pages edited and created against the `Expected-` lines (`verdict()`), and writes
+each result to `.runtime/docbot-results/`, to compare against the `Expected:`
+line. `tests/live/test_live_mistral.py` runs drafting
 alone on every scenario, and checks its page decisions: each page the
 `Expected-edits:` line names comes back edited, and a silent scenario changes no
 page.

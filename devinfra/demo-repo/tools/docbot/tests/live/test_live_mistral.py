@@ -39,9 +39,8 @@ def merged(tmp_path: Path, scenario: str) -> tuple[Path, str, str]:
     return checkout, base, apply_patch(checkout, PATCHES[scenario])
 
 
-@pytest.mark.parametrize("context", ["diff", "repo"])
 @pytest.mark.parametrize("scenario", sorted(PATCHES))
-def test_the_model_drafts_the_expected_pages(tmp_path, scenario, context):
+def test_the_model_drafts_the_expected_pages(tmp_path, scenario):
     settings = config.load_llm()
     checkout, base, head = merged(tmp_path, scenario)
     mr = {"iid": 1, "title": git(checkout, "log", "-1", "--format=%s").strip(),
@@ -50,23 +49,18 @@ def test_the_model_drafts_the_expected_pages(tmp_path, scenario, context):
     manual = Manual({name: git(checkout, "show", f"{head}:public/doc/en/{name}") for name in names})
 
     llm = MistralLLM(settings.api_key, settings.model, reasoning_effort=settings.reasoning_effort)
-    result = propose(llm, mr, diffs(checkout, base, head), manual, [], head,
-                     repo=Repo(str(checkout), head) if context == "repo" else None)
+    result = propose(llm, mr, diffs(checkout, base, head), manual, [], head, Repo(str(checkout), head))
 
-    print(f"\n===== {scenario} / {context}\n{json.dumps(result, indent=2)}")
+    print(f"\n===== {scenario}\n{json.dumps(result, indent=2)}")
     assert result["outcome"] == "submitted", result.get("reason")
     proposal = result["proposal"]
     decisions = {entry["page"]: entry["decision"] for entry in proposal["pages"]}
     created = {page["page"] for page in result["new_pages"] if page["decision"] == "create"}
     fields = expectations(PATCHES[scenario])
-    diff_only = context == "diff" and "outcome-diff-only" in fields
-    outcome = fields["outcome-diff-only"] if diff_only else fields["outcome"]
-    if outcome == "no-doc-impact":
+    if fields["outcome"] == "no-doc-impact":
         assert set(decisions.values()) <= {"no-change"}, decisions
         assert not proposal["missing_pages"]
         return
-    # Where the diff alone cannot say what to write, the pages come back needs-human instead.
-    expected = "needs-human" if outcome == "needs-human" else "edit"
     pages = fields.get("edits", "").split()
-    assert {page: decisions.get(page) for page in pages} == dict.fromkeys(pages, expected)
-    assert created == (set() if diff_only else set(fields.get("creates", "").split()))
+    assert {page: decisions.get(page) for page in pages} == dict.fromkeys(pages, "edit")
+    assert created == set(fields.get("creates", "").split())

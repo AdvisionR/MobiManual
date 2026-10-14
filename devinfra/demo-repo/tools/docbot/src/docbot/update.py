@@ -31,7 +31,7 @@ GRUNTFILE = "gruntfile.js"
 MAX_DIFF_CHARS = 100_000
 
 
-def update_manual(gitlab: GitLab, llm: LLM, sha: str, dry_run: bool = False, repo: Repo | None = None) -> dict:
+def update_manual(gitlab: GitLab, llm: LLM, sha: str, repo: Repo, dry_run: bool = False) -> dict:
     result: dict = {"schema": SCHEMA, "sha": sha}
 
     mr = resolve(gitlab, sha, TARGET_BRANCH)
@@ -72,7 +72,7 @@ def update_manual(gitlab: GitLab, llm: LLM, sha: str, dry_run: bool = False, rep
     the_manual = manual.Manual({name: text for name, text in texts.items() if text is not None})
 
     pages = the_manual.pages
-    drafted = propose(llm, mr, selection.relevant, the_manual, selection.edited_pages, sha, repo=repo)
+    drafted = propose(llm, mr, selection.relevant, the_manual, selection.edited_pages, sha, repo)
     result["draft"] = drafted
     if drafted["outcome"] != "submitted":
         return {**result, "outcome": "needs-human", "reason": f"draft: {drafted['reason']}"}

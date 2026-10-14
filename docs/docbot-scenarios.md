@@ -279,7 +279,7 @@ flag on is the release.
 
 | Scenario | | Expected | What it tests |
 |---|---|---|---|
-| `account-expiry` | built | edits `_users.md` | Writing from code the diff does not show: the diff is the flag. Needs repo mode; with `--diff-only`, the right answer is needs-human |
+| `account-expiry` | built | edits `_users.md` | Writing from code the diff does not show: the diff is the flag |
 | `lost-mode-dark` | built | silent | Silence on a feature nobody can see yet; the counterpart of `account-expiry` |
 | `drop-account-expiry` | built | silent | Silence on removing something that was never switched on |
 

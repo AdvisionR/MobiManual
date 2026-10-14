@@ -29,7 +29,7 @@ pipeline {
           tools/docbot/.venv/bin/pip install --quiet --require-hashes -r tools/docbot/requirements.txt
         '''
         // Drafting also searches the code at the merge commit, in the working directory:
-        // the workspace is the checkout. Add --diff-only to give the model the diff alone.
+        // the workspace is the checkout.
         withCredentials([string(credentialsId: 'docbot-gitlab-token', variable: 'DOCBOT_GITLAB_TOKEN'),
                          string(credentialsId: 'docbot-llm-key', variable: 'MISTRAL_API_KEY')]) {
           sh 'PYTHONPATH=tools/docbot/src tools/docbot/.venv/bin/python -m docbot update-manual > result.json'

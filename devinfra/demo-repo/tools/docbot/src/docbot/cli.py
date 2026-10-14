@@ -36,8 +36,6 @@ def main() -> None:
 def update_manual_command(
     sha: Annotated[str | None, typer.Option(help="Commit on main to process. Default: HEAD of the working directory.")] = None,
     dry_run: Annotated[bool, typer.Option("--dry-run", help="Show the manual change, write nothing.")] = False,
-    diff_only: Annotated[bool, typer.Option(
-        "--diff-only", help="Draft from the merge request's diff alone, without searching the code.")] = False,
     repo_path: Annotated[str | None, typer.Option(
         "--repo", help="A git checkout that contains the merge commit, for drafting to search. "
                        "Default: the working directory.")] = None,
@@ -52,20 +50,15 @@ def update_manual_command(
     except (OSError, subprocess.CalledProcessError):
         _usage_error("cannot read HEAD: run inside a git checkout, or pass --sha")
 
-    repo = None
-    if diff_only:
-        if repo_path is not None:
-            _usage_error("--diff-only searches no checkout, so --repo has nothing to do")
-    else:
-        try:
-            repo = Repo(repo_path or os.getcwd(), sha)
-        except RepoError as e:
-            _usage_error(f"{e}; fetch it, point --repo at a checkout that has it, or pass --diff-only")
+    try:
+        repo = Repo(repo_path or os.getcwd(), sha)
+    except RepoError as e:
+        _usage_error(f"{e}; fetch it, or point --repo at a checkout that has it")
 
     gitlab = GitLab(settings.gitlab_url, settings.project, settings.token)
     llm = MistralLLM(llm_settings.api_key, llm_settings.model, reasoning_effort=llm_settings.reasoning_effort)
     try:
-        result = update_manual(gitlab, llm, sha, dry_run=dry_run, repo=repo)
+        result = update_manual(gitlab, llm, sha, repo, dry_run=dry_run)
     except (GitLabError, LLMError) as e:
         result = {"schema": SCHEMA, "sha": sha, "outcome": "error", "error": str(e)}
     _narrate(result)

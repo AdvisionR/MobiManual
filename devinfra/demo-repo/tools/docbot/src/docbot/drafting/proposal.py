@@ -2,19 +2,18 @@
 
 One conversation per merge. Its input is the merge request, its diff and the
 manual's table of contents. The model reads and searches the manual with
-read_page and search_manual, and with a Repo it can also search the code at the
-merge commit. It decides whether the change makes the manual wrong or leaves
+read_page and search_manual, and the code at the merge commit with the Repo's
+list_files, grep and read_file. It decides whether the change makes the manual wrong or leaves
 out something new, and which pages to change. A proposal without pages is the
 answer for a change that needs none; its reason says why.
 
 The proposal is accepted when it validates: every page in the manual and
 answered once, edits only with "edit", every edit applicable to its page, no
-more than MAX_EDITED_PAGES pages edited, and every missing page one the manual
-does not have. Only then, and only if it names missing pages, does the model
-get submit_new_pages, in the same conversation and with what it has read so
-far, to write those pages or hand them to a human. Deciding that a page is
-missing comes first, on its own, so that writing a page is never the way
-around editing the one that should change.
+more than MAX_EDITED_PAGES pages edited, and no missing page named like a page
+the manual has, which could not be created. Whether a page is really missing is
+the model's call. Only once the proposal is accepted, and only if it names
+missing pages, does the model get submit_new_pages, in the same conversation
+and with what it has read so far, to write those pages or hand them to a human.
 """
 
 import re
@@ -162,29 +161,30 @@ Call submit_new_pages when you are done."""
 _IMAGE = re.compile(r"!\[|<img\b", re.IGNORECASE)
 
 
-def propose(llm: LLM, mr: dict, diffs: list[dict], manual: Manual, edited: list[str], sha: str,
-            repo: Repo | None = None, product: str = PRODUCT, page_names: str = PAGE_NAMES) -> dict:
+def propose(llm: LLM, mr: dict, diffs: list[dict], manual: Manual, edited: list[str], sha: str, repo: Repo,
+            product: str = PRODUCT, page_names: str = PAGE_NAMES) -> dict:
     """Run the drafting conversation. `edited` names the pages the merge request edited itself.
 
     `page_names` tells the model how the manual names a page it lacks; empty leaves that to the
     table of contents."""
-    tools, handlers = manual.tools()
-    if repo:
-        repo_tools, repo_handlers = repo.tools()
-        tools, handlers = [*tools, *repo_tools], {**handlers, **repo_handlers}
+    manual_tools, manual_handlers = manual.tools()
+    repo_tools, repo_handlers = repo.tools()
+    tools, handlers = [*manual_tools, *repo_tools], {**manual_handlers, **repo_handlers}
     system = SYSTEM.format(product=product, page_names=f" {page_names}" if page_names else "")
-    task = _task(mr, diffs, manual, edited, searchable=repo is not None)
+    task = _task(mr, diffs, manual, edited, [t.name for t in tools])
     conversation = llm.conversation(system, task, [*tools, SUBMIT], cache_key=f"docbot-{sha[:12]}-draft")
     run = agent.run(conversation, handlers, SUBMIT.name,
                     lambda proposal: validate(full_names(proposal, manual), manual.pages),
                     accepted=lambda proposal: _accepted(proposal, [t.name for t in tools]))
-    result = {"schema": SCHEMA, "model": llm.name, "context": "repo" if repo else "diff",
-              "outcome": run["outcome"]}
+    result = {"schema": SCHEMA, "model": llm.name, "outcome": run["outcome"]}
     turns = run["turns"]
     if run["outcome"] != "submitted":
         return {**result, "reason": run["reason"], "system": system, "task": task, "turns": turns}
 
     proposal = run["submission"]
+    # The schema requires both lists, but a model may leave out an empty one; validate accepts that.
+    proposal.setdefault("missing_pages", [])
+    proposal.setdefault("uncertainties", [])
     result.update(proposal=proposal, edited=edited_pages(proposal, manual.pages), new_pages=[])
     if missing := [entry["page"] for entry in proposal["missing_pages"]]:
         conversation.add_tools([SUBMIT_NEW_PAGES])
@@ -207,15 +207,14 @@ def full_names(proposal: dict, manual: Manual) -> dict:
 
     read_page accepts a page's name without its folder or extension, so the
     proposal may use the same short names. A name that fits no page, or
-    several, is left for validate to refuse, or, as a missing page, to accept.
+    several, is left for validate to refuse.
     """
-    for key in ("pages", "missing_pages"):
-        for entry in proposal.get(key) or []:
-            if isinstance(entry, dict) and isinstance(entry.get("page"), str):
-                try:
-                    entry["page"] = manual.resolve(entry["page"])
-                except ToolError:
-                    pass
+    for entry in proposal.get("pages") or []:
+        if isinstance(entry, dict) and isinstance(entry.get("page"), str):
+            try:
+                entry["page"] = manual.resolve(entry["page"])
+            except ToolError:
+                pass
     return proposal
 
 
@@ -260,8 +259,9 @@ def validate(proposal: dict, pages: dict[str, str]) -> str | None:
         if not (isinstance(entry, dict) and isinstance(entry.get("page"), str) and entry["page"].strip()
                 and isinstance(entry.get("describes"), str)):
             return "every entry in 'missing_pages' needs 'page' and 'describes' strings"
+        # Not a check that the page is really missing: a file that exists cannot be created.
         if entry["page"] in pages:
-            return f"{entry['page']} is in the table of contents, so it is not missing. Answer it in 'pages'"
+            return f"{entry['page']} exists already, so it cannot be created. Answer it in 'pages'"
         if entry["page"].startswith("/") or ".." in entry["page"].split("/"):
             return f"{entry['page']!r}: name the page as the table of contents names pages"
     if not isinstance(proposal.get("uncertainties", []), list):
@@ -317,7 +317,7 @@ def edited_pages(proposal: dict, pages: dict[str, str]) -> dict[str, str]:
 
 def _accepted(proposal: dict, tools: list[str]) -> str:
     """What an accepted proposal gets back: the task of writing its missing pages, if it names any."""
-    if not proposal["missing_pages"]:
+    if not proposal.get("missing_pages"):
         return "accepted"
     return WRITE_PAGES.format(pages=", ".join(entry["page"] for entry in proposal["missing_pages"]),
                               calls=agent.MAX_CALLS, tools=", ".join(tools))
@@ -335,14 +335,10 @@ def _new_page(entry: dict) -> dict:
             "text": entry["text"].rstrip("\n") + "\n"}
 
 
-def _task(mr: dict, diffs: list[dict], manual: Manual, edited: list[str], searchable: bool) -> str:
-    tools = "read_page, search_manual, list_files, grep and read_file" if searchable else "read_page and search_manual"
-    parts = [*change.describe(mr, diffs),
-             "# The manual", "", "Every page in manual order, with its headings:", "", manual.contents(edited), ""]
-    if searchable:
-        parts.append("You can also search the code at the merge commit with list_files, grep and read_file. "
-                     "Use them when the diff alone does not tell you whether a user notices the change, "
-                     "or what they see or do.")
-    parts.append(f"You have at most {agent.MAX_CALLS} tool calls ({tools} and submit_proposal together). "
-                 "Call submit_proposal when you have decided.")
-    return "\n".join(parts)
+def _task(mr: dict, diffs: list[dict], manual: Manual, edited: list[str], tools: list[str]) -> str:
+    code = ("You can also search the code at the merge commit with list_files, grep and read_file. Use them when "
+            "the diff alone does not tell you whether a user notices the change, or what they see or do.")
+    budget = (f"You have at most {agent.MAX_CALLS} tool calls ({', '.join(tools)} and submit_proposal together). "
+              "Call submit_proposal when you have decided.")
+    return "\n".join([*change.describe(mr, diffs), "# The manual", "", "Every page in manual order, with its headings:",
+                      "", manual.contents(edited), "", code, budget])

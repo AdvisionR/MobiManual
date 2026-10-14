@@ -5,7 +5,7 @@ from urllib.parse import unquote
 
 import httpx2
 import pytest
-from fakes import FakeLLM, submit
+from fakes import FakeLLM, FakeRepo, submit
 
 from docbot.gitlab import GitLab, GitLabError
 from docbot.llm import agent
@@ -88,7 +88,7 @@ class Forge:
 def run(forge, llm=None, **kwargs):
     gitlab = GitLab("http://gl", "root/mobivisor-console", "token", transport=httpx2.MockTransport(forge.handle))
     # A model with no turns scripted fails the test if it is asked anything.
-    return update_manual(gitlab, llm or FakeLLM(), SHA, **kwargs)
+    return update_manual(gitlab, llm or FakeLLM(), SHA, FakeRepo(), **kwargs)
 
 
 def test_a_merge_opens_one_docs_merge_request_editing_every_drafted_page():

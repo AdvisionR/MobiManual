@@ -200,7 +200,7 @@ uv run pytest
 ```
 
 Drafting searches the code at the merge commit, so `--repo` names a clone of the
-project that has it. `--diff-only` drafts from the diff alone and needs no clone.
+project that has it.
 
 The fixture's scenarios are written to test known cases, and its manual is a
 fraction of the real one, so drafting is also replayed on real
