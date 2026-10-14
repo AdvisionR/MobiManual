@@ -51,8 +51,9 @@ def expectations(patch: Path) -> dict[str, str]:
     """What DocBot should do with a scenario: the Expected-<field> lines below its patch's ---, by field.
 
     outcome is update-manual's outcome. edits and may-edit name pages, space-separated: the
-    ones that must be edited, and the ones that may be as well. outcome-diff-only, where
-    present, replaces outcome with --diff-only, and then no page is edited.
+    ones that must be edited, and the ones that may be as well. creates names the pages the
+    manual lacks, which must be created, and no others. outcome-diff-only, where present,
+    replaces outcome with --diff-only, and then no page is edited or created.
     """
     fields = {}
     for line in patch.read_text().split("\ndiff --git", 1)[0].splitlines():

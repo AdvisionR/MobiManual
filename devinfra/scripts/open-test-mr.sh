@@ -69,11 +69,11 @@ done
 
 # What DocBot should end with. A scenario's patch states it below its "---":
 # Expected-outcome, the pages it must edit (Expected-edits), the pages it may
-# also edit (Expected-may-edit), and, where --diff-only changes the answer,
-# Expected-outcome-diff-only. A kind only appends a comment, so it ends at
+# also edit (Expected-may-edit), the pages it must create (Expected-creates),
+# and, where --diff-only changes the answer, Expected-outcome-diff-only. A kind only appends a comment, so it ends at
 # no-doc-impact, or at skipped when doc-map.json ignores every file.
 PATCH=""
-EXPECT_EDITS=""; EXPECT_MAY_EDIT=""; EXPECT_OUTCOME_DIFF_ONLY=""
+EXPECT_EDITS=""; EXPECT_MAY_EDIT=""; EXPECT_CREATES=""; EXPECT_OUTCOME_DIFF_ONLY=""
 FOUND=$(find scenarios -mindepth 2 -maxdepth 2 -name "${KIND}.patch")
 if [ "$(printf '%s' "$FOUND" | grep -c .)" -gt 1 ]; then
   printf '\n  !! scenario %s is in more than one folder:\n%s\n\n' "$KIND" "$FOUND" >&2
@@ -85,6 +85,7 @@ if [ -n "$FOUND" ]; then
   EXPECT_OUTCOME=$(sed -n 's/^Expected-outcome: //p' "$PATCH")
   EXPECT_EDITS=$(sed -n 's/^Expected-edits: //p' "$PATCH")
   EXPECT_MAY_EDIT=$(sed -n 's/^Expected-may-edit: //p' "$PATCH")
+  EXPECT_CREATES=$(sed -n 's/^Expected-creates: //p' "$PATCH")
   EXPECT_OUTCOME_DIFF_ONLY=$(sed -n 's/^Expected-outcome-diff-only: //p' "$PATCH")
 else
   EXPECT_OUTCOME=no-doc-impact
@@ -200,7 +201,8 @@ fi
 printf '\n  MR !%s opened  (%s)\n' "$IID" "$TITLE"
 printf '  touches: %s\n' "$FILES"
 printf '%s\n' "$EXPECT" | fold -s -w 67 | sed '1s/^/  expect:  /; 2,$s/^/           /'
-printf '  outcome: %s%s\n' "$EXPECT_OUTCOME" "${EXPECT_EDITS:+, editing $EXPECT_EDITS}"
+printf '  outcome: %s%s%s\n' "$EXPECT_OUTCOME" "${EXPECT_EDITS:+, editing $EXPECT_EDITS}" \
+  "${EXPECT_CREATES:+, creating $EXPECT_CREATES}"
 printf '  http://%s/root/mobivisor-console/-/merge_requests/%s\n\n' "$GITLAB_HOST" "$IID"
 
 printf '  waiting for Jenkins to discover it'
@@ -268,7 +270,7 @@ mkdir -p .runtime/mr-results
 SAVED=".runtime/mr-results/${KIND}-${STAMP}.json"
 if curl -sf -u "$AUTH" -o "$SAVED" "$BASE/job/docbot/job/main/${NUM}/artifact/result.json"; then
   EXPECT="$EXPECT" EXPECT_OUTCOME="$EXPECT_OUTCOME" EXPECT_EDITS="$EXPECT_EDITS" EXPECT_MAY_EDIT="$EXPECT_MAY_EDIT" \
-  EXPECT_OUTCOME_DIFF_ONLY="$EXPECT_OUTCOME_DIFF_ONLY" python3 - "$SAVED" <<'PY'
+  EXPECT_CREATES="$EXPECT_CREATES" EXPECT_OUTCOME_DIFF_ONLY="$EXPECT_OUTCOME_DIFF_ONLY" python3 - "$SAVED" <<'PY'
 import json, os, sys, textwrap
 
 r = json.load(open(sys.argv[1]))
@@ -276,9 +278,10 @@ draft = r.get("draft") or {}
 want = os.environ["EXPECT_OUTCOME"]
 must = os.environ["EXPECT_EDITS"].split()
 may = os.environ["EXPECT_MAY_EDIT"].split()
+creates = os.environ["EXPECT_CREATES"].split()
 # With --diff-only, a scenario whose edit needs the code ends at needs-human, editing nothing.
 if os.environ["EXPECT_OUTCOME_DIFF_ONLY"] and draft.get("context") == "diff":
-    want, must = os.environ["EXPECT_OUTCOME_DIFF_ONLY"], []
+    want, must, creates = os.environ["EXPECT_OUTCOME_DIFF_ONLY"], [], []
 
 
 def say(label, text, width=11):
@@ -294,6 +297,8 @@ if must:
     say("edits", ", ".join(must))
 if may:
     say("may edit", ", ".join(may))
+if creates:
+    say("creates", ", ".join(creates))
 say("", os.environ["EXPECT"])
 
 print("\n  ---- what DocBot did (result.json) ----")
@@ -309,8 +314,8 @@ if draft:
         say("why", proposal["reason"])
     for entry in proposal.get("pages", []):
         say("", f"{entry['decision']} {entry['page']}: {entry['reason']}", 13)
-    for entry in proposal.get("missing_pages", []):
-        say("missing", f"{entry['page']}: {entry['describes']}")
+    for entry in draft.get("new_pages", []):
+        say("new page", f"{entry['decision']} {entry['page']}: {entry['reason']}")
     for doubt in proposal.get("uncertainties", []):
         say("unsure", doubt)
 edited = list(draft.get("edited") or {})
@@ -320,6 +325,10 @@ if must or edited:
     problems = ([f"✗ not edited: {', '.join(missing)}"] if missing else []) + \
                ([f"✗ also edited: {', '.join(extra)}"] if extra else [])
     say("pages", "; ".join(problems) or "✓ the expected pages")
+created = [p["page"] for p in draft.get("new_pages") or [] if p["decision"] == "create"]
+if creates or created:
+    say("created", "✓ the expected pages" if sorted(created) == sorted(creates)
+        else f"✗ created {', '.join(created) or 'none'}, expected {', '.join(creates) or 'none'}")
 if "docs_merge_request" in r:
     say("docs MR", "!%(iid)s  %(url)s" % r["docs_merge_request"])
 if r.get("diff"):

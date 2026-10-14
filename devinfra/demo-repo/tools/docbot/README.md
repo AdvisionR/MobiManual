@@ -7,7 +7,7 @@ Nothing merges itself.
 
 ## Flow
 
-[`update_manual()`](src/docbot/update.py#L32) takes one commit on `main`:
+[`update_manual()`](src/docbot/update.py#L34) takes one commit on `main`:
 
 1. **Resolve** the merge request that produced it ([`resolve()`](src/docbot/resolve.py#L30)).
    If it is not a merge to `main`, or is DocBot's own (label `docbot-generated`): `skipped`.
@@ -16,20 +16,22 @@ Nothing merges itself.
 3. **Filter** the diff with the ignore list in `doc-map.json`
    ([`ignore.select()`](src/docbot/drafting/ignore.py#L25)): tests, CI, lock files,
    DocBot itself, the manual. If nothing is left: `skipped`, with no model call. If
-   what is left is more than [100,000 characters](src/docbot/update.py#L29) of diff:
+   what is left is more than [100,000 characters](src/docbot/update.py#L31) of diff:
    `needs-human`, with no model call.
 4. **Draft** (model): does the change make the manual wrong or incomplete, and if
-   it does, which pages change and how? If no page needs changing: `no-doc-impact`.
-   If none is edited, but one needs a human or the manual lacks a page: `needs-human`.
-   See [Drafting](#drafting).
+   it does, which pages change and how, and which pages does the manual lack? Those
+   it then writes. If no page needs changing: `no-doc-impact`. If none is edited or
+   created, but one needs a human: `needs-human`. See [Drafting](#drafting).
 5. **Publish**: one commit on `docbot/mr-<iid>`, and a docs merge request labelled
-   `docbot-generated` ([`update.py`](src/docbot/update.py#L89)). Its description
-   carries the model's reasons ([`_description()`](src/docbot/update.py#L110)).
+   `docbot-generated` ([`update.py`](src/docbot/update.py#L103)). The commit holds
+   the edited pages, the created ones, and `gruntfile.js` with the created pages added
+   to `htmlDocPages`. The description carries the model's reasons
+   ([`_description()`](src/docbot/update.py#L123)).
    `--dry-run` stops before this step and prints the diff.
 
 The manual is the set of English pages listed in `htmlDocPages` in `gruntfile.js`,
-read from GitLab at the merge commit ([`manual.py`](src/docbot/drafting/manual.py#L55)).
-DocBot cannot create pages and does not update translations.
+read from GitLab at the merge commit ([`manual.py`](src/docbot/drafting/manual.py#L56)).
+DocBot does not update translations: the pages it edits and creates are English only.
 
 `llm/` holds the provider seam and the tool loop, and knows nothing about manuals.
 [`mistral.py`](src/docbot/llm/mistral.py) is the only module that imports `mistralai`.
@@ -38,40 +40,40 @@ Imports point one way: the top level uses `drafting/`, and `drafting/` uses `llm
 
 ## Drafting
 
-[`propose()`](src/docbot/drafting/proposal.py#L115): one conversation, with at most
-[35 tool calls](src/docbot/llm/agent.py#L14). The model decides whether the change
+[`propose()`](src/docbot/drafting/proposal.py#L165): one conversation, with at most
+[35 tool calls](src/docbot/llm/agent.py#L19). The model decides whether the change
 affects the manual at all, and if it does, which pages to change and how.
 
-**In.** [`update.py:73`](src/docbot/update.py#L73) hands drafting four things: the
+**In.** [`update.py:75`](src/docbot/update.py#L75) hands drafting four things: the
 merge request, the diffs that were not ignored, the manual, and the pages the merge
-request edited. [`_task()`](src/docbot/drafting/proposal.py#L207) writes them into one
+request edited. [`_task()`](src/docbot/drafting/proposal.py#L338) writes them into one
 user message:
 
 | Input | Written into the task at | Comes from |
 |---|---|---|
-| Merge request title, with its `!iid` | [`change.py:6`](src/docbot/drafting/change.py#L6), `mr['title']` | GitLab `GET /repository/commits/:sha/merge_requests` ([`gitlab.py:54`](src/docbot/gitlab.py#L54)), via [`update.py:35`](src/docbot/update.py#L35) |
+| Merge request title, with its `!iid` | [`change.py:6`](src/docbot/drafting/change.py#L6), `mr['title']` | GitLab `GET /repository/commits/:sha/merge_requests` ([`gitlab.py:54`](src/docbot/gitlab.py#L54)), via [`update.py:37`](src/docbot/update.py#L37) |
 | Merge request description | [`change.py:6`](src/docbot/drafting/change.py#L6), `mr.get("description")` | the same |
-| Diff of each file that is not ignored, with its path | [`change.py:11`](src/docbot/drafting/change.py#L11) | GitLab `GET /merge_requests/:iid/diffs` ([`gitlab.py:61`](src/docbot/gitlab.py#L61)), filtered at [`update.py:59`](src/docbot/update.py#L59) |
-| The table of contents: every page in manual order, with its headings | [`manual.py:81`](src/docbot/drafting/manual.py#L81) | `htmlDocPages` in `gruntfile.js`. The pages are read from GitLab at [`update.py:69`](src/docbot/update.py#L69) |
-| The marker "already edited in this merge request" | [`manual.py:85`](src/docbot/drafting/manual.py#L85) | manual pages in the diff ([`ignore.py:39`](src/docbot/drafting/ignore.py#L39)) |
+| Diff of each file that is not ignored, with its path | [`change.py:11`](src/docbot/drafting/change.py#L11) | GitLab `GET /merge_requests/:iid/diffs` ([`gitlab.py:61`](src/docbot/gitlab.py#L61)), filtered at [`update.py:61`](src/docbot/update.py#L61) |
+| The table of contents: every page in manual order, with its headings | [`manual.py:111`](src/docbot/drafting/manual.py#L111) | `htmlDocPages` in `gruntfile.js`. The pages are read from GitLab at [`update.py:71`](src/docbot/update.py#L71) |
+| The marker "already edited in this merge request" | [`manual.py:115`](src/docbot/drafting/manual.py#L115) | manual pages in the diff ([`ignore.py:39`](src/docbot/drafting/ignore.py#L39)) |
 
 The pages' text is not in the task. The model reads and searches what it needs with
 these tools:
 
-- `read_page` and `search_manual`, over the manual ([`manual.py`](src/docbot/drafting/manual.py#L33))
+- `read_page` and `search_manual`, over the manual ([`manual.py`](src/docbot/drafting/manual.py#L34))
 - `list_files`, `grep` and `read_file`, over the code at the merge commit
   ([`repo.py`](src/docbot/drafting/repo.py#L20)), unless `--diff-only` is set. They
   answer what the diff does not show: whether a user notices the change at all, and
   what they see.
 
-**Sent.** [`proposal.py:122`](src/docbot/drafting/proposal.py#L122) builds the system
-prompt and the task. [`proposal.py:123`](src/docbot/drafting/proposal.py#L123) opens
+**Sent.** [`proposal.py:175`](src/docbot/drafting/proposal.py#L175) builds the system
+prompt and the task. [`proposal.py:177`](src/docbot/drafting/proposal.py#L177) opens
 the conversation with them, the tools, and `submit_proposal`.
-[`mistral.py:64`](src/docbot/llm/mistral.py#L64) makes the two texts the first two
-messages, and [`mistral.py:68`](src/docbot/llm/mistral.py#L68) sends them, with the
+[`mistral.py:62`](src/docbot/llm/mistral.py#L62) makes the two texts the first two
+messages, and [`mistral.py:66`](src/docbot/llm/mistral.py#L66) sends them, with the
 tools, on every turn.
 
-**When a page needs changing.** The [system prompt](src/docbot/drafting/proposal.py#L29)
+**When a page needs changing.** The [system prompt](src/docbot/drafting/proposal.py#L39)
 gives two reasons:
 - wrong: a sentence of the page is false once the change is merged.
 - missing: the change adds a new thing a reader operates, usable as soon as it is
@@ -79,13 +81,18 @@ gives two reasons:
   flag switched on makes what it hid usable; something behind a flag that stays off is
   not usable yet.
 
-A screen or feature that no page covers needs a new page, which DocBot cannot write: the
-model names it in `missing_pages`, and must not describe it on an existing page instead.
-A change to how something already documented behaves needs an edit only if it makes a
+A screen or feature that no page covers needs a new page: the model names it in
+`missing_pages`, and writes it once its proposal is accepted (see
+[Writing new pages](#writing-new-pages)). It must not describe it on an existing page
+instead, and must not name a new page for something that belongs on a page the manual
+has, such as a new field on a screen a page describes. In MobiVisor, a console screen's
+page is named after its route, because that is the page the screen's **Help** link
+opens: `/policies/kiosk` has `_policies_kiosk.md`
+([`PAGE_NAMES`](src/docbot/drafting/proposal.py#L32)). A change to how something already documented behaves needs an edit only if it makes a
 sentence false. A change nobody using the product notices needs none, and the model
 then submits no pages.
 
-**Out** ([`submit_proposal`](src/docbot/drafting/proposal.py#L85)):
+**Out** ([`submit_proposal`](src/docbot/drafting/proposal.py#L97)):
 
 - `reason`: one or two sentences on what the change does for a user, or that it does
   nothing a user notices. This becomes "Why the manual changes" in the docs merge
@@ -96,19 +103,17 @@ then submits no pages.
   - `decision`: `edit`, `no-change` or `needs-human`
   - `edits`: `find`/`replace` pairs, only with `edit`
 - `missing_pages`: pages the change needs and the manual lacks, each with a file name
-  (`page`) and what it would describe (`describes`). Listed in the docs merge request.
+  (`page`) and what it will describe (`describes`). The model writes them next.
 - `uncertainties`: anything the model is unsure of, such as a screenshot that may be
   out of date.
 
-The outcome follows from the pages ([`update.py:78`](src/docbot/update.py#L78)): a page
-edited opens the docs merge request; otherwise a page that needs a human, or a missing
-one, is `needs-human`, and anything else `no-doc-impact`. There is no separate decision
-field, and no second submit tool for "nothing to change": either would say nothing the
-pages do not, and could disagree with them. `missing_pages` is a field of its own
-because without it, a change that only needs a new page would edit nothing and end as
-`no-doc-impact`, with the new feature undocumented and nobody told.
+The outcome follows from the pages ([`update.py:81`](src/docbot/update.py#L81)): a page
+edited or created opens the docs merge request; otherwise a page that needs a human, or
+a missing one nobody wrote, is `needs-human`, and anything else `no-doc-impact`. There
+is no separate decision field, and no second submit tool for "nothing to change":
+either would say nothing the pages do not, and could disagree with them.
 
-A proposal is accepted only if it [validates](src/docbot/drafting/proposal.py#L154):
+A proposal is accepted only if it [validates](src/docbot/drafting/proposal.py#L222):
 - `reason` is not empty
 - every page exists and is answered once
 - every `find` matches exactly once
@@ -121,17 +126,62 @@ the same call budget.
 in `find`, and re-wraps the new lines to the page's own line width. Words that spill
 over a broken line join the next line of the same paragraph.
 
+## Writing new pages
+
+A proposal that names pages in `missing_pages` does not end the conversation. Its
+accepted `submit_proposal` gets the task of writing them back
+([`WRITE_PAGES`](src/docbot/drafting/proposal.py#L148)), and only then does the model
+get a second submit tool, `submit_new_pages`
+([`proposal.py:190`](src/docbot/drafting/proposal.py#L190)), with
+[35 more tool calls](src/docbot/llm/agent.py#L19). It keeps the conversation, and so
+the code and pages it has read.
+
+The decision comes first, on its own, for three reasons:
+- whether a page is missing is decided and validated before anything is written, so
+  writing a page is never the way around editing the one that should change
+- the edits to existing pages are accepted, whatever happens to the new pages
+- the model cannot see a tool that creates pages until it has said which ones are missing
+
+**Out** ([`submit_new_pages`](src/docbot/drafting/proposal.py#L128)), for each page
+named in `missing_pages`:
+- `decision`: `create`, or `needs-human` for a page the model cannot write from what it
+  knows
+- `after`: the page it follows in the manual's order
+- `text`: the whole page, with `create`
+- `reason`
+
+`uncertainties` names the screenshots the new pages need, among anything else.
+
+It is accepted only if it [validates](src/docbot/drafting/proposal.py#L272): every
+missing page answered once and no other, a title on every page, `after` a page in the
+manual, and no images, because no screenshot of a new screen exists yet. If writing
+stops without a valid answer, the edits still go out, and the missing pages are listed
+under "Needs a human".
+
+**Published** with the edits. A created page joins `htmlDocPages` in `gruntfile.js`
+right after its `after` page ([`register()`](src/docbot/drafting/manual.py#L63)), so the
+build publishes it and `scripts/check-missing-doc.js` finds it registered. The list is
+rewritten one quoted page per line, as it is laid out. If that would change anything
+else, such as a comment in the list, the page is still created, and the docs merge
+request asks the reviewer to register it by hand. The page is English only: the check
+then reports it missing in the other languages, as translation debt.
+
 **Checked.** Each run stores the exact system prompt and task in `result.json`
-([`proposal.py:134`](src/docbot/drafting/proposal.py#L134)).
-- [`test_the_model_reads_the_page_it_chose_then_edits_it`](tests/test_proposal.py#L37):
+([`proposal.py:202`](src/docbot/drafting/proposal.py#L202)).
+- [`test_the_model_reads_the_page_it_chose_then_edits_it`](tests/test_proposal.py#L52):
   the stored texts are the ones the model was given, and a page's text reaches the
   model only through `read_page`.
-- [`test_the_task_marks_the_pages_the_merge_request_edited`](tests/test_proposal.py#L64):
+- [`test_the_task_marks_the_pages_the_merge_request_edited`](tests/test_proposal.py#L86):
   the table of contents marks the pages the author already edited.
+- [`test_a_missing_page_is_written_only_after_the_proposal_is_accepted`](tests/test_proposal.py#L99):
+  `submit_new_pages` is added only once the proposal is accepted, and the writing goes
+  on in the same conversation.
+- [`test_a_page_the_manual_lacks_is_created_and_joins_the_page_list`](tests/test_update.py#L122):
+  the commit creates the page and adds it to `htmlDocPages`.
 
 ## Result
 
-stdout carries one JSON document, `docbot.update/2`. stderr carries the narration,
+stdout carries one JSON document, `docbot.update/3`. stderr carries the narration,
 including the turns and tokens of the conversation. In Jenkins the JSON is archived
 as `result.json`. Its `draft` section holds the whole conversation: the system prompt,
 the task, and every turn, with each tool call, what it got back, and the token usage.
@@ -141,9 +191,9 @@ the task, and every turn, with each tool call, what it got back, and the token u
 | `skipped` | Not a merge to `main`, DocBot's own, or every file ignored | — |
 | `exists` | One was already opened for this merge request | The existing one |
 | `no-doc-impact` | Drafting found no page to change | — |
-| `needs-human` | The diff is too large to send, the conversation ended without a valid answer, or no page was edited and one needs a human or is missing | — |
+| `needs-human` | The diff is too large to send, the conversation ended without a valid answer, or no page was edited or created and one needs a human | — |
 | `dry-run` | `--dry-run` | —, the diff is in `diff` |
-| `opened` | At least one page was edited | Opened |
+| `opened` | At least one page was edited or created | Opened |
 | `error` | GitLab or the provider was unreachable or refused, or `doc-map.json` or `gruntfile.js` is missing | — |
 
 Exit codes:
@@ -166,7 +216,7 @@ The API keeps no state, so every turn resends the whole conversation. Cost grows
 the number of turns, times the size of the diff, the manual and the tool results.
 DocBot requests prompt caching, but a hit is not guaranteed. One call took over
 120 s, so the timeout is 300 s. Responses 429 and 5xx are retried for up to
-5 minutes ([`mistral.py`](src/docbot/llm/mistral.py#L33)).
+5 minutes ([`mistral.py`](src/docbot/llm/mistral.py#L35)).
 
 **Why Large 4 and not Medium 3.5.** Medium is faster, and cheaper than Large 4 at list
 price. It misses more of what a draft needs. Medium's figures are from 2026-10-08:

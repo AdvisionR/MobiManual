@@ -100,7 +100,8 @@ def run(row: dict, result: dict, experiment: str, note: str | None) -> dict:
         out["draft"] = {
             "outcome": draft.get("outcome"),
             "reason": proposal.get("reason"),
-            "missing": proposal.get("missing_pages") or [],
+            "new_pages": [{"page": p["page"], "decision": p["decision"], "reason": p.get("reason", "")}
+                          for p in draft.get("new_pages") or []],
             "pages": [{"page": p["page"], "decision": p["decision"], "reason": p.get("reason", "")}
                       for p in proposal.get("pages", [])],
             "uncertainties": proposal.get("uncertainties") or [],

@@ -44,6 +44,16 @@ def drafted(*pages: dict, missing=(), uncertainties=(), reason="kiosk gains a pa
                                       "uncertainties": list(uncertainties)}, "d1")
 
 
+def written(*pages: dict, uncertainties=()):
+    return submit("submit_new_pages", {"pages": list(pages), "uncertainties": list(uncertainties)}, "w1")
+
+
+LOCATIONS = {"page": "_locations.md", "describes": "the Locations page"}
+LOCATIONS_PAGE = {"page": "_locations.md", "decision": "create", "after": "_devices_id.md", "reason": "a new screen",
+                  "text": "# Locations\n\nThe last position each device reported."}
+LOCATIONS_LEFT = {"page": "_locations.md", "decision": "needs-human", "reason": "the diff does not show the map"}
+
+
 class Forge:
     """GitLab, as far as update-manual uses it. Records every write."""
 
@@ -83,8 +93,7 @@ def run(forge, llm=None, **kwargs):
 
 def test_a_merge_opens_one_docs_merge_request_editing_every_drafted_page():
     forge = Forge(commit_mrs=[merged()])
-    llm = FakeLLM(drafted(KIOSK_EDIT, DEVICES_EDIT, missing=[{"page": "_kiosk_exit.md", "describes": "leaving kiosk mode"}],
-                          uncertainties=["_kiosk_mode_1.png may be stale"]))
+    llm = FakeLLM(drafted(KIOSK_EDIT, DEVICES_EDIT, uncertainties=["_kiosk_mode_1.png may be stale"]))
     result = run(forge, llm)
     assert result["outcome"] == "opened"
     assert result["schema"] == "docbot.update/3"
@@ -105,9 +114,51 @@ def test_a_merge_opens_one_docs_merge_request_editing_every_drafted_page():
     assert "Drafted by DocBot (fake/model) for !4" in mr["description"]
     assert "### Why the manual changes\n\nkiosk gains a passcode" in mr["description"]
     assert "- `_policies_kiosk.md`: the policy has its own passcode now" in mr["description"]
-    assert "### Missing pages\n\n- `_kiosk_exit.md`: leaving kiosk mode" in mr["description"]
     assert "- _kiosk_mode_1.png may be stale" in mr["description"]
-    assert "the tr, de translations" in mr["description"]
+    assert "the tr, de translations of the edited and created pages" in mr["description"]
+    assert "### Created" not in mr["description"]
+
+
+def test_a_page_the_manual_lacks_is_created_and_joins_the_page_list():
+    forge = Forge(commit_mrs=[merged()])
+    llm = FakeLLM(drafted(KIOSK_EDIT, missing=[LOCATIONS]), written(LOCATIONS_PAGE, uncertainties=["a map screenshot"]))
+    result = run(forge, llm)
+    assert result["outcome"] == "opened"
+    (_, commit), (_, mr) = forge.writes
+    assert commit["actions"][1:] == [
+        {"action": "create", "file_path": "public/doc/en/_locations.md",
+         "content": "# Locations\n\nThe last position each device reported.\n"},
+        {"action": "update", "file_path": "gruntfile.js",
+         "content": FILES["gruntfile.js"].replace("  '_devices_id.md'\n", "  '_devices_id.md',\n  '_locations.md'\n")}]
+    assert "### Created\n\n- `_locations.md`, after `_devices_id.md`: a new screen" in mr["description"]
+    assert "- a map screenshot" in mr["description"]
+
+
+def test_dry_run_shows_a_created_page_as_a_new_file():
+    result = run(Forge(commit_mrs=[merged()]), FakeLLM(drafted(missing=[LOCATIONS]), written(LOCATIONS_PAGE)),
+                 dry_run=True)
+    assert result["outcome"] == "dry-run"
+    assert "--- /dev/null\n+++ b/public/doc/en/_locations.md\n" in result["diff"]
+    assert "+++ b/gruntfile.js" in result["diff"]
+    assert "+  '_locations.md'" in result["diff"]
+
+
+def test_a_page_list_docbot_cannot_add_to_is_left_to_the_reviewer():
+    files = {**FILES, "gruntfile.js": FILES["gruntfile.js"].replace("'_users.md',", "'_users.md', // roles")}
+    forge = Forge(commit_mrs=[merged()], files=files)
+    result = run(forge, FakeLLM(drafted(missing=[LOCATIONS]), written(LOCATIONS_PAGE)))
+    assert result["outcome"] == "opened"
+    (_, commit), (_, mr) = forge.writes
+    assert [action["file_path"] for action in commit["actions"]] == ["public/doc/en/_locations.md"]
+    assert "Add the created pages to htmlDocPages in gruntfile.js by hand" in mr["description"]
+
+
+def test_a_page_left_to_a_human_is_listed_next_to_the_edits():
+    forge = Forge(commit_mrs=[merged()])
+    run(forge, FakeLLM(drafted(KIOSK_EDIT, missing=[LOCATIONS]), written(LOCATIONS_LEFT)))
+    (_, commit), (_, mr) = forge.writes
+    assert [action["file_path"] for action in commit["actions"]] == ["public/doc/en/_policies_kiosk.md"]
+    assert "### Needs a human\n\n- `_locations.md`: the diff does not show the map" in mr["description"]
 
 
 def test_one_conversation_sees_the_table_of_contents_and_not_the_ignored_files():
@@ -157,18 +208,18 @@ def test_dry_run_shows_the_diff_and_writes_nothing():
     assert forge.writes == []
 
 
-@pytest.mark.parametrize("draft, outcome, reason", [
-    (drafted(reason="a refactor nobody sees"), "no-doc-impact", "a refactor nobody sees"),
-    (drafted({"page": "_policies_kiosk.md", "decision": "no-change", "reason": "-"}, reason="already true"),
+@pytest.mark.parametrize("turns, outcome, reason", [
+    ([drafted(reason="a refactor nobody sees")], "no-doc-impact", "a refactor nobody sees"),
+    ([drafted({"page": "_policies_kiosk.md", "decision": "no-change", "reason": "-"}, reason="already true")],
      "no-doc-impact", "already true"),
-    (drafted({"page": "_policies_kiosk.md", "decision": "needs-human", "reason": "-"}),
+    ([drafted({"page": "_policies_kiosk.md", "decision": "needs-human", "reason": "-"})],
      "needs-human", "no page edited: _policies_kiosk.md needs a human"),
-    (drafted(missing=[{"page": "_locations.md", "describes": "the Locations page"}]),
+    ([drafted(missing=[LOCATIONS]), written(LOCATIONS_LEFT)],
      "needs-human", "no page edited: the manual has no _locations.md"),
 ])
-def test_outcomes_without_edits_open_nothing(draft, outcome, reason):
+def test_outcomes_without_edits_open_nothing(turns, outcome, reason):
     forge = Forge(commit_mrs=[merged()])
-    result = run(forge, FakeLLM(draft))
+    result = run(forge, FakeLLM(*turns))
     assert result["outcome"] == outcome
     assert reason in result["reason"]
     assert forge.writes == []

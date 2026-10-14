@@ -46,6 +46,20 @@ def conversation(client, tools=(GREP, SUBMIT), reasoning_effort=None):
         "system text", "task text", list(tools), cache_key="docbot-abc-draft")
 
 
+def test_a_tool_added_later_is_sent_from_the_next_request_on():
+    client = FakeClient(response([tool_call("a1", "submit", "{}")]), response([tool_call("a2", "grep", "{}")]))
+    chat = conversation(client, tools=[SUBMIT])
+    chat.step()
+    chat.add_tools([GREP])
+    chat.add_results([ToolResult("a1", "submit", "accepted")])
+    chat.step()
+    first, second = client.requests
+    assert [t["function"]["name"] for t in first["tools"]] == ["submit"]
+    assert first["tool_choice"] == {"type": "function", "function": {"name": "submit"}}
+    assert [t["function"]["name"] for t in second["tools"]] == ["submit", "grep"]
+    assert second["tool_choice"] == "any"
+
+
 def test_a_request_carries_tools_forced_tool_use_and_the_cache_key():
     client = FakeClient(response([tool_call("a1", "grep", '{"pattern": "kiosk"}')]))
     turn = conversation(client).step()

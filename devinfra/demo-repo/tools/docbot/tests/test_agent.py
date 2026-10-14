@@ -106,3 +106,18 @@ def test_the_call_budget_stops_the_loop():
 def test_a_cut_off_answer_or_one_without_calls_stops_the_loop():
     assert run(FakeConversation(turn(cut_off=True)))["reason"] == "the model's answer was cut off"
     assert run(FakeConversation(turn()))["reason"] == "the model answered without calling a tool"
+
+
+def test_a_task_goes_on_after_a_submission_in_the_same_conversation():
+    conversation = FakeConversation(
+        turn(call("lookup", {"key": "a"}, id="c1"), call("submit", {"ok": True}, id="c2"),
+             call("lookup", {"key": "b"}, id="c3")),
+        turn(call("next", {"ok": True}, id="c4")))
+    first = agent.run(conversation, HANDLERS, "submit", accept_ok, accepted=lambda submission: "now call next")
+    assert conversation.sent == []  # the turn that submitted is answered by the next run
+    assert [(r.text, r.is_error) for r in first["pending"]] == [
+        ("value of a", False), ("now call next", False), ("not run: submit was accepted before it", True)]
+    assert first["turns"][0]["calls"][1]["result"] == "now call next"
+    second = agent.run(conversation, HANDLERS, "next", accept_ok, pending=first["pending"])
+    assert second["outcome"] == "submitted"
+    assert conversation.sent == [first["pending"]]

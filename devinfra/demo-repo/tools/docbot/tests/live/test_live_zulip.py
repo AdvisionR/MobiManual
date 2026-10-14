@@ -5,10 +5,10 @@
 devinfra/zulip/cases.json lists commits that changed the product and its help
 centre together, and commits that change nothing a user sees. Each is replayed
 the way DocBot runs: the ignore list drops what never calls for a help update,
-and drafting decides whether the change has doc impact and finds the help pages
-to edit in the whole help centre, with read_page and search_manual. The help
-centre is the one before the commit; the commit's own help edits are the
-reference, which the model never sees. Each result goes to
+and drafting decides whether the change has doc impact, finds the help pages to
+edit in the whole help centre, with read_page and search_manual, and writes the
+pages it lacks. The help centre is the one before the commit; the commit's own
+help edits and new pages are the reference, which the model never sees. Each result goes to
 devinfra/.runtime/zulip-results/, with the pages the model edited next to the
 pages the author edited. Skipped until devinfra/scripts/fetch-zulip.sh has run.
 """
@@ -86,19 +86,19 @@ def replay(tmp_path: Path, head: str, context: str) -> dict:
                                   for page in by_author}}
     if selection.relevant:
         drafted = propose(llm, mr, selection.relevant, manual, [], commit, product=SETUP["product"],
+                          page_names=SETUP.get("page_names", ""),
                           repo=Repo(str(REPO), commit) if context == "repo" else None)
         report["draft"] = drafted
         edited = drafted.get("edited", {})
         report["drafted"] = {page: unified(manual.pages[page], edited[page], page) for page in edited}
         report["edited_by_model"] = list(edited)
+        report["added_by_model"] = [page["page"] for page in drafted.get("new_pages", []) if page["decision"] == "create"]
     RESULTS.mkdir(parents=True, exist_ok=True)
     (RESULTS / f"{head[:10]}-{context}.json").write_text(json.dumps(report, indent=2))
 
-    proposal = report.get("draft", {}).get("proposal", {})
     print(f"\n===== {head[:10]} / {context}: {mr['title']}\n  doc impact: {doc_impact(report)}"
           f"\n  author edited: {by_author} (added {report['added_by_author']})"
-          f"\n  model edited:  {report.get('edited_by_model')}"
-          f" (missing {[m['page'] for m in proposal.get('missing_pages', [])]})")
+          f"\n  model edited:  {report.get('edited_by_model')} (added {report.get('added_by_model')})")
     return report
 
 

@@ -116,5 +116,5 @@ def _summary(draft: dict) -> str:
     else:
         proposal = draft["proposal"]
         decided = ", ".join([*(f"{p['page']} {p['decision']}" for p in proposal["pages"]),
-                             *(f"{m['page']} missing" for m in proposal.get("missing_pages", []))]) or "no page to change"
+                             *(f"{p['page']} new: {p['decision']}" for p in draft["new_pages"])]) or "no page to change"
     return f"{decided}  [{draft['model']}, {len(usage)} turns, {tokens}]"

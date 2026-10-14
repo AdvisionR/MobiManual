@@ -264,11 +264,13 @@ kind.
 
 | Scenario | | Expected | What it tests |
 |---|---|---|---|
-| `wifi-policy` | built | edits `_policies.md` | Correcting "three types", and naming the page the manual lacks (`_policies_wifi.md`) instead of writing stand-ins |
-| `locations-page` | built | needs-human | Only a page the manual lacks: handing it to a human instead of editing stand-ins |
+| `wifi-policy` | built | edits `_policies.md`, creates `_policies_wifi.md` | Correcting "three types", and creating the page the manual lacks instead of writing stand-ins |
+| `locations-page` | built | creates `_locations.md` | Only a page the manual lacks: creating it instead of editing stand-ins |
 
-DocBot cannot create pages, so a third scenario here would test the same thing as these
-two. This group grows when that changes.
+Every other scenario expects no page created, so each of them also checks that DocBot
+creates a page only when one is missing. None tempts it to: a change that looks like a
+new screen but belongs on a page the manual has, such as a new tab on the device page,
+would be the third scenario here.
 
 ## Feature flags (`feature-flags/`)
 

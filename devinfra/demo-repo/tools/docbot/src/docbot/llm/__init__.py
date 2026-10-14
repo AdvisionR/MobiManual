@@ -3,7 +3,8 @@
 A Conversation is one exchange with a model: DocBot's task, the model's tool
 calls and DocBot's tool results, kept in whatever format the provider needs.
 The API behind it keeps no state, so each step sends the whole conversation
-again. DocBot only ever appends to it. agent.py drives the loop.
+again. DocBot only ever appends to it: results, and tools a later step of the
+task needs. agent.py drives the loop.
 """
 
 from dataclasses import dataclass
@@ -48,6 +49,8 @@ class Conversation(Protocol):
     def step(self) -> Turn: ...
 
     def add_results(self, results: list[ToolResult]) -> None: ...
+
+    def add_tools(self, tools: list[Tool]) -> None: ...
 
 
 class LLM(Protocol):

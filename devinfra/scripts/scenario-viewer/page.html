@@ -365,9 +365,10 @@ details.calls li .g { color: var(--muted); }
   }
 
   function manualDiff(text) {
-    var files = text.split(/^--- a\//m).filter(function (f) { return f.trim(); });
+    // A page DocBot created starts "--- /dev/null"; its name is on the "+++ b/" line.
+    var files = text.split(/^--- (?=a\/|\/dev\/null)/m).filter(function (f) { return f.trim(); });
     return files.map(function (f) {
-      var name = f.split('\n')[0].trim();
+      var name = (f.match(/^\+\+\+ b\/(.*)$/m) || [null, f.split('\n')[0].trim()])[1];
       var body = f.slice(f.indexOf('\n@@'));
       var hunks = body.split(/^@@[^\n]*@@[^\n]*$/m).filter(function (h) { return h.trim(); });
       var html = hunks.map(function (h) {
@@ -445,8 +446,9 @@ details.calls li .g { color: var(--muted); }
       var pageItems = d.pages.map(function (p) {
         return '<div class="it"><span class="chip ' + (p.decision === 'edit' ? 'edit' : 'no') + '">' + esc(p.decision) + '</span><span class="pg">' + esc(p.page) + '</span>' +
           (p.reason ? '<span class="r">' + esc(p.reason) + '</span>' : '') + '</div>';
-      }).concat((d.missing || []).map(function (m) {
-        return '<div class="it"><span class="chip no">missing</span><span class="pg">' + esc(m.page) + '</span><span class="r">' + esc(m.describes) + '</span></div>';
+      }).concat((d.new_pages || []).map(function (p) {
+        return '<div class="it"><span class="chip ' + (p.decision === 'create' ? 'edit' : 'no') + '">new: ' + esc(p.decision) + '</span><span class="pg">' + esc(p.page) + '</span>' +
+          (p.reason ? '<span class="r">' + esc(p.reason) + '</span>' : '') + '</div>';
       }));
       var plist = pageItems.length ? '<div class="pagelist">' + pageItems.join('') + '</div>'
         : (d.reason ? '<p class="empty">No page to change.</p>' : '<p class="empty">' + esc(run.final_reason || 'No page decided.') + '</p>');
@@ -479,6 +481,7 @@ details.calls li .g { color: var(--muted); }
       (e['outcome-diff-only'] ? ' <span class="lab">with --diff-only:</span> <span class="pg">' + esc(e['outcome-diff-only']) + '</span>' : '') + '</span>' +
       (e.edits ? '<span><span class="lab">Must edit:</span> ' + pages(e.edits.split(' ')) + '</span>' : '') +
       (e['may-edit'] ? '<span><span class="lab">May edit:</span> ' + pages(e['may-edit'].split(' ')) + '</span>' : '') +
+      (e.creates ? '<span><span class="lab">Must create:</span> ' + pages(e.creates.split(' ')) + '</span>' : '') +
       '</div></div>';
 
     var tabs = '<div class="tabs" role="tablist" aria-label="Runs">' + s.runs.map(function (r, i) {

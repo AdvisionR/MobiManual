@@ -6,7 +6,17 @@ import os
 import httpx2
 import pytest
 from fakes import FakeLLM
-from test_update import KIOSK_EDIT, SHA, Forge, drafted, merged
+from test_update import (
+    KIOSK_EDIT,
+    LOCATIONS,
+    LOCATIONS_LEFT,
+    LOCATIONS_PAGE,
+    SHA,
+    Forge,
+    drafted,
+    merged,
+    written,
+)
 from typer.testing import CliRunner
 
 from docbot import cli
@@ -28,8 +38,10 @@ def invoke(monkeypatch, forge, llm, *args, env=ENV):
     ([drafted(KIOSK_EDIT)], [], "opened", ["draft   _policies_kiosk.md edit  [fake/model, 1 turns"]),
     ([drafted(KIOSK_EDIT)], ["--dry-run"], "dry-run", ["draft   _policies_kiosk.md edit", "+++ b/public/doc/en/"]),
     ([drafted(reason="a refactor")], [], "no-doc-impact", ["draft   no page to change", "no-doc-impact: a refactor."]),
-    ([drafted(missing=[{"page": "_locations.md", "describes": "x"}])], [], "needs-human",
-     ["draft   _locations.md missing", "the manual has no _locations.md"]),
+    ([drafted(missing=[LOCATIONS]), written(LOCATIONS_LEFT)], [], "needs-human",
+     ["draft   _locations.md new: needs-human", "the manual has no _locations.md"]),
+    ([drafted(missing=[LOCATIONS]), written(LOCATIONS_PAGE)], ["--dry-run"], "dry-run",
+     ["draft   _locations.md new: create", "+++ b/public/doc/en/_locations.md"]),
     ([drafted(reason="") for _ in range(agent.MAX_CALLS)], [], "needs-human", ["draft   stopped: no valid submit_proposal"]),
 ])
 def test_stdout_is_the_result_and_stderr_narrates_each_conversation(monkeypatch, turns, args, outcome, narrated):

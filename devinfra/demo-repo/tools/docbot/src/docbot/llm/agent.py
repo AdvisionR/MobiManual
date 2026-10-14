@@ -5,9 +5,14 @@ answers them, sends the results back, and repeats until the model calls the
 submit tool with an answer that passes validation, or the call budget is spent.
 A validation failure goes back as a tool error, so the model can correct itself
 in the same conversation.
+
+A task can go on after a submission, in the same conversation: run returns the
+results that answer the submission's turn, the submission's own included, and
+a second run with its own submit tool sends them first. What the accepted
+submission gets back can then tell the model what to do next.
 """
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 
 from docbot.llm import Conversation, ToolCall, ToolResult
 
@@ -21,16 +26,21 @@ class ToolError(Exception):
 
 
 def run(conversation: Conversation, handlers: dict[str, Handler], submit: str,
-        validate: Callable[[dict], str | None], max_calls: int = MAX_CALLS) -> dict:
+        validate: Callable[[dict], str | None], max_calls: int = MAX_CALLS,
+        accepted: Callable[[dict], str] = lambda submission: "accepted", pending: Sequence[ToolResult] = ()) -> dict:
     """Drive the conversation to a validated submission.
 
-    Returns {"outcome": "submitted", "submission": ..., "turns": [...]} or
+    Returns {"outcome": "submitted", "submission": ..., "turns": [...], "pending": [...]} or
     {"outcome": "stopped", "reason": ..., "turns": [...]}. Each turn records the
     model's text, its usage, and each call with what went back to the model: the
-    result, or the error.
+    result, or the error. A valid submission gets accepted(submission) back. pending
+    answers the submission's turn, for a later run on the same conversation; this run
+    sends the pending results it is given before the model's first step.
     """
     turns: list[dict] = []
     calls_made = 0
+    if pending:
+        conversation.add_results(list(pending))
     while True:
         if calls_made >= max_calls:
             return _stopped(f"no valid {submit} within {max_calls} tool calls", turns)
@@ -42,20 +52,24 @@ def run(conversation: Conversation, handlers: dict[str, Handler], submit: str,
         if not turn.calls:
             return _stopped("the model answered without calling a tool", turns)
 
-        results = []
+        results: list[ToolResult] = []
+        submission = None
         for call in turn.calls:
-            calls_made += 1
-            result, submission = _answer(call, handlers, submit, validate)
+            if submission is None:
+                calls_made += 1
+                result, submission = _answer(call, handlers, submit, validate, accepted)
+            else:
+                result = ToolResult(call.id, call.name, f"not run: {submit} was accepted before it", is_error=True)
             entry["calls"].append({"name": call.name, "arguments": call.arguments,
                                    **({"error": result.text} if result.is_error else {"result": result.text})})
-            if submission is not None:
-                return {"outcome": "submitted", "submission": submission, "turns": turns}
             results.append(result)
+        if submission is not None:
+            return {"outcome": "submitted", "submission": submission, "turns": turns, "pending": results}
         conversation.add_results(results)
 
 
-def _answer(call: ToolCall, handlers: dict[str, Handler], submit: str,
-            validate: Callable[[dict], str | None]) -> tuple[ToolResult, dict | None]:
+def _answer(call: ToolCall, handlers: dict[str, Handler], submit: str, validate: Callable[[dict], str | None],
+            accepted: Callable[[dict], str]) -> tuple[ToolResult, dict | None]:
     """The result to send back, and the submission if this call was a valid one."""
     def error(text: str) -> tuple[ToolResult, None]:
         return ToolResult(call.id, call.name, text, is_error=True), None
@@ -66,7 +80,7 @@ def _answer(call: ToolCall, handlers: dict[str, Handler], submit: str,
         problem = validate(call.arguments)
         if problem:
             return error(f"not accepted: {problem}")
-        return ToolResult(call.id, call.name, "accepted"), call.arguments
+        return ToolResult(call.id, call.name, accepted(call.arguments)), call.arguments
     handler = handlers.get(call.name)
     if handler is None:
         # Mistral sometimes sends its arguments' JSON as the tool's name too. Which tool it meant

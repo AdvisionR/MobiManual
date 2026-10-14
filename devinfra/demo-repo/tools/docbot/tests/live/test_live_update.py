@@ -116,10 +116,14 @@ def test_update_scenario(tmp_path, scenario, context):
     outcome = fields["outcome-diff-only"] if diff_only else fields["outcome"]
     must = set() if diff_only else set(fields.get("edits", "").split())
     may = set(fields.get("may-edit", "").split())
+    creates = set() if diff_only else set(fields.get("creates", "").split())
     # A dry run stops where it would open the docs merge request.
     assert result["outcome"] == ("dry-run" if outcome == "opened" else outcome), result.get("reason")
-    edited = set((result.get("draft") or {}).get("edited") or {})
+    draft = result.get("draft") or {}
+    edited = set(draft.get("edited") or {})
+    created = {page["page"] for page in draft.get("new_pages") or [] if page["decision"] == "create"}
     assert must <= edited <= must | may, f"edited {sorted(edited)}, expected {sorted(must)} (may also: {sorted(may)})"
+    assert created == creates, f"created {sorted(created)}, expected {sorted(creates)}"
 
 
 @pytest.mark.parametrize("kind", list(KINDS))

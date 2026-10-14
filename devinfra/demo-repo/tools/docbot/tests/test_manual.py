@@ -1,4 +1,4 @@
-"""The manual as the model sees it: its full text, the table of contents, read_page and search_manual."""
+"""The manual as the model sees it: the table of contents, read_page and search_manual, and new pages in its list."""
 
 import pytest
 
@@ -9,6 +9,7 @@ from docbot.drafting.manual import (
     ManualError,
     headings,
     html_doc_pages,
+    register,
 )
 from docbot.llm.agent import ToolError
 
@@ -108,3 +109,28 @@ def test_a_short_name_that_fits_several_pages_is_refused():
 def test_an_unknown_page_comes_with_the_closest_names():
     with pytest.raises(ToolError, match="did you mean docs/left-sidebar.mdx"):
         ZULIP.read_page("left-sidebr")
+
+
+PAGE_LIST = "// pages\nvar htmlDocPages = [\n  'cover_page.md',\n  '_devices.md',\n  '_settings.md'\n];\n"
+
+
+def test_a_new_page_joins_htmlDocPages_after_its_page_in_the_same_layout():
+    assert register(PAGE_LIST, [("_locations.md", "_devices.md"), ("_policies_wifi.md", "_settings.md")]) == (
+        "// pages\nvar htmlDocPages = [\n  'cover_page.md',\n  '_devices.md',\n  '_locations.md',\n"
+        "  '_settings.md',\n  '_policies_wifi.md'\n];\n")
+
+
+def test_new_pages_after_the_same_page_keep_their_order():
+    assert html_doc_pages(register(PAGE_LIST, [("_a.md", "_devices.md"), ("_b.md", "_devices.md")])) == [
+        "cover_page.md", "_devices.md", "_a.md", "_b.md", "_settings.md"]
+
+
+@pytest.mark.parametrize("gruntfile, problem", [
+    (PAGE_LIST.replace("'_devices.md',", "'_devices.md', // the list"), "not one quoted page per line"),
+    (PAGE_LIST.replace("  '_devices.md',\n", "  '_devices.md', '_users.md',\n"), "not one quoted page per line"),
+    ("module.exports = {};\n", "htmlDocPages not found"),
+    (PAGE_LIST.replace("_devices.md", "_users.md"), "htmlDocPages has no _devices.md"),
+])
+def test_a_list_docbot_cannot_add_to_is_left_to_a_human(gruntfile, problem):
+    with pytest.raises(ManualError, match=problem):
+        register(gruntfile, [("_locations.md", "_devices.md")])

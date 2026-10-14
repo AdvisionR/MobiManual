@@ -4,8 +4,8 @@
 
 Each scenario from devinfra/scenarios is applied, as a commit, to a throwaway
 repository built from the fixture, and the model drafts with the whole manual:
-it decides whether any page needs changing, and picks the pages itself. The
-full result, every turn included, is printed.
+it decides whether any page needs changing, picks the pages itself, and writes
+the pages the manual lacks. The full result, every turn included, is printed.
 Skipped where devinfra/scenarios is not next to the fixture, as in the seeded
 GitLab project.
 """
@@ -57,17 +57,16 @@ def test_the_model_drafts_the_expected_pages(tmp_path, scenario, context):
     assert result["outcome"] == "submitted", result.get("reason")
     proposal = result["proposal"]
     decisions = {entry["page"]: entry["decision"] for entry in proposal["pages"]}
+    created = {page["page"] for page in result["new_pages"] if page["decision"] == "create"}
     fields = expectations(PATCHES[scenario])
-    outcome = fields["outcome-diff-only"] if context == "diff" and "outcome-diff-only" in fields else fields["outcome"]
+    diff_only = context == "diff" and "outcome-diff-only" in fields
+    outcome = fields["outcome-diff-only"] if diff_only else fields["outcome"]
     if outcome == "no-doc-impact":
         assert set(decisions.values()) <= {"no-change"}, decisions
         assert not proposal["missing_pages"]
-    elif "edits" not in fields:
-        # Needs a page the manual lacks, and no change to the pages it has.
-        assert "edit" not in decisions.values(), decisions
-        assert proposal["missing_pages"]
-    else:
-        # Where the diff alone cannot say what to write, the pages come back needs-human instead.
-        expected = "needs-human" if outcome == "needs-human" else "edit"
-        pages = fields["edits"].split()
-        assert {page: decisions.get(page) for page in pages} == dict.fromkeys(pages, expected)
+        return
+    # Where the diff alone cannot say what to write, the pages come back needs-human instead.
+    expected = "needs-human" if outcome == "needs-human" else "edit"
+    pages = fields.get("edits", "").split()
+    assert {page: decisions.get(page) for page in pages} == dict.fromkeys(pages, expected)
+    assert created == (set() if diff_only else set(fields.get("creates", "").split()))

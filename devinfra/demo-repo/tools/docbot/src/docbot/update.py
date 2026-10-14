@@ -6,8 +6,10 @@ instead of opening a second, and asks no model.
 
 Between resolving the merge and publishing, one conversation decides: drafting
 says whether the merge affects the manual at all, and if it does, finds the
-pages it affects and edits them. An outcome without edits opens no merge
-request and is recorded in the result only.
+pages it affects and edits them, and writes the pages the manual lacks. A new
+page joins htmlDocPages in gruntfile.js, so the build publishes it. An outcome
+without edits or new pages opens no merge request and is recorded in the result
+only.
 """
 
 import difflib
@@ -75,26 +77,37 @@ def update_manual(gitlab: GitLab, llm: LLM, sha: str, dry_run: bool = False, rep
     if drafted["outcome"] != "submitted":
         return {**result, "outcome": "needs-human", "reason": f"draft: {drafted['reason']}"}
     proposal, edited = drafted["proposal"], drafted["edited"]
-    if not edited:
+    created = {page["page"]: page for page in drafted["new_pages"] if page["decision"] == "create"}
+    if not edited and not created:
         waiting = [*(f"{entry['page']} needs a human" for entry in proposal["pages"] if entry["decision"] == "needs-human"),
-                   *(f"the manual has no {entry['page']}" for entry in proposal.get("missing_pages", []))]
+                   *(f"the manual has no {page['page']}" for page in drafted["new_pages"])]
         if waiting:
             return {**result, "outcome": "needs-human", "reason": f"no page edited: {'; '.join(waiting)}"}
         return {**result, "outcome": "no-doc-impact", "reason": proposal["reason"]}
 
-    result["diff"] = "".join(_unified(f"{page_dir}/{name}", pages[name], new) for name, new in edited.items())
+    # path -> (old text, new text); a page that is new has no old text.
+    changes = {f"{page_dir}/{name}": (pages[name], new) for name, new in edited.items()}
+    changes |= {f"{page_dir}/{name}": (None, page["text"]) for name, page in created.items()}
+    unregistered = None
+    if created:
+        try:
+            changes[GRUNTFILE] = (gruntfile, manual.register(gruntfile, [(name, page["after"])
+                                                                         for name, page in created.items()]))
+        except manual.ManualError as e:
+            unregistered = str(e)
+    result["diff"] = "".join(_unified(path, old, new) for path, (old, new) in changes.items())
     if dry_run:
         return {**result, "outcome": "dry-run"}
 
     # A branch with no merge request means an earlier run stopped between the two writes.
     if not gitlab.branch_exists(branch):
         gitlab.commit(branch, start_sha=sha, message=f"Manual update for !{mr['iid']} (DocBot)",
-                      actions=[{"action": "update", "file_path": f"{page_dir}/{name}", "content": new}
-                               for name, new in edited.items()])
+                      actions=[{"action": "create" if old is None else "update", "file_path": path, "content": new}
+                               for path, (old, new) in changes.items()])
     opened = gitlab.open_merge_request(
         source_branch=branch, target_branch=TARGET_BRANCH,
         title=f"Manual update for !{mr['iid']}: {mr['title']}",
-        description=_description(mr, llm.name, proposal, doc_map), labels=[GENERATED_LABEL])
+        description=_description(mr, llm.name, drafted, doc_map, unregistered), labels=[GENERATED_LABEL])
     return {**result, "outcome": "opened", "docs_merge_request": _ref(opened)}
 
 
@@ -102,26 +115,31 @@ def _ref(mr: dict) -> dict:
     return {"iid": mr["iid"], "state": mr["state"], "url": mr["web_url"]}
 
 
-def _unified(path: str, old: str, new: str) -> str:
-    return "".join(difflib.unified_diff(old.splitlines(keepends=True), new.splitlines(keepends=True),
-                                        fromfile=f"a/{path}", tofile=f"b/{path}"))
+def _unified(path: str, old: str | None, new: str) -> str:
+    return "".join(difflib.unified_diff((old or "").splitlines(keepends=True), new.splitlines(keepends=True),
+                                        fromfile="/dev/null" if old is None else f"a/{path}", tofile=f"b/{path}"))
 
 
-def _description(mr: dict, model: str, proposal: dict, doc_map: dict) -> str:
+def _description(mr: dict, model: str, drafted: dict, doc_map: dict, unregistered: str | None) -> str:
     """Where the model's reasoning reaches the reviewer."""
+    proposal = drafted["proposal"]
     by_decision: dict[str, list[str]] = {}
     for entry in proposal["pages"]:
         by_decision.setdefault(entry["decision"], []).append(f"- `{entry['page']}`: {entry['reason']}")
+    for page in drafted["new_pages"]:
+        line = f"- `{page['page']}`" + (f", after `{page['after']}`" if "after" in page else "") + f": {page['reason']}"
+        by_decision.setdefault(page["decision"], []).append(line)
     sections = [f"Drafted by DocBot ({model}) for !{mr['iid']}: {mr['web_url']}",
                 "### Why the manual changes\n\n" + proposal["reason"]]
-    for decision, heading in (("edit", "Edited"), ("needs-human", "Needs a human"), ("no-change", "Unchanged")):
+    for decision, heading in (("edit", "Edited"), ("create", "Created"), ("needs-human", "Needs a human"),
+                              ("no-change", "Unchanged")):
         if decision in by_decision:
             sections.append(f"### {heading}\n\n" + "\n".join(by_decision[decision]))
-    if missing := proposal.get("missing_pages"):
-        sections.append("### Missing pages\n\n" + "\n".join(f"- `{m['page']}`: {m['describes']}" for m in missing))
-    if uncertainties := proposal.get("uncertainties"):
+    if unregistered:
+        sections.append(f"Add the created pages to htmlDocPages in gruntfile.js by hand: {unregistered}.")
+    if uncertainties := [*proposal.get("uncertainties", []), *drafted.get("writing", {}).get("uncertainties", [])]:
         sections.append("### Uncertain\n\n" + "\n".join(f"- {u}" for u in uncertainties))
     if others := [lang for lang in doc_map.get("languages", []) if lang != manual.LANGUAGE]:
-        sections.append(f"Not updated: the {', '.join(others)} translations of the edited pages.")
+        sections.append(f"Not updated: the {', '.join(others)} translations of the edited and created pages.")
     sections.append("Nothing merges itself: review it, then merge or close.")
     return "\n\n".join(sections)

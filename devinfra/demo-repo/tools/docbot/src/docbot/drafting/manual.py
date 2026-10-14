@@ -4,7 +4,8 @@ In the fixture, the pages are htmlDocPages from gruntfile.js, read with the
 regex scripts/check-missing-doc.js uses, so the manual holds exactly the pages
 the build publishes, in manual order. Build machinery (search.md, break.md) is
 not listed there, so it can never be edited. Only English pages are drafted;
-translations are listed as debt.
+translations are listed as debt. A page DocBot creates joins htmlDocPages
+after the page the model chose, so the build publishes it too.
 
 Drafting gets the table of contents, and then reads and searches the pages it
 needs.
@@ -57,6 +58,35 @@ def html_doc_pages(gruntfile: str) -> list[str]:
     if not block:
         raise ManualError("htmlDocPages not found in gruntfile.js")
     return _QUOTED.findall(block[1])
+
+
+def register(gruntfile: str, pages: list[tuple[str, str]]) -> str:
+    """gruntfile.js with each new page in htmlDocPages, right after the page it follows: (page, after).
+
+    The list is rewritten one quoted page per line, as it is laid out. If that would
+    change anything but the new lines (a comment, another layout), it is left to a human.
+    """
+    block = _HTML_DOC_PAGES.search(gruntfile)
+    if not block:
+        raise ManualError("htmlDocPages not found in gruntfile.js")
+    names = _QUOTED.findall(block[1])
+    indent = re.match(r"\n([ \t]*)'", block[1])
+    if not indent or _page_list(names, indent[1]) != block[1]:
+        raise ManualError("htmlDocPages is not one quoted page per line, so DocBot cannot add to it")
+    added: set[str] = set()
+    for page, after in pages:
+        if after not in names:
+            raise ManualError(f"htmlDocPages has no {after} to put {page} after")
+        position = names.index(after) + 1
+        while position < len(names) and names[position] in added:  # after the pages already added there
+            position += 1
+        names.insert(position, page)
+        added.add(page)
+    return gruntfile[:block.start(1)] + _page_list(names, indent[1]) + gruntfile[block.end(1):]
+
+
+def _page_list(names: list[str], indent: str) -> str:
+    return "\n" + ",\n".join(f"{indent}'{name}'" for name in names) + "\n"
 
 
 def headings(text: str) -> list[str]:

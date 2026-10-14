@@ -12,9 +12,10 @@ directory account.
 It is a fourth policy type next to Passcode, Kiosk and Restrictions, with
 its own page under Policies, and is assigned to groups like the others.
 ---
-Expected: worth documenting, and partly beyond what DocBot can write. The draft corrects "There are three types: Passcode, Kiosk and Restrictions" on _policies.md, and names the page the manual lacks for Wi-Fi policies in missing_pages (_policies_wifi.md, which a human has to write and add to htmlDocPages). Writing the Wi-Fi settings into an existing page as a stand-in for the missing one is wrong.
+Expected: worth documenting, on an existing page and a new one. The draft corrects "There are three types: Passcode, Kiosk and Restrictions" on _policies.md, and names _policies_wifi.md, the page the route #!/policies/wifi gives, in missing_pages. It then writes it, after _policies_restrictions.md: **Network name (SSID)**, **Security** with WPA2 Personal, WPA3 Personal or WPA2 Enterprise, a **Password** except with WPA2 Enterprise, where devices sign in with their owner's directory account, and **Hidden network**; the policy is assigned to groups like the others. No images. Writing the Wi-Fi settings into an existing page as a stand-in for the new one is wrong.
 Expected-outcome: opened
 Expected-edits: _policies.md
+Expected-creates: _policies_wifi.md
 
  public/app/policies/policies.controller.js  |  2 +-
  public/app/policies/wifi/wifi.controller.js |  7 ++++++

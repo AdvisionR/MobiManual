@@ -49,8 +49,8 @@ change to a person.
 
 | Scenario | Expected | Change | What it tests |
 |---|---|---|---|
-| `wifi-policy` | edit | A fourth policy type, Wi-Fi, with its own console page | New functionality that needs a page the manual lacks, and also makes a sentence wrong: correcting the sentence and naming the missing page |
-| `locations-page` | needs-human | A new Locations page shows where devices are | New functionality that needs a page the manual lacks and changes no existing page: handing it to a human instead of editing stand-ins |
+| `wifi-policy` | edit | A fourth policy type, Wi-Fi, with its own console page | New functionality that needs a page the manual lacks, and also makes a sentence wrong: correcting the sentence and creating `_policies_wifi.md` |
+| `locations-page` | edit | A new Locations page shows where devices are | New functionality that needs a page the manual lacks and changes no existing page: creating `_locations.md` instead of editing stand-ins |
 
 ### Feature flags (`feature-flags/`)
 
@@ -135,19 +135,23 @@ Expected: worth documenting. The draft changes ...
 Expected-outcome: opened
 Expected-edits: _devices_id.md _devicescommands.md
 Expected-may-edit: chapter1.md
+Expected-creates: _locations.md
 Expected-outcome-diff-only: needs-human
 ```
 
 `Expected:` describes the right result in words, for a person to judge the
 draft by. The other lines are what the tools check: update-manual's outcome,
-the pages that must be edited, the pages that may be edited as well, and, where
-`--diff-only` cannot write the edit, the outcome then (with no page edited).
+the pages that must be edited, the pages that may be edited as well, the pages
+the manual lacks that must be created (no other page may be), and, where
+`--diff-only` cannot write the edit, the outcome then (with no page edited or
+created).
 `git am` leaves everything between `---` and the diff out of the commit message,
 so the expectation never reaches the merge request description the model reads.
 
 `open-test-mr.sh --merge` prints the expectation next to what DocBot did: the
-outcome, the draft's reason, each page's decision and reason, the pages it found
-missing, a check of the pages against `Expected-edits`, and the manual diff. It keeps each `result.json` in
+outcome, the draft's reason, each page's decision and reason, the pages it
+created or left to a human, a check of the pages against `Expected-edits` and
+`Expected-creates`, and the manual diff. It keeps each `result.json` in
 `.runtime/mr-results/`.
 
 `tests/live/test_live_update.py` in `demo-repo/tools/docbot/` runs every

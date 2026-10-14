@@ -56,11 +56,9 @@ class MistralConversation:
         # UNSET leaves the field out of the request. The API refuses a value the model does not take.
         self._effort: OptionalNullable[ReasoningEffort] = (
             cast(ReasoningEffort, reasoning_effort) if reasoning_effort else UNSET)
-        self._tools: list[ToolTypedDict] = [
-            {"type": "function", "function": {"name": t.name, "description": t.description, "parameters": t.schema}}
-            for t in tools]
-        self._tool_choice: ChatCompletionRequestToolChoiceTypedDict = (
-            {"type": "function", "function": {"name": tools[0].name}} if len(tools) == 1 else "any")
+        self._tools: list[ToolTypedDict] = []
+        self._tool_choice: ChatCompletionRequestToolChoiceTypedDict = "any"
+        self.add_tools(tools)
         self._messages: list = [{"role": "system", "content": system}, {"role": "user", "content": task}]
 
     def step(self) -> Turn:
@@ -80,6 +78,15 @@ class MistralConversation:
                  for c in message.tool_calls or []]
         return Turn(calls, _text(message.content), choice.finish_reason in ("length", "model_length"),
                     _usage(response.usage))
+
+    def add_tools(self, tools: list[Tool]) -> None:
+        # A new list: a request already sent keeps the tools it was sent with.
+        self._tools = [*self._tools, *(
+            {"type": "function", "function": {"name": t.name, "description": t.description, "parameters": t.schema}}
+            for t in tools)]
+        self._tool_choice = (
+            {"type": "function", "function": {"name": self._tools[0]["function"]["name"]}} if len(self._tools) == 1
+            else "any")
 
     def add_results(self, results: list[ToolResult]) -> None:
         for r in results:

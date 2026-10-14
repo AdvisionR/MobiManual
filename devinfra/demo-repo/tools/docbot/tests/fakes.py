@@ -28,3 +28,6 @@ class FakeLLM:
 
     def add_results(self, results: list[ToolResult]) -> None:
         self.sent.append(results)
+
+    def add_tools(self, tools: list[Tool]) -> None:
+        self.opened[-1]["added_tools"] = [*self.opened[-1].get("added_tools", []), *(t.name for t in tools)]
