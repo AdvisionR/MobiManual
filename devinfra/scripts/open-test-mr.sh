@@ -4,11 +4,12 @@
 #
 #   ./scripts/open-test-mr.sh [scenario|kind] [--merge]
 #
-# A scenario is a real change: scenarios/<name>.patch, with a title and a
+# A scenario is a real change: scenarios/<group>/<name>.patch, with a title and a
 # description the way a developer would write them. It is what the model judges,
 # and the default is one worth documenting. Each patch states its expected
 # outcome below its "---" line, which git am leaves out of the commit message,
-# so the expectation never reaches the model. --help lists the scenarios.
+# so the expectation never reaches the model. The folder says what kind of change
+# it covers, and the name alone selects it. --help lists the scenarios by folder.
 # A scenario applies once; after it has merged, re-seed to run it again.
 #
 # A kind only appends a comment to a file, so it tests which paths a merge
@@ -46,9 +47,12 @@ BASE="http://${JENKINS_HOST}:${JENKINS_PORT}"
 usage() {
   awk 'NR == 1 { next } /^#/ { sub(/^# ?/, ""); print; next } { exit }' "$0"
   echo
-  echo "Scenarios:"
-  for p in scenarios/*.patch; do
-    printf '  %-20s %s\n' "$(basename "$p" .patch)" "$(sed -n 's/^Expected: \([^.]*\)\..*/\1/p' "$p")"
+  echo "Scenarios, by what they cover:"
+  for dir in scenarios/*/; do
+    printf '  %s\n' "$(basename "$dir")/"
+    for p in "$dir"*.patch; do
+      printf '    %-26s %s\n' "$(basename "$p" .patch)" "$(sed -n 's/^Expected: \([^.]*\)\..*/\1/p' "$p")"
+    done
   done
 }
 
@@ -70,8 +74,13 @@ done
 # no-doc-impact, or at skipped when doc-map.json ignores every file.
 PATCH=""
 EXPECT_EDITS=""; EXPECT_MAY_EDIT=""; EXPECT_OUTCOME_DIFF_ONLY=""
-if [ -f "scenarios/${KIND}.patch" ]; then
-  PATCH="$(pwd)/scenarios/${KIND}.patch"
+FOUND=$(find scenarios -mindepth 2 -maxdepth 2 -name "${KIND}.patch")
+if [ "$(printf '%s' "$FOUND" | grep -c .)" -gt 1 ]; then
+  printf '\n  !! scenario %s is in more than one folder:\n%s\n\n' "$KIND" "$FOUND" >&2
+  exit 2
+fi
+if [ -n "$FOUND" ]; then
+  PATCH="$(pwd)/${FOUND}"
   EXPECT=$(sed -n 's/^Expected: //p' "$PATCH")
   EXPECT_OUTCOME=$(sed -n 's/^Expected-outcome: //p' "$PATCH")
   EXPECT_EDITS=$(sed -n 's/^Expected-edits: //p' "$PATCH")

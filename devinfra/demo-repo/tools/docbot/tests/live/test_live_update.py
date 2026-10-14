@@ -19,7 +19,7 @@ from urllib.parse import unquote
 
 import httpx2
 import pytest
-from replay import apply_patch, diffs, expectations, fixture_repo, git
+from replay import apply_patch, diffs, expectations, fixture_repo, git, scenario_patches
 
 from docbot import config
 from docbot.drafting.repo import Repo
@@ -34,7 +34,8 @@ RESULTS = DEVINFRA / ".runtime" / "docbot-results"
 PREFIX = "/api/v4/projects/root%2Fmobivisor-console/"
 
 # What each scenario should end with is stated in its patch (replay.expectations).
-SCENARIO_NAMES = [patch.stem for patch in sorted(SCENARIOS.glob("*.patch"))]
+PATCHES = scenario_patches(SCENARIOS) if SCENARIOS.is_dir() else {}
+SCENARIO_NAMES = sorted(PATCHES)
 # open-test-mr.sh's kinds append a comment, so none is worth documenting: ignored, or silent at triage.
 KINDS = {
     "code": (["public/app/enrollment/ios/enrollment-wizard.controller.js"], "no-doc-impact"),
@@ -108,9 +109,9 @@ def dry_run(checkout: Path, base: str, head: str, case: str, context: str) -> di
 def test_update_scenario(tmp_path, scenario, context):
     checkout = tmp_path / "repo"
     base = fixture_repo(FIXTURE, checkout)
-    head = apply_patch(checkout, SCENARIOS / f"{scenario}.patch")
+    head = apply_patch(checkout, PATCHES[scenario])
     result = dry_run(checkout, base, head, scenario, context)
-    fields = expectations(SCENARIOS / f"{scenario}.patch")
+    fields = expectations(PATCHES[scenario])
     diff_only = context == "diff" and "outcome-diff-only" in fields
     outcome = fields["outcome-diff-only"] if diff_only else fields["outcome"]
     must = set() if diff_only else set(fields.get("edits", "").split())

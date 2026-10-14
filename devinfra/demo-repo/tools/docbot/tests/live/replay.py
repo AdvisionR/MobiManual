@@ -35,6 +35,18 @@ def fixture_repo(fixture: Path, checkout: Path) -> str:
     return git(checkout, "rev-parse", "HEAD").strip()
 
 
+def scenario_patches(root: Path) -> dict[str, Path]:
+    """Every scenario's patch by name. A scenario lives in a folder named after what it covers
+    (<root>/renames/retire-label.patch), and its name alone identifies it, so names are unique."""
+    patches: dict[str, Path] = {}
+    for patch in sorted(root.glob("*/*.patch")):
+        if patch.stem in patches:
+            raise ValueError(f"scenario {patch.stem} is in both {patches[patch.stem].parent.name}/ "
+                             f"and {patch.parent.name}/")
+        patches[patch.stem] = patch
+    return patches
+
+
 def expectations(patch: Path) -> dict[str, str]:
     """What DocBot should do with a scenario: the Expected-<field> lines below its patch's ---, by field.
 

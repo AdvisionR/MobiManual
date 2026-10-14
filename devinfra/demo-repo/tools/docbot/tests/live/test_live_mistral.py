@@ -14,7 +14,7 @@ import json
 from pathlib import Path
 
 import pytest
-from replay import apply_patch, diffs, expectations, fixture_repo, git
+from replay import apply_patch, diffs, expectations, fixture_repo, git, scenario_patches
 
 from docbot import config
 from docbot.drafting.manual import Manual, html_doc_pages
@@ -27,7 +27,8 @@ SCENARIOS = FIXTURE.parent / "scenarios"
 
 # The scenarios whose patch names pages that must be edited (replay.expectations). The others have no
 # doc impact, and drafting only runs after triage found some.
-DRAFTED = [patch.stem for patch in sorted(SCENARIOS.glob("*.patch")) if "edits" in expectations(patch)]
+PATCHES = scenario_patches(SCENARIOS) if SCENARIOS.is_dir() else {}
+DRAFTED = [name for name, patch in sorted(PATCHES.items()) if "edits" in expectations(patch)]
 
 pytestmark = [pytest.mark.live,
               pytest.mark.skipif(not SCENARIOS.is_dir(), reason="devinfra/scenarios is not next to the fixture")]
@@ -37,7 +38,7 @@ def merged(tmp_path: Path, scenario: str) -> tuple[Path, str, str]:
     """A repository with the fixture as its base commit and the scenario applied on top."""
     checkout = tmp_path / "repo"
     base = fixture_repo(FIXTURE, checkout)
-    return checkout, base, apply_patch(checkout, SCENARIOS / f"{scenario}.patch")
+    return checkout, base, apply_patch(checkout, PATCHES[scenario])
 
 
 @pytest.mark.parametrize("context", ["diff", "repo"])
@@ -57,7 +58,7 @@ def test_the_model_drafts_the_expected_page(tmp_path, scenario, context):
     print(f"\n===== {scenario} / {context}\n{json.dumps(result, indent=2)}")
     assert result["outcome"] == "submitted", result.get("reason")
     decisions = {entry["page"]: entry["decision"] for entry in result["proposal"]["pages"]}
-    fields = expectations(SCENARIOS / f"{scenario}.patch")
+    fields = expectations(PATCHES[scenario])
     # Where the diff alone cannot say what to write, the pages come back needs-human instead.
     expected = "needs-human" if context == "diff" and fields.get("outcome-diff-only") == "needs-human" else "edit"
     pages = fields["edits"].split()
