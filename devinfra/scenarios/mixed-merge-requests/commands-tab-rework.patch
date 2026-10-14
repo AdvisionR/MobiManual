@@ -1,0 +1,399 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fixture Developer <dev@mobimanual.local>
+Date: Fri, 9 Oct 2026 15:42:00 +0200
+Subject: [PATCH] MV-2274 Commands tab rework
+
+Closes MV-2274.
+
+- Command history moves into its own component and loads a page at a time (50 rows)
+- Loading and empty states for the history
+- History endpoint on the server, paged, with an index on device and sent time
+- Copy from the UX review
+- Specs for the component and the paging
+---
+Expected: worth documenting. Triage answers doc-impact, although most of the 16 files change nothing a reader of the manual sees. The one change that matters is a label: the button next to an expired command is now **Resend** (COMMANDS.RESEND in en.json, used by command-history.html) instead of **Retry**. The draft renames it on both pages that name it: "Select **Retry** next to an expired command" on _devices_id.md and "sent again with **Retry**" on _devicescommands.md. **Retry** for a failed app installation on _appinstallations.md still uses COMMON.RETRY and stays, and the 24 hours stay. Paging, the loading and empty states and the index are below the manual's level of detail: adding them is unneeded.
+Expected-outcome: opened
+Expected-edits: _devices_id.md _devicescommands.md
+
+ e2e/helper.js                                 |  7 +++-
+ e2e/specs/command-history.spec.js             | 18 ++++++++++
+ .../app/devices/command-history.component.js  | 33 +++++++++++++++++++
+ public/app/devices/command-history.html       | 23 +++++++++++++
+ .../app/devices/device-detail.controller.js   |  7 ----
+ public/app/devices/device-detail.html         | 15 +--------
+ public/app/services/api.js                    |  4 +++
+ public/app/services/command.service.js        |  5 +--
+ public/i18n/de.json                           |  6 +++-
+ public/i18n/en.json                           |  6 +++-
+ public/i18n/tr.json                           |  6 +++-
+ public/index.html                             |  1 +
+ server/commands/command-queue.js              | 11 +++++--
+ server/commands/history.js                    | 18 ++++++++++
+ server/commands/history.spec.js               | 24 ++++++++++++++
+ .../20261009-command-history-index.js         | 13 ++++++++
+ 16 files changed, 168 insertions(+), 29 deletions(-)
+ create mode 100644 e2e/specs/command-history.spec.js
+ create mode 100644 public/app/devices/command-history.component.js
+ create mode 100644 public/app/devices/command-history.html
+ create mode 100644 server/commands/history.js
+ create mode 100644 server/commands/history.spec.js
+ create mode 100644 server/db/migrations/20261009-command-history-index.js
+
+diff --git a/e2e/helper.js b/e2e/helper.js
+index 5fc3e73..cdfd0ae 100644
+--- a/e2e/helper.js
++++ b/e2e/helper.js
+@@ -16,6 +16,11 @@ const OUT_DIR = path.join('public', 'doc', LANGUAGE, 'screenshots');
+ 
+ const counters = {};
+ 
++// Waits until no loading message is shown, for pages that load in parts.
++function waitUntilLoaded() {
++  return browser.wait(protractor.ExpectedConditions.invisibilityOf($('.loading')), 5000);
++}
++
+ function nextIndex(base) {
+   counters[base] = (counters[base] || 0) + 1;
+   return counters[base];
+@@ -49,4 +54,4 @@ function docshot(fileName) {
+   return screenshot(fileName);
+ }
+ 
+-module.exports = { screenshot, docshot, LANGUAGE, OUT_DIR };
++module.exports = { screenshot, docshot, waitUntilLoaded, LANGUAGE, OUT_DIR };
+diff --git a/e2e/specs/command-history.spec.js b/e2e/specs/command-history.spec.js
+new file mode 100644
+index 0000000..3bf1c76
+--- /dev/null
++++ b/e2e/specs/command-history.spec.js
+@@ -0,0 +1,18 @@
++const helper = require('../helper');
++
++describe('command history', function () {
++  beforeEach(function () {
++    browser.get('#!/devices');
++    element.all(by.css('.device-list a')).first().click();
++    element(by.cssContainingText('.tabs a', 'Commands')).click();
++    helper.waitUntilLoaded();
++  });
++
++  it('should page through the history', function () {
++    expect(element.all(by.repeater('command in $ctrl.commands')).count()).toBeLessThan(51);
++  });
++
++  it('should offer Resend for expired commands', function () {
++    expect(element.all(by.buttonText('Resend')).count()).toBeGreaterThan(0);
++  });
++});
+diff --git a/public/app/devices/command-history.component.js b/public/app/devices/command-history.component.js
+new file mode 100644
+index 0000000..95db20f
+--- /dev/null
++++ b/public/app/devices/command-history.component.js
+@@ -0,0 +1,33 @@
++// The command history of one device, a page at a time (server/commands/history.js).
++// An expired command can be queued again from its row.
++
++angular.module('mobivisor').component('commandHistory', {
++  templateUrl: 'app/devices/command-history.html',
++  bindings: { deviceId: '<', onChange: '&' },
++  controller: ['commandService', function (commandService) {
++    var ctrl = this;
++    ctrl.page = 1;
++
++    ctrl.load = function (page) {
++      ctrl.loading = true;
++      return commandService.history(ctrl.deviceId, page).then(function (result) {
++        ctrl.commands = result.items;
++        ctrl.page = result.page;
++        ctrl.pages = result.pages;
++      }).finally(function () {
++        ctrl.loading = false;
++      });
++    };
++
++    ctrl.resend = function (command) {
++      return commandService.resend(command.id).then(function () {
++        ctrl.onChange();
++        return ctrl.load(ctrl.page);
++      });
++    };
++
++    ctrl.$onChanges = function () {
++      if (ctrl.deviceId) ctrl.load(1);
++    };
++  }]
++});
+diff --git a/public/app/devices/command-history.html b/public/app/devices/command-history.html
+new file mode 100644
+index 0000000..0e463ac
+--- /dev/null
++++ b/public/app/devices/command-history.html
+@@ -0,0 +1,23 @@
++<div class="command-history">
++  <p class="loading" ng-if="$ctrl.loading">{{ 'COMMANDS.HISTORY_LOADING' | translate }}</p>
++  <p class="empty" ng-if="!$ctrl.loading && !$ctrl.commands.length">{{ 'COMMANDS.HISTORY_EMPTY' | translate }}</p>
++  <table ng-if="$ctrl.commands.length">
++    <tr>
++      <th>{{ 'COMMANDS.COMMAND' | translate }}</th>
++      <th>{{ 'DEVICE.COMMAND_SENT' | translate }}</th>
++      <th>{{ 'DEVICE.COMMAND_STATE' | translate }}</th>
++      <th></th>
++    </tr>
++    <tr ng-repeat="command in $ctrl.commands">
++      <td>{{ command.label | translate }}</td>
++      <td>{{ command.sentAt | date:'short' }}</td>
++      <td>{{ 'DEVICE.STATE_' + command.state.toUpperCase() | translate }}</td>
++      <td><button ng-if="command.state === 'expired'" ng-click="$ctrl.resend(command)">{{ 'COMMANDS.RESEND' | translate }}</button></td>
++    </tr>
++  </table>
++  <div class="pager" ng-if="$ctrl.pages > 1">
++    <button ng-click="$ctrl.load($ctrl.page - 1)" ng-disabled="$ctrl.page === 1">{{ 'COMMON.BACK' | translate }}</button>
++    {{ 'COMMANDS.HISTORY_PAGE' | translate:{ page: $ctrl.page, pages: $ctrl.pages } }}
++    <button ng-click="$ctrl.load($ctrl.page + 1)" ng-disabled="$ctrl.page === $ctrl.pages">{{ 'COMMON.NEXT' | translate }}</button>
++  </div>
++</div>
+diff --git a/public/app/devices/device-detail.controller.js b/public/app/devices/device-detail.controller.js
+index b951bdf..5414cbc 100644
+--- a/public/app/devices/device-detail.controller.js
++++ b/public/app/devices/device-detail.controller.js
+@@ -5,9 +5,6 @@ angular.module('mobivisor').controller('DeviceDetailCtrl', ['$scope', '$routePar
+     deviceService.get($routeParams.id).then(function (device) {
+       $scope.device = device;
+     });
+-    commandService.history($routeParams.id).then(function (commands) {
+-      $scope.commands = commands;
+-    });
+   };
+ 
+   commandService.definitions().then(function (definitions) {
+@@ -27,10 +24,6 @@ angular.module('mobivisor').controller('DeviceDetailCtrl', ['$scope', '$routePar
+     return commandService.send([$scope.device.id], definition.name, confirmation).then($scope.load);
+   };
+ 
+-  $scope.retry = function (command) {
+-    return commandService.retry(command.id).then($scope.load);
+-  };
+-
+   $scope.saveDepartment = function (department) {
+     return deviceService.setDepartment($scope.device.id, department.id).then(function () {
+       $scope.editingDepartment = false;
+diff --git a/public/app/devices/device-detail.html b/public/app/devices/device-detail.html
+index 725b78a..7e8e7e9 100644
+--- a/public/app/devices/device-detail.html
++++ b/public/app/devices/device-detail.html
+@@ -42,19 +42,6 @@
+         {{ definition.label | translate }}
+       </button>
+     </div>
+-    <table class="command-history">
+-      <tr>
+-        <th>{{ 'COMMANDS.COMMAND' | translate }}</th>
+-        <th>{{ 'DEVICE.COMMAND_SENT' | translate }}</th>
+-        <th>{{ 'DEVICE.COMMAND_STATE' | translate }}</th>
+-        <th></th>
+-      </tr>
+-      <tr ng-repeat="command in commands">
+-        <td>{{ command.label | translate }}</td>
+-        <td>{{ command.sentAt | date:'short' }}</td>
+-        <td>{{ 'DEVICE.STATE_' + command.state.toUpperCase() | translate }}</td>
+-        <td><button ng-if="command.state === 'expired'" ng-click="retry(command)">{{ 'COMMON.RETRY' | translate }}</button></td>
+-      </tr>
+-    </table>
++    <command-history device-id="device.id" on-change="load()"></command-history>
+   </div>
+ </div>
+diff --git a/public/app/services/api.js b/public/app/services/api.js
+index 5a757fe..ee6ec0c 100644
+--- a/public/app/services/api.js
++++ b/public/app/services/api.js
+@@ -16,6 +16,10 @@ angular.module('mobivisor').factory('api', ['$http', '$window', function ($http,
+ 
+   return {
+     get: function (path, params) { return $http.get('/api' + path, { params: params }).then(body, failed); },
++    // Paged lists answer { items, page, pages }; page counts from 1.
++    getPage: function (path, page, params) {
++      return $http.get('/api' + path, { params: angular.extend({ page: page || 1 }, params) }).then(body, failed);
++    },
+     post: function (path, data) { return $http.post('/api' + path, data).then(body, failed); },
+     put: function (path, data) { return $http.put('/api' + path, data).then(body, failed); },
+     remove: function (path) { return $http.delete('/api' + path).then(body, failed); }
+diff --git a/public/app/services/command.service.js b/public/app/services/command.service.js
+index d94c845..01b2541 100644
+--- a/public/app/services/command.service.js
++++ b/public/app/services/command.service.js
+@@ -5,10 +5,11 @@
+ angular.module('mobivisor').factory('commandService', ['api', function (api) {
+   return {
+     definitions: function () { return api.get('/commands/definitions'); },
+-    history: function (deviceId) { return api.get('/devices/' + deviceId + '/commands'); },
++    // One page of a device's command history: { items, page, pages }.
++    history: function (deviceId, page) { return api.getPage('/devices/' + deviceId + '/commands', page); },
+     send: function (deviceIds, command, confirmation) {
+       return api.post('/commands', { devices: deviceIds, command: command, confirmation: confirmation });
+     },
+-    retry: function (commandId) { return api.post('/commands/' + commandId + '/retry'); }
++    resend: function (commandId) { return api.post('/commands/' + commandId + '/resend'); }
+   };
+ }]);
+diff --git a/public/i18n/de.json b/public/i18n/de.json
+index 95c9eb4..85fd7b1 100644
+--- a/public/i18n/de.json
++++ b/public/i18n/de.json
+@@ -103,7 +103,11 @@
+     "RETIRE": "Außer Betrieb nehmen",
+     "WIPE": "Vollständig löschen",
+     "WIPE_CONFIRM": "Geben Sie Ihr Passwort ein, um {{device}} vollständig zu löschen. Dies kann nicht rückgängig gemacht werden.",
+-    "NOT_SUPPORTED": "Auf diesem Gerät nicht unterstützt"
++    "NOT_SUPPORTED": "Auf diesem Gerät nicht unterstützt",
++    "RESEND": "Erneut senden",
++    "HISTORY_LOADING": "Befehlsverlauf wird geladen…",
++    "HISTORY_EMPTY": "Noch keine Befehle gesendet.",
++    "HISTORY_PAGE": "Seite {{page}} von {{pages}}"
+   },
+   "GROUPS": {
+     "TITLE": "Gruppen",
+diff --git a/public/i18n/en.json b/public/i18n/en.json
+index 798ce9e..bdf887a 100644
+--- a/public/i18n/en.json
++++ b/public/i18n/en.json
+@@ -103,7 +103,11 @@
+     "RETIRE": "Retire",
+     "WIPE": "Wipe",
+     "WIPE_CONFIRM": "Enter your password to wipe {{device}}. This cannot be undone.",
+-    "NOT_SUPPORTED": "Not supported on this device"
++    "NOT_SUPPORTED": "Not supported on this device",
++    "RESEND": "Resend",
++    "HISTORY_LOADING": "Loading the command history…",
++    "HISTORY_EMPTY": "No commands sent yet.",
++    "HISTORY_PAGE": "Page {{page}} of {{pages}}"
+   },
+   "GROUPS": {
+     "TITLE": "Groups",
+diff --git a/public/i18n/tr.json b/public/i18n/tr.json
+index 1e76126..b461c7a 100644
+--- a/public/i18n/tr.json
++++ b/public/i18n/tr.json
+@@ -103,7 +103,11 @@
+     "RETIRE": "Kullanımdan kaldır",
+     "WIPE": "Tamamen sil",
+     "WIPE_CONFIRM": "{{device}} cihazını tamamen silmek için şifrenizi girin. Bu işlem geri alınamaz.",
+-    "NOT_SUPPORTED": "Bu cihazda desteklenmiyor"
++    "NOT_SUPPORTED": "Bu cihazda desteklenmiyor",
++    "RESEND": "Yeniden gönder",
++    "HISTORY_LOADING": "Komut geçmişi yükleniyor…",
++    "HISTORY_EMPTY": "Henüz komut gönderilmedi.",
++    "HISTORY_PAGE": "Sayfa {{page}} / {{pages}}"
+   },
+   "GROUPS": {
+     "TITLE": "Gruplar",
+diff --git a/public/index.html b/public/index.html
+index 1bf7f66..565361e 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -26,6 +26,7 @@
+   <script src="app/appinstallations/appinstallations.controller.js"></script>
+   <script src="app/auditlog/auditlog.controller.js"></script>
+   <script src="app/dashboard/dashboard.controller.js"></script>
++  <script src="app/devices/command-history.component.js"></script>
+   <script src="app/devices/device-detail.controller.js"></script>
+   <script src="app/devices/devices.controller.js"></script>
+   <script src="app/devicescommands/devicescommands.controller.js"></script>
+diff --git a/server/commands/command-queue.js b/server/commands/command-queue.js
+index 1cf5b0d..5bc8a60 100644
+--- a/server/commands/command-queue.js
++++ b/server/commands/command-queue.js
+@@ -1,6 +1,6 @@
+ // Commands wait here until the device checks in and acknowledges them. One the
+ // device has not acknowledged in time is marked expired; the console can queue
+-// it again (Retry).
++// it again (resend).
+ 
+ const EXPIRY_HOURS = 24;
+ 
+@@ -23,4 +23,11 @@ function pendingFor(db, deviceId) {
+   return db.commands.find({ device: deviceId, state: 'queued' });
+ }
+ 
+-module.exports = { enqueue, expire, pendingFor, EXPIRY_HOURS };
++// Queues an expired command again, as a new command with the same content.
++function resend(db, commandId, sentBy, now) {
++  const old = db.commands.findOne({ _id: commandId, state: 'expired' });
++  if (!old) return null;
++  return enqueue(db, old.device, old.command, sentBy, now);
++}
++
++module.exports = { enqueue, expire, pendingFor, resend, EXPIRY_HOURS };
+diff --git a/server/commands/history.js b/server/commands/history.js
+new file mode 100644
+index 0000000..77f3d7a
+--- /dev/null
++++ b/server/commands/history.js
+@@ -0,0 +1,18 @@
++// A device's command history, newest first, a page at a time. The device detail
++// page used to load the whole history, which took seconds for devices with
++// thousands of commands.
++
++const PAGE_SIZE = 50;
++
++function page(db, deviceId, n) {
++  const total = db.commands.count({ device: deviceId });
++  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
++  const current = Math.min(Math.max(1, n || 1), pages);
++  const items = db.commands.find({ device: deviceId })
++    .sort({ sentAt: -1 })
++    .skip((current - 1) * PAGE_SIZE)
++    .limit(PAGE_SIZE);
++  return { items: items, page: current, pages: pages };
++}
++
++module.exports = { page, PAGE_SIZE };
+diff --git a/server/commands/history.spec.js b/server/commands/history.spec.js
+new file mode 100644
+index 0000000..c8613dd
+--- /dev/null
++++ b/server/commands/history.spec.js
+@@ -0,0 +1,24 @@
++const { page, PAGE_SIZE } = require('./history');
++
++function fakeDb(n) {
++  const rows = Array.from({ length: n }, (_, i) => ({ device: 'd1', sentAt: i }));
++  const cursor = (items) => ({
++    sort: () => cursor(items.slice().reverse()),
++    skip: (k) => cursor(items.slice(k)),
++    limit: (k) => items.slice(0, k)
++  });
++  return { commands: { count: () => n, find: () => cursor(rows) } };
++}
++
++describe('command history', function () {
++  it('pages newest first', function () {
++    const result = page(fakeDb(120), 'd1', 2);
++    expect(result.pages).toBe(3);
++    expect(result.items.length).toBe(PAGE_SIZE);
++    expect(result.items[0].sentAt).toBe(69);
++  });
++
++  it('clamps the page to the last one', function () {
++    expect(page(fakeDb(10), 'd1', 9).page).toBe(1);
++  });
++});
+diff --git a/server/db/migrations/20261009-command-history-index.js b/server/db/migrations/20261009-command-history-index.js
+new file mode 100644
+index 0000000..68e3a92
+--- /dev/null
++++ b/server/db/migrations/20261009-command-history-index.js
+@@ -0,0 +1,13 @@
++// The command history is read a page at a time, newest first, per device.
++
++exports.up = function (db) {
++  return db.schema.alterTable('commands', function (table) {
++    table.index(['device_id', 'sent_at'], 'commands_device_sent_at');
++  });
++};
++
++exports.down = function (db) {
++  return db.schema.alterTable('commands', function (table) {
++    table.dropIndex(['device_id', 'sent_at'], 'commands_device_sent_at');
++  });
++};

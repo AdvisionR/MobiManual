@@ -51,7 +51,7 @@ usage() {
   for dir in scenarios/*/; do
     printf '  %s\n' "$(basename "$dir")/"
     for p in "$dir"*.patch; do
-      printf '    %-26s %s\n' "$(basename "$p" .patch)" "$(sed -n 's/^Expected: \([^.]*\)\..*/\1/p' "$p")"
+      printf '    %-32s %s\n' "$(basename "$p" .patch)" "$(sed -n 's/^Expected: \([^.]*\)\..*/\1/p' "$p")"
     done
   done
 }

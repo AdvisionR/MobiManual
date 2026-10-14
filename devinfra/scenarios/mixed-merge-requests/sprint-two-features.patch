@@ -1,0 +1,167 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fixture Developer <dev@mobimanual.local>
+Date: Sat, 10 Oct 2026 11:05:00 +0200
+Subject: [PATCH] Sprint 41
+
+MV-2306 Audit log: filter by IP address
+MV-2311 Failed app installations: retry sooner
+---
+Expected: worth documenting, twice. Triage answers doc-impact. The draft adds the IP address filter to "Filter by user, by action, or by a date range" under "Finding entries" on _auditlog.md, and changes "retried 3 times, an hour apart" under "Installation status" on _appinstallations.md to 5 times, 30 minutes apart. Editing only one of the two pages is incomplete. "select **Retry** next to the device" on _appinstallations.md stays.
+Expected-outcome: opened
+Expected-edits: _auditlog.md _appinstallations.md
+
+ package.json                               |  3 ++-
+ public/app/auditlog/auditlog.controller.js |  2 +-
+ public/app/auditlog/auditlog.html          |  1 +
+ public/i18n/de.json                        |  3 ++-
+ public/i18n/en.json                        |  3 ++-
+ public/i18n/tr.json                        |  3 ++-
+ server/apps/install-retry.js               |  6 ++++--
+ server/audit/query.js                      | 23 ++++++++++++++++++++++
+ server/audit/query.spec.js                 | 11 +++++++++++
+ 9 files changed, 48 insertions(+), 7 deletions(-)
+ create mode 100644 server/audit/query.js
+ create mode 100644 server/audit/query.spec.js
+
+diff --git a/package.json b/package.json
+index d51489b..20847c5 100644
+--- a/package.json
++++ b/package.json
+@@ -10,7 +10,8 @@
+     "angular": "1.8.3",
+     "angular-route": "1.8.3",
+     "angular-translate": "2.19.1",
+-    "angular-translate-loader-static-files": "2.19.1"
++    "angular-translate-loader-static-files": "2.19.1",
++    "ipaddr.js": "2.2.0"
+   },
+   "devDependencies": {
+     "grunt": "^1.6.1",
+diff --git a/public/app/auditlog/auditlog.controller.js b/public/app/auditlog/auditlog.controller.js
+index 6d4cb63..a177a23 100644
+--- a/public/app/auditlog/auditlog.controller.js
++++ b/public/app/auditlog/auditlog.controller.js
+@@ -1,5 +1,5 @@
+ angular.module('mobivisor').controller('AuditLogCtrl', ['$scope', 'api', function ($scope, api) {
+-  $scope.filter = { user: '', action: '', from: null, to: null };
++  $scope.filter = { user: '', action: '', ip: '', from: null, to: null };
+ 
+   $scope.reload = function () {
+     api.get('/audit', $scope.filter).then(function (entries) {
+diff --git a/public/app/auditlog/auditlog.html b/public/app/auditlog/auditlog.html
+index f73e6f4..8e2f6f4 100644
+--- a/public/app/auditlog/auditlog.html
++++ b/public/app/auditlog/auditlog.html
+@@ -4,6 +4,7 @@
+   <div class="filters">
+     <input ng-model="filter.user" ng-change="reload()" placeholder="{{ 'AUDIT.COL_USER' | translate }}">
+     <input ng-model="filter.action" ng-change="reload()" placeholder="{{ 'AUDIT.COL_ACTION' | translate }}">
++    <input ng-model="filter.ip" ng-change="reload()" placeholder="{{ 'AUDIT.FILTER_IP' | translate }}">
+     <label>{{ 'AUDIT.FILTER_FROM' | translate }} <input type="date" ng-model="filter.from" ng-change="reload()"></label>
+     <label>{{ 'AUDIT.FILTER_TO' | translate }} <input type="date" ng-model="filter.to" ng-change="reload()"></label>
+     <button ng-click="exportCsv()">{{ 'COMMON.EXPORT_CSV' | translate }}</button>
+diff --git a/public/i18n/de.json b/public/i18n/de.json
+index 95c9eb4..d499334 100644
+--- a/public/i18n/de.json
++++ b/public/i18n/de.json
+@@ -217,7 +217,8 @@
+     "COL_ACTION": "Aktion",
+     "COL_IP": "IP-Adresse",
+     "FILTER_FROM": "Von",
+-    "FILTER_TO": "Bis"
++    "FILTER_TO": "Bis",
++    "FILTER_IP": "IP-Adresse oder -Bereich, z. B. 10.0.0.0/8"
+   },
+   "SETTINGS": {
+     "TITLE": "Einstellungen",
+diff --git a/public/i18n/en.json b/public/i18n/en.json
+index 798ce9e..eab0933 100644
+--- a/public/i18n/en.json
++++ b/public/i18n/en.json
+@@ -217,7 +217,8 @@
+     "COL_ACTION": "Action",
+     "COL_IP": "IP address",
+     "FILTER_FROM": "From",
+-    "FILTER_TO": "To"
++    "FILTER_TO": "To",
++    "FILTER_IP": "IP address or range, e.g. 10.0.0.0/8"
+   },
+   "SETTINGS": {
+     "TITLE": "Settings",
+diff --git a/public/i18n/tr.json b/public/i18n/tr.json
+index 1e76126..3f1bf62 100644
+--- a/public/i18n/tr.json
++++ b/public/i18n/tr.json
+@@ -217,7 +217,8 @@
+     "COL_ACTION": "İşlem",
+     "COL_IP": "IP adresi",
+     "FILTER_FROM": "Başlangıç",
+-    "FILTER_TO": "Bitiş"
++    "FILTER_TO": "Bitiş",
++    "FILTER_IP": "IP adresi veya aralığı, ör. 10.0.0.0/8"
+   },
+   "SETTINGS": {
+     "TITLE": "Ayarlar",
+diff --git a/server/apps/install-retry.js b/server/apps/install-retry.js
+index efcda30..a783f0c 100644
+--- a/server/apps/install-retry.js
++++ b/server/apps/install-retry.js
+@@ -1,8 +1,10 @@
+ // A failed app installation is retried automatically before it is left as
+ // failed for an administrator to retry by hand.
+ 
+-const MAX_RETRIES = 3;
+-const RETRY_INTERVAL_MINUTES = 60;
++// Most failures are a device that was briefly offline; an hour between attempts
++// left them failed for half a day.
++const MAX_RETRIES = 5;
++const RETRY_INTERVAL_MINUTES = 30;
+ 
+ function nextAttempt(installation, now) {
+   if (installation.attempts > MAX_RETRIES) return null;
+diff --git a/server/audit/query.js b/server/audit/query.js
+new file mode 100644
+index 0000000..42fafe3
+--- /dev/null
++++ b/server/audit/query.js
+@@ -0,0 +1,23 @@
++// Builds the Audit Log query behind GET /api/audit and its CSV export.
++// ip takes one address or a CIDR range: 10.1.2.3 or 10.0.0.0/8.
++
++const ipaddr = require('ipaddr.js');
++
++function where(filter) {
++  const clause = {};
++  if (filter.user) clause.user = filter.user;
++  if (filter.action) clause.action = filter.action;
++  if (filter.from || filter.to) {
++    clause.time = {};
++    if (filter.from) clause.time.$gte = new Date(filter.from);
++    if (filter.to) clause.time.$lt = new Date(new Date(filter.to).getTime() + 24 * 60 * 60 * 1000);
++  }
++  if (filter.ip) {
++    const [address, bits] = filter.ip.split('/');
++    const parsed = ipaddr.parse(address);
++    clause.ip = bits ? { $inRange: [parsed.toString(), Number(bits)] } : parsed.toString();
++  }
++  return clause;
++}
++
++module.exports = { where };
+diff --git a/server/audit/query.spec.js b/server/audit/query.spec.js
+new file mode 100644
+index 0000000..be01826
+--- /dev/null
++++ b/server/audit/query.spec.js
+@@ -0,0 +1,11 @@
++const { where } = require('./query');
++
++describe('audit query', function () {
++  it('matches one address', function () {
++    expect(where({ ip: '10.1.2.3' }).ip).toBe('10.1.2.3');
++  });
++
++  it('matches a range', function () {
++    expect(where({ ip: '10.0.0.0/8' }).ip).toEqual({ $inRange: ['10.0.0.0', 8] });
++  });
++});

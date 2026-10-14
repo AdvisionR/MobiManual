@@ -1,0 +1,529 @@
+<title>DocBot Scenarios</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+/* Layout: a scenario index on the left (its run dots double as the result matrix),
+   the selected merge request on the right, its code change beside DocBot's manual edit. */
+:root {
+  --bg: #eef1f4;
+  --surface: #ffffff;
+  --sunk: #f6f8fa;
+  --fg: #161a1f;
+  --muted: #5b6672;
+  --line: #d6dce3;
+  --accent: #0d6670;
+  --accent-soft: #dcefF1;
+  --pass: #1b7a45;
+  --pass-soft: #dff2e6;
+  --fail: #b3261e;
+  --fail-soft: #fbe5e2;
+  --warn: #9a5b00;
+  --warn-soft: #fbefd9;
+  --add-bg: #e4f4e9;
+  --add-fg: #14532d;
+  --add-word: #b9e5c7;
+  --del-bg: #fcebe8;
+  --del-fg: #7f1d1d;
+  --del-word: #f6c4bd;
+  --font-display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1215; --surface: #161b20; --sunk: #12171b; --fg: #e5e9ee; --muted: #95a1ad;
+    --line: #29313a; --accent: #5ec4cd; --accent-soft: #143a3e;
+    --pass: #52c48b; --pass-soft: #12301f; --fail: #f07a70; --fail-soft: #3a1715;
+    --warn: #e2a640; --warn-soft: #36270c;
+    --add-bg: #112a1a; --add-fg: #bdeccc; --add-word: #1f5534;
+    --del-bg: #31130f; --del-fg: #ffc9c2; --del-word: #6a241d;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1215; --surface: #161b20; --sunk: #12171b; --fg: #e5e9ee; --muted: #95a1ad;
+  --line: #29313a; --accent: #5ec4cd; --accent-soft: #143a3e;
+  --pass: #52c48b; --pass-soft: #12301f; --fail: #f07a70; --fail-soft: #3a1715;
+  --warn: #e2a640; --warn-soft: #36270c;
+  --add-bg: #112a1a; --add-fg: #bdeccc; --add-word: #1f5534;
+  --del-bg: #31130f; --del-fg: #ffc9c2; --del-word: #6a241d;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1480px; margin: 0 auto; padding-inline: 20px; padding-block: 20px 48px; display: grid; gap: 18px; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 600; text-wrap: balance; margin: 0; }
+h1 { font-size: 1.75rem; letter-spacing: -0.01em; }
+h2 { font-size: 1.5rem; }
+h3 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); font-weight: 600; }
+code, .mono { font-family: var(--font-mono); font-size: 0.86em; }
+p { margin: 0; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Header */
+.top { display: flex; flex-wrap: wrap; gap: 14px 32px; align-items: end; justify-content: space-between; }
+.top .lede { color: var(--muted); max-width: 68ch; margin-top: 4px; }
+.top .sources { color: var(--muted); font-size: 0.8rem; margin-top: 6px; max-width: 90ch; }
+.top .sources code { font-size: 0.78rem; }
+.norun { color: var(--muted); font-size: 0.74rem; font-style: italic; }
+.scores { display: flex; flex-wrap: wrap; gap: 10px; }
+.score { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; min-width: 128px; }
+.score b { font-family: var(--font-display); font-size: 1.35rem; font-variant-numeric: tabular-nums; display: block; line-height: 1.2; }
+.score span { font-size: 0.78rem; color: var(--muted); }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; }
+.filters { display: flex; flex-wrap: wrap; gap: 6px; }
+.filters button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 4px 12px; cursor: pointer; font-size: 0.86rem; }
+.filters button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.filters button .n { font-variant-numeric: tabular-nums; opacity: 0.75; margin-left: 4px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.8rem; color: var(--muted); align-items: center; }
+.legend .dot { vertical-align: -1px; }
+
+/* Main split */
+.main { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 18px; align-items: start; }
+.index { position: sticky; top: env(safe-area-inset-top, 0px); max-height: 100vh; overflow-y: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding-block: 6px; }
+.index .group { padding: 12px 14px 4px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); font-weight: 600; }
+.index .group .folder { display: block; font-family: var(--font-mono); font-size: 0.7rem; text-transform: none; letter-spacing: 0; font-weight: 400; }
+.head .path { font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted); overflow-wrap: anywhere; }
+.index .row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; width: 100%; text-align: left; border: 0; background: none; padding: 5px 14px; cursor: pointer; border-left: 3px solid transparent; }
+.index .row:hover { background: var(--sunk); }
+.index .row[aria-current="true"] { background: var(--accent-soft); border-left-color: var(--accent); }
+.index .row .nm { font-family: var(--font-mono); font-size: 0.82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dots { display: inline-flex; gap: 3px; align-items: center; }
+.dots .sep { width: 5px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; background: var(--pass); }
+.dot.fail { background: var(--fail); }
+.dot.warn { background: var(--warn); }
+
+.kind { display: inline-block; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; border-radius: 4px; padding: 1px 6px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.kind.change { color: var(--accent); border-color: var(--accent); }
+
+/* Detail */
+.detail { display: grid; gap: 14px; min-width: 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; min-width: 0; }
+.head { display: grid; gap: 6px; }
+.eyebrow { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; font-weight: 600; }
+.head h2 { font-family: var(--font-mono); font-weight: 500; font-size: 1.35rem; }
+.head .tests { font-size: 1.02rem; max-width: 80ch; }
+.expect { display: grid; gap: 8px; margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--line); }
+.expect p { max-width: 90ch; }
+.pages { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.86rem; align-items: baseline; }
+.pages .lab { color: var(--muted); }
+.pg { font-family: var(--font-mono); font-size: 0.8rem; background: var(--sunk); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; }
+
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.tab { display: inline-flex; gap: 8px; align-items: center; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 0.88rem; }
+.tab[aria-selected="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.tab .ctx { color: var(--muted); }
+
+.verdict { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; border-radius: 10px; padding: 10px 14px; border: 1px solid var(--line); }
+.verdict.pass { background: var(--pass-soft); border-color: var(--pass); }
+.verdict.fail { background: var(--fail-soft); border-color: var(--fail); }
+.verdict.warn { background: var(--warn-soft); border-color: var(--warn); }
+.verdict .big { font-family: var(--font-display); font-weight: 600; font-size: 1.05rem; }
+.verdict.pass .big { color: var(--pass); }
+.verdict.fail .big { color: var(--fail); }
+.verdict.warn .big { color: var(--warn); }
+.verdict .kv { font-size: 0.86rem; }
+.verdict .kv .k { color: var(--muted); }
+.verdict .note { flex-basis: 100%; font-size: 0.9rem; }
+.verdict .note.scope { font-size: 0.8rem; color: var(--muted); }
+
+.cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+.col { display: grid; gap: 12px; min-width: 0; align-content: start; }
+.col > h3 { padding-left: 2px; }
+
+.mr-title { font-weight: 600; font-size: 1.02rem; }
+.mr-body { white-space: pre-wrap; color: var(--fg); font-size: 0.92rem; margin-top: 6px; }
+.files { display: grid; gap: 2px; margin-top: 10px; font-size: 0.84rem; }
+.files .f { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+.files .f .p { font-family: var(--font-mono); font-size: 0.8rem; overflow-wrap: anywhere; }
+.files .f .ad { color: var(--pass); font-variant-numeric: tabular-nums; }
+.files .f .dl { color: var(--fail); font-variant-numeric: tabular-nums; }
+.files .f .tag { font-size: 0.74rem; color: var(--warn); }
+
+details.file { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); min-width: 0; }
+details.file > summary { cursor: pointer; padding: 7px 12px; font-family: var(--font-mono); font-size: 0.8rem; display: flex; gap: 10px; flex-wrap: wrap; align-items: baseline; list-style-position: inside; }
+details.file > summary .ad { color: var(--pass); }
+details.file > summary .dl { color: var(--fail); }
+details.file > summary .tag { font-family: var(--font-body); font-size: 0.74rem; color: var(--warn); }
+.code { overflow-x: auto; border-top: 1px solid var(--line); font-family: var(--font-mono); font-size: 0.76rem; line-height: 1.55; background: var(--sunk); border-radius: 0 0 8px 8px; }
+.code .l { white-space: pre; padding: 0 12px; min-width: max-content; }
+.code .l.a { background: var(--add-bg); color: var(--add-fg); }
+.code .l.d { background: var(--del-bg); color: var(--del-fg); }
+.code .l.h { color: var(--muted); background: var(--surface); padding-block: 2px; }
+
+.card { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; background: var(--surface); display: grid; gap: 8px; min-width: 0; }
+.card .title { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-weight: 600; }
+.chip { font-size: 0.74rem; font-weight: 600; border-radius: 4px; padding: 1px 7px; font-family: var(--font-mono); }
+.chip.yes { background: var(--accent-soft); color: var(--accent); }
+.chip.no { background: var(--sunk); color: var(--muted); border: 1px solid var(--line); }
+.chip.edit { background: var(--add-bg); color: var(--add-fg); }
+.chip.stop { background: var(--fail-soft); color: var(--fail); }
+.reason { font-size: 0.9rem; max-width: 80ch; }
+.evid { border-left: 3px solid var(--line); padding-left: 10px; font-size: 0.86rem; display: grid; gap: 3px; }
+.evid q { font-style: italic; }
+.evid .why { color: var(--muted); }
+.pagelist { display: grid; gap: 8px; }
+.pagelist .it { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; font-size: 0.88rem; align-items: baseline; }
+.pagelist .it .r { grid-column: 2; color: var(--muted); }
+
+.prose { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); overflow: hidden; }
+.prose .fn { font-family: var(--font-mono); font-size: 0.8rem; padding: 7px 12px; border-bottom: 1px solid var(--line); background: var(--sunk); }
+.prose .hunk + .hunk { border-top: 1px dashed var(--line); }
+.prose .ln { white-space: pre-wrap; overflow-wrap: anywhere; padding: 1px 12px; font-size: 0.9rem; line-height: 1.6; }
+.prose .ln.ctx { color: var(--muted); }
+.prose .ln.chg { background: var(--sunk); }
+.prose .ln.add { background: var(--add-bg); color: var(--add-fg); }
+.prose .ln.del { background: var(--del-bg); color: var(--del-fg); text-decoration: line-through; }
+.prose ins { text-decoration: none; background: var(--add-word); color: var(--add-fg); border-radius: 2px; }
+.prose del { background: var(--del-word); color: var(--del-fg); border-radius: 2px; }
+.empty { color: var(--muted); font-size: 0.9rem; font-style: italic; }
+.unc { margin: 0; padding-left: 18px; font-size: 0.88rem; display: grid; gap: 6px; }
+details.calls > summary { cursor: pointer; font-size: 0.88rem; color: var(--accent); }
+details.calls ol { margin: 8px 0 0; padding-left: 26px; font-size: 0.8rem; display: grid; gap: 2px; }
+details.calls li { font-family: var(--font-mono); overflow-wrap: anywhere; }
+details.calls li .n { font-weight: 500; }
+details.calls li .g { color: var(--muted); }
+
+@media (max-width: 1100px) { .cols { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 820px) {
+  .wrap { padding-inline: 16px; }
+  .main { grid-template-columns: minmax(0, 1fr); }
+  .index { position: static; max-height: 46vh; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>DocBot Scenarios</h1>
+      <p class="lede" id="lede">The merge requests in <code>devinfra/scenarios</code>, each with what DocBot did with it. In repo mode, drafting can search the code; with <code>--diff-only</code> it has the diff alone. Choose a scenario to see its code change beside DocBot's edit to the manual.</p>
+      <p class="sources" id="sources"></p>
+    </div>
+    <div class="scores" id="scores"></div>
+  </header>
+
+  <div class="toolbar">
+    <div class="filters" id="filters" role="group" aria-label="Show scenarios"></div>
+    <div class="legend">
+      <span>Dots: the repo-mode runs, then the diff-only runs.</span>
+      <span><span class="dot"></span> passed</span>
+      <span><span class="dot fail"></span> failed</span>
+      <span><span class="dot warn"></span> passed by the runner, not right on reading</span>
+    </div>
+  </div>
+
+  <div class="main">
+    <nav class="index" id="index" aria-label="Scenarios"></nav>
+    <main class="detail" id="detail"></main>
+  </div>
+</div>
+
+<script type="application/json" id="data">__DATA__</script>
+<script>
+(function () {
+  var DATA = JSON.parse(document.getElementById('data').textContent);
+  var ALL = [];
+  DATA.groups.forEach(function (g) { g.scenarios.forEach(function (s) { s.group = g.title; s.folder = g.folder; ALL.push(s); }); });
+
+  function runLabel(r) { return (r.context === 'repo' ? 'Repo mode' : 'Diff only') + ', run ' + (r.rep + 1); }
+  var state = { filter: 'all', name: null, run: 0 };
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+  function status(r) { return r.pass ? (r.note ? 'warn' : 'pass') : 'fail'; }
+  // The runs were dry runs: "dry-run" is where a real run opens the docs merge request.
+  var OUTCOME_TEXT = {
+    'dry-run': 'edits the manual (a real run opens a docs merge request)',
+    'no-doc-impact': 'stays silent (no-doc-impact)',
+    'needs-human': 'hands it to a person (needs-human)',
+    'no-change': 'reads the pages and changes nothing (no-change)'
+  };
+  function outcomeText(o) { return OUTCOME_TEXT[o] || o; }
+  function needsChange(s) { return s.expected.outcome !== 'no-doc-impact'; }
+  function failed(s) { return s.runs.some(function (r) { return status(r) !== 'pass'; }); }
+  function notRun(s) { return !s.runs.length; }
+  function kindLabel(s) {
+    if (s.expected.outcome === 'needs-human') return 'human';
+    return needsChange(s) ? 'change' : 'silent';
+  }
+  function pages(list) {
+    return list.map(function (p) { return '<span class="pg">' + esc(p) + '</span>'; }).join(' ');
+  }
+  function dots(s) {
+    if (!s.runs.length) return '<span class="norun">not run</span>';
+    return '<span class="dots" aria-hidden="true">' + s.runs.map(function (r, i) {
+      var sep = i > 0 && s.runs[i - 1].context !== r.context;
+      return (sep ? '<span class="sep"></span>' : '') + '<span class="dot ' + status(r) + '"></span>';
+    }).join('') + '</span>';
+  }
+
+  /* Scores */
+  function scoreTile(label, runs) {
+    var ok = runs.filter(function (r) { return status(r) === 'pass'; }).length;
+    return '<div class="score"><b>' + ok + ' / ' + runs.length + '</b><span>' + esc(label) + '</span></div>';
+  }
+  var repo = [], diff = [], negRepo = [];
+  ALL.forEach(function (s) {
+    s.runs.forEach(function (r) {
+      (r.context === 'repo' ? repo : diff).push(r);
+      if (r.context === 'repo' && !needsChange(s)) negRepo.push(r);
+    });
+  });
+  document.getElementById('scores').innerHTML =
+    (repo.length ? scoreTile('repo-mode runs right', repo) : '') +
+    (diff.length ? scoreTile('diff-only runs right', diff) : '') +
+    (negRepo.length ? scoreTile('silent where expected, repo mode', negRepo) : '');
+  document.getElementById('sources').innerHTML = 'Runs from ' + DATA.experiments.map(function (e) {
+    return '<code>' + esc(e.name) + '</code> (' + e.runs + ' runs, ' + esc(e.models.join(', ')) + ')';
+  }).join(', ') + '. ' + ALL.filter(function (s) { return !s.runs.length; }).length + ' scenarios have no runs yet.';
+
+  /* Filters */
+  var FILTERS = [
+    ['all', 'All', function () { return true; }],
+    ['change', 'Needs a change', needsChange],
+    ['silent', 'Needs silence', function (s) { return !needsChange(s); }],
+    ['failed', 'Not right in every run', failed],
+    ['notrun', 'Not run yet', notRun]
+  ];
+  function renderFilters() {
+    document.getElementById('filters').innerHTML = FILTERS.map(function (f) {
+      var n = ALL.filter(f[2]).length;
+      return '<button type="button" id="filter-' + f[0] + '" data-f="' + f[0] + '" aria-pressed="' + (state.filter === f[0]) + '">' +
+        esc(f[1]) + '<span class="n">' + n + '</span></button>';
+    }).join('');
+  }
+  document.getElementById('filters').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    state.filter = b.getAttribute('data-f');
+    try { localStorage.setItem('docbot-scenarios-filter', state.filter); } catch (err) {}
+    renderFilters(); renderIndex();
+  });
+
+  /* Index */
+  function renderIndex() {
+    var test = FILTERS.filter(function (f) { return f[0] === state.filter; })[0][2];
+    var html = '';
+    DATA.groups.forEach(function (g) {
+      var shown = g.scenarios.filter(test);
+      if (!shown.length) return;
+      html += '<div class="group">' + esc(g.title) + '<span class="folder">' + esc(g.folder) + '/</span></div>';
+      shown.forEach(function (s) {
+        var label = s.name + ': ' + (s.runs.length ? s.runs.map(function (r) { return runLabel(r) + ' ' + status(r); }).join(', ') : 'not run');
+        html += '<button type="button" class="row" data-n="' + esc(s.name) + '" aria-label="' + esc(label) + '"' +
+          (s.name === state.name ? ' aria-current="true"' : '') + '><span class="nm">' + esc(s.name) + '</span>' + dots(s) + '</button>';
+      });
+    });
+    document.getElementById('index').innerHTML = html;
+  }
+  document.getElementById('index').addEventListener('click', function (e) {
+    var b = e.target.closest('.row'); if (!b) return;
+    select(b.getAttribute('data-n'), true);
+  });
+
+  /* Diff rendering */
+  function codeDiff(hunks) {
+    return hunks.split('\n').map(function (l) {
+      var c = l[0] === '+' ? 'a' : l[0] === '-' ? 'd' : l.slice(0, 2) === '@@' ? 'h' : '';
+      return '<div class="l ' + c + '">' + (esc(l) || ' ') + '</div>';
+    }).join('');
+  }
+
+  function tokens(s) { return s.split(/(\s+)/).filter(function (t) { return t.length; }); }
+  function wordDiff(a, b) {
+    var x = tokens(a), y = tokens(b);
+    if (x.length * y.length > 250000) return null;
+    var n = x.length, m = y.length, i, j;
+    var t = [];
+    for (i = 0; i <= n; i++) { t.push(new Int32Array(m + 1)); }
+    for (i = n - 1; i >= 0; i--) for (j = m - 1; j >= 0; j--)
+      t[i][j] = x[i] === y[j] ? t[i + 1][j + 1] + 1 : Math.max(t[i + 1][j], t[i][j + 1]);
+    var out = '', del = '', ins = '';
+    function flush() {
+      if (del) out += '<del>' + esc(del) + '</del>';
+      if (ins) out += '<ins>' + esc(ins) + '</ins>';
+      del = ''; ins = '';
+    }
+    i = 0; j = 0;
+    while (i < n && j < m) {
+      if (x[i] === y[j]) { flush(); out += esc(x[i]); i++; j++; }
+      else if (t[i + 1][j] >= t[i][j + 1]) { del += x[i++]; }
+      else { ins += y[j++]; }
+    }
+    while (i < n) del += x[i++];
+    while (j < m) ins += y[j++];
+    flush();
+    return out;
+  }
+
+  function manualDiff(text) {
+    var files = text.split(/^--- a\//m).filter(function (f) { return f.trim(); });
+    return files.map(function (f) {
+      var name = f.split('\n')[0].trim();
+      var body = f.slice(f.indexOf('\n@@'));
+      var hunks = body.split(/^@@[^\n]*@@[^\n]*$/m).filter(function (h) { return h.trim(); });
+      var html = hunks.map(function (h) {
+        var lines = h.replace(/^\n/, '').replace(/\n$/, '').split('\n');
+        var out = '', k = 0;
+        while (k < lines.length) {
+          var l = lines[k];
+          if (l[0] === '-' || l[0] === '+') {
+            var minus = [], plus = [];
+            while (k < lines.length && lines[k][0] === '-') minus.push(lines[k++].slice(1));
+            while (k < lines.length && lines[k][0] === '+') plus.push(lines[k++].slice(1));
+            if (minus.length && plus.length) {
+              var w = wordDiff(minus.join('\n'), plus.join('\n'));
+              if (w !== null) { out += '<div class="ln chg">' + w + '</div>'; continue; }
+            }
+            if (minus.length) out += '<div class="ln del">' + esc(minus.join('\n')) + '</div>';
+            if (plus.length) out += '<div class="ln add">' + esc(plus.join('\n')) + '</div>';
+          } else {
+            out += '<div class="ln ctx">' + (esc(l.slice(1)) || ' ') + '</div>';
+            k++;
+          }
+        }
+        return '<div class="hunk">' + out + '</div>';
+      }).join('');
+      return '<div class="prose"><div class="fn">' + esc(name.replace(/^public\/doc\/en\//, '')) + '</div>' + html + '</div>';
+    }).join('');
+  }
+
+  /* Detail */
+  function mergeRequest(s, run) {
+    var ignored = {};
+    run.ignored.forEach(function (p) { ignored[p] = true; });
+    function tag(p) {
+      if (!ignored[p]) return '';
+      return p.indexOf('public/doc/') === 0 ? 'the author’s own manual edit' : 'dropped by doc-map.json';
+    }
+    var fileList = s.files.map(function (f) {
+      var t = tag(f.path);
+      return '<div class="f"><span class="p">' + esc(f.path) + '</span><span class="ad">+' + f.add + '</span><span class="dl">−' + f.del + '</span>' +
+        (f.new ? '<span class="tag">new file</span>' : '') + (t ? '<span class="tag">' + esc(t) + '</span>' : '') + '</div>';
+    }).join('');
+    var diffs = s.files.map(function (f) {
+      var lines = f.hunks.split('\n').length;
+      var open = lines <= 45 ? ' open' : '';
+      var t = tag(f.path);
+      return '<details class="file"' + open + '><summary><span>' + esc(f.path) + '</span><span class="ad">+' + f.add + '</span><span class="dl">−' + f.del + '</span>' +
+        (t ? '<span class="tag">' + esc(t) + '</span>' : '') + (open ? '' : '<span class="tag">' + lines + ' lines</span>') +
+        '</summary><div class="code">' + codeDiff(f.hunks) + '</div></details>';
+    }).join('');
+    return '<section class="col" aria-label="The merge request">' +
+      '<h3>The merge request, as DocBot gets it</h3>' +
+      '<div class="card"><div class="mr-title">' + esc(s.subject) + '</div>' +
+      (s.body ? '<div class="mr-body">' + esc(s.body) + '</div>' : '') +
+      '<div class="files">' + fileList + '</div></div>' + diffs + '</section>';
+  }
+
+  function whatDocBotDid(run) {
+    var tri = run.triage;
+    var triCard = '<div class="card"><div class="title">Triage <span class="chip ' + (tri.decision === 'doc-impact' ? 'yes' : 'no') + '">' +
+      esc(tri.decision || 'no answer') + '</span></div><p class="reason">' + esc(tri.reason) + '</p>' +
+      tri.evidence.map(function (e) {
+        return '<div class="evid"><div><span class="pg">' + esc(e.page) + '</span> ' + esc(e.kind) + '</div>' +
+          (e.quote ? '<q>' + esc(e.quote) + '</q>' : '') + (e.why ? '<div class="why">' + esc(e.why) + '</div>' : '') + '</div>';
+      }).join('') + '</div>';
+
+    var draft = '';
+    if (!run.draft) {
+      draft = '<p class="empty">No drafting: triage answered no-doc-impact, so DocBot stopped there.</p>';
+    } else {
+      var d = run.draft;
+      var head = '<div class="title">Drafting ' + (d.outcome === 'submitted' ? '' : '<span class="chip stop">' + esc(d.outcome) + '</span>') + '</div>';
+      var plist = d.pages.length ? '<div class="pagelist">' + d.pages.map(function (p) {
+        return '<div class="it"><span class="chip ' + (p.decision === 'edit' ? 'edit' : 'no') + '">' + esc(p.decision) + '</span><span class="pg">' + esc(p.page) + '</span>' +
+          (p.reason ? '<span class="r">' + esc(p.reason) + '</span>' : '') + '</div>';
+      }).join('') + '</div>' : '<p class="empty">' + esc(run.final_reason || 'No page decided.') + '</p>';
+      var unc = d.uncertainties.length ? '<div><h3>Uncertainties</h3><ul class="unc">' + d.uncertainties.map(function (u) { return '<li>' + esc(u) + '</li>'; }).join('') + '</ul></div>' : '';
+      var calls = '<details class="calls"><summary>' + d.calls.length + ' tool calls</summary><ol>' + d.calls.map(function (c) {
+        return '<li><span class="n">' + esc(c.name) + '</span> <span class="g">' + esc(c.args) + '</span></li>';
+      }).join('') + '</ol></details>';
+      draft = '<div class="card">' + head + plist + unc + calls + '</div>';
+    }
+    var manual = run.diff ? manualDiff(run.diff) : '<p class="empty">No change to the manual.</p>';
+    return '<section class="col" aria-label="What DocBot did">' +
+      '<h3>What DocBot did</h3>' + triCard + draft +
+      '<h3>The manual edit</h3>' + manual + '</section>';
+  }
+
+  function head(s, expectHtml) {
+    return '<div class="panel head"><div class="eyebrow">' + esc(s.group) + ' · <span class="kind ' + (needsChange(s) ? 'change' : '') + '">' + esc(kindLabel(s)) + '</span></div>' +
+      '<h2>' + esc(s.name) + '</h2>' +
+      '<div class="path">devinfra/scenarios/' + esc(s.folder) + '/' + esc(s.name) + '.patch</div>' +
+      (s.tests ? '<p class="tests">' + esc(s.tests) + '</p>' : '') + expectHtml + '</div>';
+  }
+
+  function renderDetail() {
+    var s = ALL.filter(function (x) { return x.name === state.name; })[0];
+    if (state.run >= s.runs.length) state.run = 0;
+    var run = s.runs[state.run];
+    var e = s.expected;
+    var expectHtml = '<div class="expect"><h3>Expected</h3><p>' + esc(e.text) + '</p><div class="pages">' +
+      '<span><span class="lab">Outcome:</span> <span class="pg">' + esc(e.outcome) + '</span>' +
+      (e['outcome-diff-only'] ? ' <span class="lab">with --diff-only:</span> <span class="pg">' + esc(e['outcome-diff-only']) + '</span>' : '') + '</span>' +
+      (e.edits ? '<span><span class="lab">Must edit:</span> ' + pages(e.edits.split(' ')) + '</span>' : '') +
+      (e['may-edit'] ? '<span><span class="lab">May edit:</span> ' + pages(e['may-edit'].split(' ')) + '</span>' : '') +
+      '</div></div>';
+
+    var tabs = '<div class="tabs" role="tablist" aria-label="Runs">' + s.runs.map(function (r, i) {
+      return '<button type="button" role="tab" id="run-' + i + '" class="tab" data-r="' + i + '" aria-selected="' + (i === state.run) + '">' +
+        '<span class="dot ' + status(r) + '"></span>' + esc(runLabel(r)) + '</button>';
+    }).join('') + '</div>';
+
+    if (!run) {
+      document.getElementById('detail').innerHTML = head(s, expectHtml) +
+        '<div class="verdict" role="status"><span class="big">Not run yet</span>' +
+        '<p class="note scope">None of the runs this page was built from has this scenario. Run it, then rebuild the page with its results.</p></div>' +
+        '<div class="cols">' + mergeRequest(s, { ignored: [] }) + '</div>';
+      return;
+    }
+    var st = status(run);
+    var big = st === 'pass' ? 'Right outcome and pages' : st === 'warn' ? 'Passed by the runner, but not right' : 'Wrong outcome or pages';
+    var verdict = '<div class="verdict ' + st + '" role="status"><span class="big">' + big + '</span>' +
+      '<span class="kv"><span class="k">DocBot</span> ' + esc(outcomeText(run.outcome)) + ' <span class="k">· expected</span> ' + esc(outcomeText(run.expected)) + '</span>' +
+      '<span class="kv"><span class="k">Edited</span> ' + (run.edited.length ? pages(run.edited) : '<span class="k">nothing</span>') + '</span>' +
+      '<span class="kv"><span class="k">' + run.seconds.toFixed(0) + ' s, $' + run.cost.toFixed(3) + ' \u00b7 ' + esc(run.experiment) + '</span></span>' +
+      (run.note ? '<p class="note">' + esc(run.note) + '</p>' : '') +
+      '<p class="note scope">The runner compares the outcome and which pages were edited. It does not read what the edit says: check that under “The manual edit”.</p></div>';
+
+    document.getElementById('detail').innerHTML = head(s, expectHtml) + tabs + verdict +
+      '<div class="cols">' + mergeRequest(s, run) + whatDocBotDid(run) + '</div>';
+  }
+  document.getElementById('detail').addEventListener('click', function (e) {
+    var b = e.target.closest('.tab'); if (!b) return;
+    state.run = +b.getAttribute('data-r');
+    renderDetail();
+    var t = document.getElementById('run-' + state.run); if (t) t.focus();
+  });
+
+  function select(name, fromClick) {
+    state.name = name;
+    var s = ALL.filter(function (x) { return x.name === name; })[0];
+    if (fromClick) {
+      var bad = s.runs.findIndex(function (r) { return status(r) !== 'pass'; });
+      state.run = bad >= 0 ? bad : 0;
+    }
+    try { history.replaceState(null, '', '#' + name); } catch (err) {}
+    renderIndex(); renderDetail();
+    if (fromClick && window.matchMedia('(max-width: 820px)').matches) {
+      document.getElementById('detail').scrollIntoView({ block: 'start' });
+    }
+  }
+
+  try { var f = localStorage.getItem('docbot-scenarios-filter'); if (f && FILTERS.some(function (x) { return x[0] === f; })) state.filter = f; } catch (err) {}
+  var fromHash = (location.hash || '').slice(1);
+  var first = ALL.some(function (s) { return s.name === fromHash; }) ? fromHash :
+    (ALL.filter(failed)[0] || ALL[0]).name;
+  renderFilters();
+  select(first, true);
+})();
+</script>

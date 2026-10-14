@@ -66,6 +66,12 @@ change to a person.
 |---|---|---|---|
 | `auditlog-export-removed` | edit | **Export CSV** is removed from the Audit Log | A removal: deleting a sentence, and correcting another one that now asks for what is gone |
 
+### Reverts (`reverts/`)
+
+| Scenario | Expected | Change | What it tests |
+|---|---|---|---|
+| `revert-device-export` | edit | `git revert` of the device list's CSV export: the title quotes the reverted commit, the description names its sha | Reading a revert as a removal; deleting a section's heading without losing the true sentence under it, and leaving the Audit Log's own **Export CSV** alone |
+
 ### Renames (`renames/`)
 
 | Scenario | Expected | Change | What it tests |
@@ -91,6 +97,20 @@ change to a person.
 | Scenario | Expected | Change | What it tests |
 |---|---|---|---|
 | `ring-duration-documented` | silent | **Ring** lasts 1 minute instead of 2, and the author updates the only page that says so | Silence when the author did it all; the counterpart of `retire-label` |
+| `commands-tab-rework` | edit | A 16-file rework of the device's Commands tab: a component, paging, loading states, an index, specs. One label changes: **Retry** next to an expired command becomes **Resend** | Finding the one change a reader sees in a large feature merge request, and leaving the app installations' **Retry**, the same word with its own label, alone |
+| `sprint-two-features` | edit | A sprint merge with two unrelated features: an IP address filter in the Audit Log, and failed app installations retried 5 times, 30 minutes apart | Documenting both features, on two pages, not only the first |
+
+### No description (`no-description/`)
+
+The diff of a scenario in another folder, with a ticket number as its title and
+no description. Its results next to the original's show how much DocBot relies
+on what the description says.
+
+| Scenario | Expected | Change | What it tests |
+|---|---|---|---|
+| `invite-link-72h-no-description` | edit | `invite-link-72h`, titled "MV-2291 invitation link validity" | Changing the right one of two "48 hours" when only the code says that reset links keep theirs |
+| `kiosk-passcode-no-description` | edit | `kiosk-passcode`, titled "MV-2302 kiosk exit pin" | Correcting the sentence when only a code comment says the device passcode no longer leaves kiosk mode |
+| `lost-mode-dark-no-description` | silent | `lost-mode-dark`, titled "MV-2317 lost mode" | Silence on a dark feature when only `features.js` says it is off |
 
 ### Visible, but below the manual's level of detail (`below-manual-detail/`)
 
@@ -105,7 +125,7 @@ change to a person.
 | `refactor` | silent | The users controller is split into helpers, with nothing visible changing | Silence on a refactor |
 | `apns-retry` | silent | Apple Push sends are retried when Apple throttles them | Silence when a page's name matches the code: `_apns.md` is about Access Point Names |
 
-A fourteenth group, Generated pages (`generated-pages/`), has no scenario yet. Git keeps no empty
+One more group, Generated pages (`generated-pages/`), has no scenario yet. Git keeps no empty
 folders, so it appears with its first patch.
 
 What DocBot should do is stated in each patch, below its `---`:
@@ -136,6 +156,29 @@ scenario through `update-manual` without the stack, in repo mode and with
 against the `Expected:` line. `tests/live/test_live_mistral.py` runs drafting
 alone on the scenarios worth documenting and checks that each page the
 `Expected:` line requires comes back edited.
+
+## Seeing the results
+
+The experiments in `.runtime/experiments/` run scenarios many times and write
+one JSON line per run, with each run's full result in a folder of the same name.
+`scripts/scenario-viewer/build.py` turns one or more of them into a page that
+shows every scenario's merge request next to what DocBot did with it: triage's
+reason, each page's decision, the tool calls and the manual edit. From
+`devinfra/`:
+
+```bash
+python3 scripts/scenario-viewer/build.py \
+  .runtime/experiments/large-4-port-2026-10-13/large4.jsonl \
+  .runtime/experiments/messy-no-description-2026-10-14/large4.jsonl
+open .runtime/scenario-viewer.html
+```
+
+A later file wins where two have the same scenario, mode and run. A
+`notes.json` next to a `.jsonl` adds what a reading of a run found and the
+runner's score cannot show: `{"<scenario>/<repo|diff>/<run from 0>": "text"}`.
+A note on a run the runner passed marks it "not right on reading". The groups
+and their titles come from the folders and the headings above, so a new folder
+needs a heading before the page builds.
 
 ## Adding one
 

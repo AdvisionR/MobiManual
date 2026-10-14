@@ -1,7 +1,9 @@
 # DocBot — test scenarios, grouped by kind of change
 
-**Status:** catalogue, 2026-10-13. 24 scenarios are built in `devinfra/scenarios/`. The 17
-marked **new** are proposed here and not built yet.
+**Status:** catalogue, 2026-10-13; updated 2026-10-14. 30 scenarios are built in
+`devinfra/scenarios/`: the first 24, and six added on 2026-10-14 for merge requests that
+are messy or have no description (see "Added on 2026-10-14"). The 17 marked **new** are
+proposed here and not built yet.
 **Relationship to other documents:** groups the scenarios of
 [the scenarios README](../devinfra/scenarios/README.md), which says how to run and add
 them. Results per scenario are in [docbot-repo-mode-scenarios.md](docbot-repo-mode-scenarios.md).
@@ -62,14 +64,16 @@ lines the tools check.
 | New functionality that needs a new page (`new-page-needed/`) | 2 / 0 | — |
 | Feature flags (`feature-flags/`) | 1 / 2 | — |
 | Removals (`removals/`) | 1 / 0 | 1 / 0 |
+| Reverts (`reverts/`) | 1 / 0 | — |
 | Renames (`renames/`) | 1 / 1 | 1 / 0 |
 | Bug fixes (`bug-fixes/`) | 0 / 2 | 1 / 0 |
 | Languages (`languages/`) | 0 / 1 | 1 / 0 |
-| More than one change in a merge request (`mixed-merge-requests/`) | 0 / 1 | 1 / 0 |
+| More than one change in a merge request (`mixed-merge-requests/`) | 2 / 1 | 1 / 0 |
+| No description (`no-description/`) | 2 / 1 | — |
 | Generated pages (`generated-pages/`) | — | 1 / 0 |
 | Visible, but below the manual's level of detail (`below-manual-detail/`) | 0 / 1 | 0 / 2 |
 | Nothing a console user sees (`invisible-changes/`) | 0 / 2 | 0 / 2 |
-| **Total** | **14 / 10** | **12 / 5** |
+| **Total** | **19 / 11** | **12 / 5** |
 
 ---
 
@@ -303,6 +307,15 @@ Expected-outcome: opened
 Expected-edits: _devicescommands.md _policies_passcode.md
 ```
 
+## Reverts (`reverts/`)
+
+A `git revert`: the title quotes the reverted commit and the description names its sha.
+What the reverted commit added has to go from the manual again.
+
+| Scenario | | Expected | What it tests |
+|---|---|---|---|
+| `revert-device-export` | built | edits `_devices.md` | Reading a revert as a removal; deleting the section "Exporting the list" without losing the true sentence under it, and leaving the Audit Log's own **Export CSV** alone |
+
 ## Renames (`renames/`)
 
 | Scenario | | Expected | What it tests |
@@ -386,6 +399,8 @@ Expected-edits: chapter1.md
 |---|---|---|---|
 | `ring-duration-documented` | built | silent | Silence when the author already edited the only page that states the fact. `retire-label` is the case where the author did only part |
 | `search-email-in-refactor` | **new** | edits `_devices.md` | One visible line inside a refactor whose title promises nothing visible |
+| `commands-tab-rework` | built | edits `_devices_id.md`, `_devicescommands.md` | A 16-file feature merge request where one label matters: **Retry** for an expired command becomes **Resend**, while the app installations' **Retry** stays |
+| `sprint-two-features` | built | edits `_auditlog.md`, `_appinstallations.md` | Two unrelated features in one sprint merge: documenting both, not only the first |
 
 ### `search-email-in-refactor` **[PROPOSED]**
 
@@ -403,6 +418,18 @@ device name, the serial number and the owner." on `_devices.md`. Nothing else ch
 Expected-outcome: opened
 Expected-edits: _devices.md
 ```
+
+## No description (`no-description/`)
+
+The diff of a scenario in another group, with a ticket number as its title and no
+description, as many real merge requests have. Their results next to the originals' show
+how much DocBot relies on the description.
+
+| Scenario | | Expected | What it tests |
+|---|---|---|---|
+| `invite-link-72h-no-description` | built | edits `_users.md` | The right one of two "48 hours", when only the code says that reset links keep theirs |
+| `kiosk-passcode-no-description` | built | edits `_policies_kiosk.md` | Correcting the sentence, when only a code comment says the device passcode no longer leaves kiosk mode |
+| `lost-mode-dark-no-description` | built | silent | Silence on a dark feature, when only `features.js` says it is off |
 
 ## Generated pages (`generated-pages/`)
 
@@ -528,6 +555,34 @@ Expected-outcome: no-doc-impact
 ```
 
 ---
+
+## Added on 2026-10-14 **[EVIDENCE]**
+
+Six scenarios for kinds of merge request the first 24 lack: a large one, one with two
+features, a revert, and three without a description. Real merge requests are often like
+this. Every scenario has one change, at most 85 added lines and a clear description, which
+names the trap in several cases. They are built from the fixture, not modelled on real
+MobiVisor merge requests, which have not been looked at yet **[UNKNOWN]**. Run in repo mode, twice
+each, on DocBot as on 2026-10-13 (Large 4, effort high). The runs are in
+`devinfra/.runtime/experiments/messy-no-description-2026-10-14/`. 12 runs, $0.13.
+
+| Scenario | Runner | On reading | What happened |
+|---|---|---|---|
+| `commands-tab-rework` | 1/2 | **0/2** | Run 1: triage answered no-doc-impact, calling **Retry** becoming **Resend** "internal refinements a reader would not rely on", although two pages name **Retry**. Run 2: **Resend** on both pages, the app installations' **Retry** left alone, but it also added a paragraph on paging and the empty state |
+| `sprint-two-features` | 2/2 | 2/2 | Both features, on both pages, in both runs |
+| `revert-device-export` | 2/2 | 2/2 | Heading and sentence removed; "Selecting a device's name opens its detail page." kept, now at the end of "Acting on several devices". Run 2 checked the Audit Log's **Export CSV** and left it |
+| `invite-link-72h-no-description` | 2/2 | 2/2 | The same edit as with the description. It searched more: 11 and 13 conversation turns instead of 4 and 7, at about twice the cost |
+| `kiosk-passcode-no-description` | 2/2 | 2/2 | Sentence corrected and **Exit passcode** step added, in both runs, as with the description |
+| `lost-mode-dark-no-description` | 2/2 | 2/2 | Silent: triage read `lostMode: false` from the diff |
+
+- **The description mattered less than expected.** All three variants were as right as their
+  originals. Where the description had named the trap, DocBot found it in the code, at the
+  price of more searching. Two runs each is thin: this rules out "usually breaks without a
+  description", not "sometimes".
+- **Size is the weak spot.** The one scenario that failed is the large one, once at triage
+  and once by adding detail. In a 16-file diff, a label change in `en.json` reads as part of
+  a refactor. This is a triage false negative, the second after `account-expiry` on
+  2026-10-13. Triage's errors no longer all point one way.
 
 ## Why these new scenarios **[EVIDENCE]**
 
