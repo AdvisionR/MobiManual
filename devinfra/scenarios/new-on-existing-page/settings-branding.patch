@@ -8,7 +8,7 @@ MobiVisor logo in the top bar of the console and on the sign-in page.
 PNG and SVG files up to 1 MB are accepted. Remove logo brings back the
 MobiVisor logo.
 ---
-Expected: worth documenting. Triage answers doc-impact. New functionality that fits an existing page: the draft adds a Branding section to _settings.md with the upload, the accepted files and Remove logo. A mention under "Signing in" on chapter1.md is fine as well.
+Expected: worth documenting. New functionality that fits an existing page: the draft adds a Branding section to _settings.md with the upload, the accepted files and Remove logo. A mention under "Signing in" on chapter1.md is fine as well.
 Expected-outcome: opened
 Expected-edits: _settings.md
 Expected-may-edit: chapter1.md

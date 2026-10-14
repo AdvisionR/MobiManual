@@ -184,7 +184,7 @@ against a separate image and explains when the bot should move out. To ship a
 change into the stack, re-seed with `./scripts/seed-project.sh`.
 
 The decisions are in `src/docbot/drafting/`: which changed files matter, whether
-triage finds doc impact, and the pages and edits drafting proposes. Keep them in the package
+the change affects the manual, and the pages and edits drafting proposes. Keep them in the package
 and out of the `Jenkinsfile`: a CLI can be run and
 tested on a laptop, and Groovy inside a pipeline cannot. That is not a
 stylistic preference — it is what makes this loop possible, with no build, no
@@ -203,16 +203,16 @@ Drafting searches the code at the merge commit, so `--repo` names a clone of the
 project that has it. `--diff-only` drafts from the diff alone and needs no clone.
 
 The fixture's scenarios are written to test known cases, and its manual is a
-fraction of the real one, so triage and drafting are also replayed on real
+fraction of the real one, so drafting is also replayed on real
 history. Zulip keeps its help centre in its repository, and
 `zulip/cases.json` lists commits that changed the product and the help pages together,
-and commits that change nothing a user sees. For each one, triage decides whether the
-code change has doc impact, and drafting finds and edits pages in the whole help
-centre as it was before. The author's own edit is the reference.
+and commits that change nothing a user sees. For each one, drafting decides whether
+the code change has doc impact, and finds and edits pages in the whole help centre as
+it was before. The author's own edit is the reference.
 
-Triage reads the whole manual, and Zulip's help centre is about 225k tokens. Each
-triage costs about $0.31 at Large 4's list price before caching. A full replay of the
-9 commits in both modes is about 18 triages, a few dollars before drafting:
+Zulip's help centre has about 460 pages, and their table of contents alone is about 15k
+tokens (counted as 4 characters a token), which every turn resends. What a replay costs
+is not measured yet:
 
 ```bash
 ./scripts/fetch-zulip.sh
@@ -247,7 +247,7 @@ only acceptable for the local stack.
 | `down.sh` | Stop everything, keep data |
 | `nuke.sh` | Remove everything this stack created |
 | `jenkins-groovy.sh` | Run a Groovy script against the Jenkins script console |
-| `fetch-zulip.sh` | Clone zulip/zulip (bare, `main` only, history since 2026-04-28, about 60 MB) into `.runtime/zulip.git`, or fetch new commits. Triage and drafting are replayed on the commits in `zulip/cases.json`. Needs no stack |
+| `fetch-zulip.sh` | Clone zulip/zulip (bare, `main` only, history since 2026-04-28, about 60 MB) into `.runtime/zulip.git`, or fetch new commits. Drafting is replayed on the commits in `zulip/cases.json`. Needs no stack |
 
 ---
 

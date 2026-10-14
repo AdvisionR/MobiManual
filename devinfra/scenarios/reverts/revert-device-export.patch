@@ -7,7 +7,7 @@ This reverts commit 8c1e2f4a9b3d70e5a6f1c2b4d8e9f0a1b2c3d4e5.
 
 Times out for tenants with large device lists, see MV-2333.
 ---
-Expected: worth documenting. Triage answers doc-impact: a revert removes what the reverted commit added, here the device list's **Export CSV** button. The draft removes "**Export CSV** downloads the list as it is currently filtered." from _devices.md, and does not leave the "Exporting the list" heading over the one sentence that remains there. That sentence, "Selecting a device's name opens its detail page.", is still true and stays on the page. **Export CSV** on _auditlog.md is the Audit Log's own button and stays.
+Expected: worth documenting. A revert removes what the reverted commit added, here the device list's **Export CSV** button. The draft removes "**Export CSV** downloads the list as it is currently filtered." from _devices.md, and does not leave the "Exporting the list" heading over the one sentence that remains there. That sentence, "Selecting a device's name opens its detail page.", is still true and stays on the page. **Export CSV** on _auditlog.md is the Audit Log's own button and stays.
 Expected-outcome: opened
 Expected-edits: _devices.md
 

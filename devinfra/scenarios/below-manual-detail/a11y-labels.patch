@@ -8,7 +8,7 @@ Screen readers announced the row check boxes of the device list as
 what they were for. They now carry an aria-label from the locale files.
 Nothing changes on screen.
 ---
-Expected: not worth documenting. Triage answers no-doc-impact: templates and en.json change, but only for screen readers, and the manual describes nothing they announce.
+Expected: not worth documenting. The draft changes no page: templates and en.json change, but only for screen readers, and the manual describes nothing they announce.
 Expected-outcome: no-doc-impact
 
  public/app/devices/devices.html | 2 +-

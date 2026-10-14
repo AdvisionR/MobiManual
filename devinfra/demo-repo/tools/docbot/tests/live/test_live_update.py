@@ -6,8 +6,8 @@ Costs credits, so it only runs when asked:
 
 The laptop dry run without the stack: each scenario from devinfra/scenarios, and
 each comment kind of open-test-mr.sh, is committed onto the fixture, and
-update_manual runs on that commit with dry_run, so triage and drafting both
-decide. GitLab's answers come from the local repository, so everything but
+update_manual runs on that commit with dry_run, so drafting decides. GitLab's
+answers come from the local repository, so everything but
 the HTTP to a real GitLab is exercised. Each result goes to
 devinfra/.runtime/docbot-results/, to be recorded against the case's
 expectation. Skipped where devinfra/scenarios is not next to the fixture.
@@ -36,7 +36,7 @@ PREFIX = "/api/v4/projects/root%2Fmobivisor-console/"
 # What each scenario should end with is stated in its patch (replay.expectations).
 PATCHES = scenario_patches(SCENARIOS) if SCENARIOS.is_dir() else {}
 SCENARIO_NAMES = sorted(PATCHES)
-# open-test-mr.sh's kinds append a comment, so none is worth documenting: ignored, or silent at triage.
+# open-test-mr.sh's kinds append a comment, so none is worth documenting: ignored, or silent.
 KINDS = {
     "code": (["public/app/enrollment/ios/enrollment-wizard.controller.js"], "no-doc-impact"),
     "internal": (["server/protocol/apns/push-transport.js"], "no-doc-impact"),

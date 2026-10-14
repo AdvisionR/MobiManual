@@ -9,7 +9,7 @@ removed until it comes back as a background job that mails the file.
 
 Filtering and reading the Audit Log are unchanged.
 ---
-Expected: worth documenting. Triage answers doc-impact. The draft removes the Export CSV sentence under "Finding entries" on _auditlog.md, and corrects "Export the entries you need to keep longer" under "Retention", which now asks for something the console cannot do. Leaving either is wrong.
+Expected: worth documenting. The draft removes the Export CSV sentence under "Finding entries" on _auditlog.md, and corrects "Export the entries you need to keep longer" under "Retention", which now asks for something the console cannot do. Leaving either is wrong.
 Expected-outcome: opened
 Expected-edits: _auditlog.md
 

@@ -12,7 +12,7 @@ Devices report their position at check-in, and only when the user has
 granted MobiVisor Agent the location permission. Positions older than 30
 days are not shown. Only administrators can open the page.
 ---
-Expected: worth documenting, but no existing page is wrong. The manual has no page for Locations, and DocBot cannot create one, so the right result hands it to a human: the draft names the missing page (_locations.md) in uncertainties and answers needs-human. Describing Locations on _devices.md or another existing page as a stand-in for the missing one is wrong.
+Expected: worth documenting, but no existing page is wrong. The manual has no page for Locations, and DocBot cannot create one, so the right result hands it to a human: the draft names the missing page (_locations.md) in missing_pages and edits nothing. Describing Locations on _devices.md or another existing page as a stand-in for the missing one is wrong.
 Expected-outcome: needs-human
 
  public/app/locations/locations.controller.js | 11 +++++++++++

@@ -131,7 +131,7 @@ folders, so it appears with its first patch.
 What DocBot should do is stated in each patch, below its `---`:
 
 ```
-Expected: worth documenting. Triage answers doc-impact. The draft changes ...
+Expected: worth documenting. The draft changes ...
 Expected-outcome: opened
 Expected-edits: _devices_id.md _devicescommands.md
 Expected-may-edit: chapter1.md
@@ -146,23 +146,24 @@ the pages that must be edited, the pages that may be edited as well, and, where
 so the expectation never reaches the merge request description the model reads.
 
 `open-test-mr.sh --merge` prints the expectation next to what DocBot did: the
-outcome, triage's reason, each page's decision and reason, a check of the pages
-against `Expected-edits`, and the manual diff. It keeps each `result.json` in
+outcome, the draft's reason, each page's decision and reason, the pages it found
+missing, a check of the pages against `Expected-edits`, and the manual diff. It keeps each `result.json` in
 `.runtime/mr-results/`.
 
 `tests/live/test_live_update.py` in `demo-repo/tools/docbot/` runs every
 scenario through `update-manual` without the stack, in repo mode and with
 `--diff-only`, and writes each result to `.runtime/docbot-results/`, to compare
 against the `Expected:` line. `tests/live/test_live_mistral.py` runs drafting
-alone on the scenarios worth documenting and checks that each page the
-`Expected:` line requires comes back edited.
+alone on every scenario, and checks its page decisions: each page the
+`Expected-edits:` line names comes back edited, and a silent scenario changes no
+page.
 
 ## Seeing the results
 
 The experiments in `.runtime/experiments/` run scenarios many times and write
 one JSON line per run, with each run's full result in a folder of the same name.
 `scripts/scenario-viewer/build.py` turns one or more of them into a page that
-shows every scenario's merge request next to what DocBot did with it: triage's
+shows every scenario's merge request next to what DocBot did with it: the draft's
 reason, each page's decision, the tool calls and the manual edit. From
 `devinfra/`:
 

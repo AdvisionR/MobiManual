@@ -4,7 +4,7 @@ Date: Tue, 6 Oct 2026 16:45:00 +0200
 Subject: [PATCH] MV-2317 lost mode
 
 ---
-Expected: not worth documenting yet. The diff of lost-mode-dark, with a ticket number as its title and no description, so everything the description said has to come from the code. That the feature ships dark is only in features.js, where lostMode is false. Triage answers no-doc-impact: the flag is off, so nobody using the console can see Lost mode. A draft that adds Lost mode to _devicescommands.md documents a command users do not have.
+Expected: not worth documenting yet. The diff of lost-mode-dark, with a ticket number as its title and no description, so everything the description said has to come from the code. That the feature ships dark is only in features.js, where lostMode is false. The draft changes no page: the flag is off, so nobody using the console can see Lost mode. A draft that adds Lost mode to _devicescommands.md documents a command users do not have.
 Expected-outcome: no-doc-impact
 
  public/app/devices/device-detail.html           | 1 +

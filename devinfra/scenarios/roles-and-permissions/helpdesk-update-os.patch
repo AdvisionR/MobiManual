@@ -8,7 +8,7 @@ to hand each one to an administrator. Helpdesk may now send Update OS.
 
 Retire and Wipe stay with administrators.
 ---
-Expected: worth documenting. Triage answers doc-impact. A one-line permission change that makes two tables wrong: the draft adds Update OS to the Helpdesk row of the Roles table on _users.md, and Helpdesk to the Update OS row on _devicescommands.md.
+Expected: worth documenting. A one-line permission change that makes two tables wrong: the draft adds Update OS to the Helpdesk row of the Roles table on _users.md, and Helpdesk to the Update OS row on _devicescommands.md.
 Expected-outcome: opened
 Expected-edits: _users.md _devicescommands.md
 

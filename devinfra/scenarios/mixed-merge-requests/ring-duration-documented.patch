@@ -7,7 +7,7 @@ Two minutes of ringing at full volume drew complaints from open-plan
 offices, and one minute is enough to find a device. The Device Commands
 page of the manual is updated here.
 ---
-Expected: not worth documenting beyond what the author did. _devicescommands.md, the only page that states how long Ring lasts, is edited in this merge request, so DocBot sees it as already edited, and triage answers no-doc-impact. The counterpart of retire-label, where the author missed pages.
+Expected: not worth documenting beyond what the author did. _devicescommands.md, the only page that states how long Ring lasts, is edited in this merge request, so DocBot sees it as already edited, and the draft changes no page. The counterpart of retire-label, where the author missed pages.
 Expected-outcome: no-doc-impact
 
  public/doc/en/_devicescommands.md | 2 +-

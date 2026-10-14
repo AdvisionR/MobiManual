@@ -39,12 +39,9 @@ def merged(labels=(), merge_commit_sha=SHA):
             "web_url": "http://gl/mr/4"}
 
 
-def triaged(decision="doc-impact"):
-    return submit("submit_triage", {"decision": decision, "reason": "kiosk gains a passcode"}, "t1")
-
-
-def drafted(*pages: dict, uncertainties=()):
-    return submit("submit_proposal", {"pages": list(pages), "uncertainties": list(uncertainties)}, "d1")
+def drafted(*pages: dict, missing=(), uncertainties=(), reason="kiosk gains a passcode"):
+    return submit("submit_proposal", {"reason": reason, "pages": list(pages), "missing_pages": list(missing),
+                                      "uncertainties": list(uncertainties)}, "d1")
 
 
 class Forge:
@@ -86,10 +83,11 @@ def run(forge, llm=None, **kwargs):
 
 def test_a_merge_opens_one_docs_merge_request_editing_every_drafted_page():
     forge = Forge(commit_mrs=[merged()])
-    llm = FakeLLM(triaged(), drafted(KIOSK_EDIT, DEVICES_EDIT, uncertainties=["_kiosk_mode_1.png may be stale"]))
+    llm = FakeLLM(drafted(KIOSK_EDIT, DEVICES_EDIT, missing=[{"page": "_kiosk_exit.md", "describes": "leaving kiosk mode"}],
+                          uncertainties=["_kiosk_mode_1.png may be stale"]))
     result = run(forge, llm)
     assert result["outcome"] == "opened"
-    assert result["schema"] == "docbot.update/2"
+    assert result["schema"] == "docbot.update/3"
     assert result["files"] == {"sent": ["public/app/kiosk.js"], "ignored": []}
     (commit_path, commit), (mr_path, mr) = forge.writes
     assert commit_path == "repository/commits"
@@ -107,21 +105,22 @@ def test_a_merge_opens_one_docs_merge_request_editing_every_drafted_page():
     assert "Drafted by DocBot (fake/model) for !4" in mr["description"]
     assert "### Why the manual changes\n\nkiosk gains a passcode" in mr["description"]
     assert "- `_policies_kiosk.md`: the policy has its own passcode now" in mr["description"]
+    assert "### Missing pages\n\n- `_kiosk_exit.md`: leaving kiosk mode" in mr["description"]
     assert "- _kiosk_mode_1.png may be stale" in mr["description"]
     assert "the tr, de translations" in mr["description"]
 
 
-def test_triage_sees_the_whole_manual_drafting_the_table_of_contents_and_neither_the_ignored_files():
+def test_one_conversation_sees_the_table_of_contents_and_not_the_ignored_files():
     forge = Forge(commit_mrs=[merged()], diffs=[CODE, SPEC])
-    llm = FakeLLM(triaged(), drafted(KIOSK_EDIT))
+    llm = FakeLLM(drafted(KIOSK_EDIT))
     result = run(forge, llm)
     assert result["files"] == {"sent": ["public/app/kiosk.js"], "ignored": ["e2e/kiosk.spec.js"]}
-    triage_task, draft_task = (opened["task"] for opened in llm.opened)
-    for task in (triage_task, draft_task):
-        assert "e2e/kiosk.spec.js" not in task
-    assert "Leaving kiosk mode requires the device passcode." in triage_task
-    assert "_users.md\n    # Users" in draft_task
-    assert "read_page" in llm.opened[1]["tools"]
+    (opened,) = llm.opened
+    assert "e2e/kiosk.spec.js" not in opened["task"]
+    assert "+exitPasscode" in opened["task"]
+    assert "_users.md\n    # Users" in opened["task"]
+    assert "Leaving kiosk mode requires the device passcode." not in opened["task"]  # only through read_page
+    assert "read_page" in opened["tools"]
 
 
 @pytest.mark.parametrize("forge, reason", [
@@ -145,29 +144,31 @@ def test_a_rebuild_finds_the_docs_merge_request_it_opened_without_asking_the_mod
 
 def test_a_branch_left_by_an_interrupted_run_gets_its_merge_request():
     forge = Forge(commit_mrs=[merged()], branches={"docbot/mr-4"})
-    assert run(forge, FakeLLM(triaged(), drafted(KIOSK_EDIT)))["outcome"] == "opened"
+    assert run(forge, FakeLLM(drafted(KIOSK_EDIT)))["outcome"] == "opened"
     assert [path for path, _ in forge.writes] == ["merge_requests"]
 
 
 def test_dry_run_shows_the_diff_and_writes_nothing():
     forge = Forge(commit_mrs=[merged()])
-    result = run(forge, FakeLLM(triaged(), drafted(KIOSK_EDIT)), dry_run=True)
+    result = run(forge, FakeLLM(drafted(KIOSK_EDIT)), dry_run=True)
     assert result["outcome"] == "dry-run"
     assert "+++ b/public/doc/en/_policies_kiosk.md" in result["diff"]
     assert "+Leaving kiosk mode requires the policy's exit passcode." in result["diff"]
     assert forge.writes == []
 
 
-@pytest.mark.parametrize("turns, outcome, reason", [
-    ([triaged(decision="no-doc-impact")], "no-doc-impact", "kiosk gains a passcode"),
-    ([triaged(), drafted({"page": "_policies_kiosk.md", "decision": "no-change", "reason": "-"})],
-     "no-change", "drafting found nothing to change"),
-    ([triaged(), drafted({"page": "_policies_kiosk.md", "decision": "needs-human", "reason": "-"})],
-     "needs-human", "at least one needs a human"),
+@pytest.mark.parametrize("draft, outcome, reason", [
+    (drafted(reason="a refactor nobody sees"), "no-doc-impact", "a refactor nobody sees"),
+    (drafted({"page": "_policies_kiosk.md", "decision": "no-change", "reason": "-"}, reason="already true"),
+     "no-doc-impact", "already true"),
+    (drafted({"page": "_policies_kiosk.md", "decision": "needs-human", "reason": "-"}),
+     "needs-human", "no page edited: _policies_kiosk.md needs a human"),
+    (drafted(missing=[{"page": "_locations.md", "describes": "the Locations page"}]),
+     "needs-human", "no page edited: the manual has no _locations.md"),
 ])
-def test_outcomes_without_edits_open_nothing(turns, outcome, reason):
+def test_outcomes_without_edits_open_nothing(draft, outcome, reason):
     forge = Forge(commit_mrs=[merged()])
-    result = run(forge, FakeLLM(*turns))
+    result = run(forge, FakeLLM(draft))
     assert result["outcome"] == outcome
     assert reason in result["reason"]
     assert forge.writes == []
@@ -185,15 +186,15 @@ def test_a_diff_too_large_to_send_needs_a_human_and_asks_no_model():
 
 def test_ignored_files_do_not_count_towards_the_size_limit():
     big = {**SPEC, "diff": "@@ -1 +1 @@\n" + "+x\n" * MAX_DIFF_CHARS}
-    result = run(Forge(commit_mrs=[merged()], diffs=[CODE, big]), FakeLLM(triaged(decision="no-doc-impact")))
+    result = run(Forge(commit_mrs=[merged()], diffs=[CODE, big]), FakeLLM(drafted()))
     assert result["outcome"] == "no-doc-impact"
 
 
-def test_a_triage_that_never_validates_needs_a_human():
-    turns = [triaged(decision="maybe") for _ in range(agent.MAX_CALLS)]
+def test_a_draft_that_never_validates_needs_a_human():
+    turns = [drafted(reason="") for _ in range(agent.MAX_CALLS)]
     result = run(Forge(commit_mrs=[merged()]), FakeLLM(*turns))
     assert result["outcome"] == "needs-human"
-    assert result["reason"] == f"triage: no valid submit_triage within {agent.MAX_CALLS} tool calls"
+    assert result["reason"] == f"draft: no valid submit_proposal within {agent.MAX_CALLS} tool calls"
 
 
 def test_a_repository_without_a_doc_map_is_an_error():

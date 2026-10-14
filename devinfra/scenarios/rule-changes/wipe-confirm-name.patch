@@ -9,7 +9,7 @@ what the last three wipe-related tickets were about. The confirmation now
 asks for the device's name instead, so the administrator has to look at
 which device they are about to erase.
 ---
-Expected: worth documenting. Triage answers doc-impact. The draft corrects "Before a wipe is queued, the console asks for your password" on _devicescommands.md: the console now asks for the device's name. Adding the new rule next to the old sentence, without correcting it, is wrong.
+Expected: worth documenting. The draft corrects "Before a wipe is queued, the console asks for your password" on _devicescommands.md: the console now asks for the device's name. Adding the new rule next to the old sentence, without correcting it, is wrong.
 Expected-outcome: opened
 Expected-edits: _devicescommands.md
 

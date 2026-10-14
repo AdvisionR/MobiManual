@@ -7,8 +7,8 @@ nothing else ends there. The ignore list decides only that; which pages a
 change affects is the model's call.
 
 Manual pages the merge request edited itself are dropped from the diff like
-the rest of the manual, but remembered, so triage can be told which pages the
-author already updated.
+the rest of the manual, but remembered, so drafting can be told which pages
+the author already updated.
 """
 
 import re

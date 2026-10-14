@@ -425,8 +425,9 @@ details.calls li .g { color: var(--muted); }
   }
 
   function whatDocBotDid(run) {
+    // Older runs have a triage conversation in front of drafting.
     var tri = run.triage;
-    var triCard = '<div class="card"><div class="title">Triage <span class="chip ' + (tri.decision === 'doc-impact' ? 'yes' : 'no') + '">' +
+    var triCard = !tri ? '' : '<div class="card"><div class="title">Triage <span class="chip ' + (tri.decision === 'doc-impact' ? 'yes' : 'no') + '">' +
       esc(tri.decision || 'no answer') + '</span></div><p class="reason">' + esc(tri.reason) + '</p>' +
       tri.evidence.map(function (e) {
         return '<div class="evid"><div><span class="pg">' + esc(e.page) + '</span> ' + esc(e.kind) + '</div>' +
@@ -435,19 +436,25 @@ details.calls li .g { color: var(--muted); }
 
     var draft = '';
     if (!run.draft) {
-      draft = '<p class="empty">No drafting: triage answered no-doc-impact, so DocBot stopped there.</p>';
+      draft = '<p class="empty">' + (tri && tri.decision === 'no-doc-impact' ? 'No drafting: triage answered no-doc-impact, so DocBot stopped there.'
+        : 'No drafting: ' + esc(run.final_reason || 'DocBot stopped before it.')) + '</p>';
     } else {
       var d = run.draft;
       var head = '<div class="title">Drafting ' + (d.outcome === 'submitted' ? '' : '<span class="chip stop">' + esc(d.outcome) + '</span>') + '</div>';
-      var plist = d.pages.length ? '<div class="pagelist">' + d.pages.map(function (p) {
+      var why = d.reason ? '<p class="reason">' + esc(d.reason) + '</p>' : '';
+      var pageItems = d.pages.map(function (p) {
         return '<div class="it"><span class="chip ' + (p.decision === 'edit' ? 'edit' : 'no') + '">' + esc(p.decision) + '</span><span class="pg">' + esc(p.page) + '</span>' +
           (p.reason ? '<span class="r">' + esc(p.reason) + '</span>' : '') + '</div>';
-      }).join('') + '</div>' : '<p class="empty">' + esc(run.final_reason || 'No page decided.') + '</p>';
+      }).concat((d.missing || []).map(function (m) {
+        return '<div class="it"><span class="chip no">missing</span><span class="pg">' + esc(m.page) + '</span><span class="r">' + esc(m.describes) + '</span></div>';
+      }));
+      var plist = pageItems.length ? '<div class="pagelist">' + pageItems.join('') + '</div>'
+        : (d.reason ? '<p class="empty">No page to change.</p>' : '<p class="empty">' + esc(run.final_reason || 'No page decided.') + '</p>');
       var unc = d.uncertainties.length ? '<div><h3>Uncertainties</h3><ul class="unc">' + d.uncertainties.map(function (u) { return '<li>' + esc(u) + '</li>'; }).join('') + '</ul></div>' : '';
       var calls = '<details class="calls"><summary>' + d.calls.length + ' tool calls</summary><ol>' + d.calls.map(function (c) {
         return '<li><span class="n">' + esc(c.name) + '</span> <span class="g">' + esc(c.args) + '</span></li>';
       }).join('') + '</ol></details>';
-      draft = '<div class="card">' + head + plist + unc + calls + '</div>';
+      draft = '<div class="card">' + head + why + plist + unc + calls + '</div>';
     }
     var manual = run.diff ? manualDiff(run.diff) : '<p class="empty">No change to the manual.</p>';
     return '<section class="col" aria-label="What DocBot did">' +

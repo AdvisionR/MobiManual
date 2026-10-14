@@ -3,9 +3,9 @@
     DOCBOT_LLM_MODEL=mistral-large-4-0 DOCBOT_LLM_REASONING_EFFORT=high uv run --env-file .env pytest -m live -s
 
 Each scenario from devinfra/scenarios is applied, as a commit, to a throwaway
-repository built from the fixture, and the model drafts with the whole manual,
-as after a triage that found doc impact: it picks the pages itself. The full
-result, every turn included, is printed.
+repository built from the fixture, and the model drafts with the whole manual:
+it decides whether any page needs changing, and picks the pages itself. The
+full result, every turn included, is printed.
 Skipped where devinfra/scenarios is not next to the fixture, as in the seeded
 GitLab project.
 """
@@ -25,10 +25,8 @@ from docbot.llm.mistral import MistralLLM
 FIXTURE = Path(__file__).resolve().parents[4]
 SCENARIOS = FIXTURE.parent / "scenarios"
 
-# The scenarios whose patch names pages that must be edited (replay.expectations). The others have no
-# doc impact, and drafting only runs after triage found some.
+# What each scenario should end with is stated in its patch (replay.expectations).
 PATCHES = scenario_patches(SCENARIOS) if SCENARIOS.is_dir() else {}
-DRAFTED = [name for name, patch in sorted(PATCHES.items()) if "edits" in expectations(patch)]
 
 pytestmark = [pytest.mark.live,
               pytest.mark.skipif(not SCENARIOS.is_dir(), reason="devinfra/scenarios is not next to the fixture")]
@@ -42,8 +40,8 @@ def merged(tmp_path: Path, scenario: str) -> tuple[Path, str, str]:
 
 
 @pytest.mark.parametrize("context", ["diff", "repo"])
-@pytest.mark.parametrize("scenario", DRAFTED)
-def test_the_model_drafts_the_expected_page(tmp_path, scenario, context):
+@pytest.mark.parametrize("scenario", sorted(PATCHES))
+def test_the_model_drafts_the_expected_pages(tmp_path, scenario, context):
     settings = config.load_llm()
     checkout, base, head = merged(tmp_path, scenario)
     mr = {"iid": 1, "title": git(checkout, "log", "-1", "--format=%s").strip(),
@@ -57,9 +55,19 @@ def test_the_model_drafts_the_expected_page(tmp_path, scenario, context):
 
     print(f"\n===== {scenario} / {context}\n{json.dumps(result, indent=2)}")
     assert result["outcome"] == "submitted", result.get("reason")
-    decisions = {entry["page"]: entry["decision"] for entry in result["proposal"]["pages"]}
+    proposal = result["proposal"]
+    decisions = {entry["page"]: entry["decision"] for entry in proposal["pages"]}
     fields = expectations(PATCHES[scenario])
-    # Where the diff alone cannot say what to write, the pages come back needs-human instead.
-    expected = "needs-human" if context == "diff" and fields.get("outcome-diff-only") == "needs-human" else "edit"
-    pages = fields["edits"].split()
-    assert {page: decisions.get(page) for page in pages} == dict.fromkeys(pages, expected)
+    outcome = fields["outcome-diff-only"] if context == "diff" and "outcome-diff-only" in fields else fields["outcome"]
+    if outcome == "no-doc-impact":
+        assert set(decisions.values()) <= {"no-change"}, decisions
+        assert not proposal["missing_pages"]
+    elif "edits" not in fields:
+        # Needs a page the manual lacks, and no change to the pages it has.
+        assert "edit" not in decisions.values(), decisions
+        assert proposal["missing_pages"]
+    else:
+        # Where the diff alone cannot say what to write, the pages come back needs-human instead.
+        expected = "needs-human" if outcome == "needs-human" else "edit"
+        pages = fields["edits"].split()
+        assert {page: decisions.get(page) for page in pages} == dict.fromkeys(pages, expected)

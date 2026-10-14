@@ -7,7 +7,7 @@ Account expiry never left its flag: the customers who asked for it
 manage expiry in their directory, and nobody else wanted it. The flag,
 the field in the Add user form and its labels are removed.
 ---
-Expected: not worth documenting. Triage answers no-doc-impact: the feature was never switched on, so the manual never described it and no reader loses anything. A removal that looks like it takes a field away from users.
+Expected: not worth documenting. The draft changes no page: the feature was never switched on, so the manual never described it and no reader loses anything. A removal that looks like it takes a field away from users.
 Expected-outcome: no-doc-impact
 
  public/app/features.js      | 1 -

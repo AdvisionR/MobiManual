@@ -185,8 +185,8 @@ the scenarios in `devinfra/scenarios/` of the MobiManual repository, which
 
 DocBot reads `doc-map.json` at the merge commit and drops the ignored files
 before any model sees the merge request. If nothing is left, it stops there.
-Otherwise triage decides whether the change affects the manual, and drafting
-finds the pages and edits them (see `tools/docbot/README.md`).
+Otherwise drafting decides whether the change affects the manual, and if it
+does, finds the pages and edits them (see `tools/docbot/README.md`).
 
 ## Known findings
 

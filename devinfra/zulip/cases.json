@@ -1,6 +1,6 @@
 {
   "_comment": [
-    "Commits from zulip/zulip, replayed through DocBot's triage and drafting.",
+    "Commits from zulip/zulip, replayed through DocBot's drafting.",
     "",
     "cases change the product and its help centre together. The code change goes to",
     "the model with the help centre as it was before; the model decides whether the",
@@ -8,7 +8,7 @@
     "author edited, and what they wrote, are the reference the model never sees.",
     "",
     "negatives change code only, and by their subject change nothing a user sees:",
-    "triage should answer no-doc-impact. That label is read from the commit, not",
+    "drafting should change no page. That label is read from the commit, not",
     "confirmed by its author.",
     "",
     "ignore plays the part of doc-map.json: paths whose changes never call for a",

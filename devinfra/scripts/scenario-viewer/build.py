@@ -76,8 +76,6 @@ def short(value, n: int = 160) -> str:
 
 
 def run(row: dict, result: dict, experiment: str, note: str | None) -> dict:
-    tri = result.get("triage") or {}
-    answer = tri.get("answer") or {}
     out = {
         "experiment": experiment, "model": row.get("model"),
         "context": row["context"], "rep": row["rep"],
@@ -85,18 +83,24 @@ def run(row: dict, result: dict, experiment: str, note: str | None) -> dict:
         "edited": row["edited"], "must": row["must"],
         "seconds": row.get("seconds", 0), "cost": row.get("cost", 0),
         "ignored": (result.get("files") or {}).get("ignored", []),
-        "triage": {"decision": answer.get("decision"), "reason": answer.get("reason") or tri.get("reason"),
-                   "evidence": answer.get("evidence") or []},
+        "triage": None,
         "final_reason": result.get("reason"),
         "note": note,
         "diff": result.get("diff") or "",
     }
+    # Runs from before drafting decided alone have a triage conversation in front of it.
+    if tri := result.get("triage"):
+        answer = tri.get("answer") or {}
+        out["triage"] = {"decision": answer.get("decision"), "reason": answer.get("reason") or tri.get("reason"),
+                         "evidence": answer.get("evidence") or []}
     draft = result.get("draft")
     if draft:
         proposal = draft.get("proposal") or {}
         calls = [c for t in draft.get("turns", []) for c in t.get("calls", [])]
         out["draft"] = {
             "outcome": draft.get("outcome"),
+            "reason": proposal.get("reason"),
+            "missing": proposal.get("missing_pages") or [],
             "pages": [{"page": p["page"], "decision": p["decision"], "reason": p.get("reason", "")}
                       for p in proposal.get("pages", [])],
             "uncertainties": proposal.get("uncertainties") or [],

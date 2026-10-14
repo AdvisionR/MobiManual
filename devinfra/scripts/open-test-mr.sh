@@ -301,15 +301,16 @@ say("outcome", f"{r['outcome']}  {'✓' if r['outcome'] == want else '✗ expect
 for key in ("reason", "error"):
     if key in r:
         say(key, r[key])
-answer = (r.get("triage") or {}).get("answer")
-if answer:
-    say("triage", f"{answer['decision']}: {answer['reason']}")
 if draft:
     calls = sum(len(t["calls"]) for t in draft["turns"])
     say("draft", f"{draft.get('context')} mode, {calls} tool calls")
     proposal = draft.get("proposal") or {}
+    if proposal.get("reason") and proposal["reason"] != r.get("reason"):
+        say("why", proposal["reason"])
     for entry in proposal.get("pages", []):
         say("", f"{entry['decision']} {entry['page']}: {entry['reason']}", 13)
+    for entry in proposal.get("missing_pages", []):
+        say("missing", f"{entry['page']}: {entry['describes']}")
     for doubt in proposal.get("uncertainties", []):
         say("unsure", doubt)
 edited = list(draft.get("edited") or {})

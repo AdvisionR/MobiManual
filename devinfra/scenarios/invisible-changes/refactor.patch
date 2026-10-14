@@ -7,7 +7,7 @@ reload built its query and handled the result inline. Both are now small
 named functions, and reload returns its promise so the specs can wait for
 the list to load.
 ---
-Expected: not worth documenting. Triage answers no-doc-impact: nothing a user sees or does changes, so no docs merge request is opened.
+Expected: not worth documenting. The draft changes no page: nothing a user sees or does changes, so no docs merge request is opened.
 Expected-outcome: no-doc-impact
 
  public/app/users/users.controller.js | 12 +++++++++---

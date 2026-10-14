@@ -4,23 +4,23 @@ Idempotent, keyed on the source merge request: its docs merge request always
 comes from branch docbot/mr-<iid>, so a rebuild finds the one it opened before
 instead of opening a second, and asks no model.
 
-Between resolving the merge and publishing, two conversations decide: triage
-says whether the merge affects the manual at all, and drafting finds the pages
-it affects and edits them. An outcome without edits opens no merge request and
-is recorded in the result only.
+Between resolving the merge and publishing, one conversation decides: drafting
+says whether the merge affects the manual at all, and if it does, finds the
+pages it affects and edits them. An outcome without edits opens no merge
+request and is recorded in the result only.
 """
 
 import difflib
 import json
 
-from docbot.drafting import ignore, manual, triage
+from docbot.drafting import ignore, manual
 from docbot.drafting.proposal import propose
 from docbot.drafting.repo import Repo
 from docbot.gitlab import GitLab
 from docbot.llm import LLM
 from docbot.resolve import resolve
 
-SCHEMA = "docbot.update/2"
+SCHEMA = "docbot.update/3"
 TARGET_BRANCH = "main"
 GENERATED_LABEL = "docbot-generated"
 DOC_MAP = "doc-map.json"
@@ -69,14 +69,6 @@ def update_manual(gitlab: GitLab, llm: LLM, sha: str, dry_run: bool = False, rep
     texts = {name: gitlab.file(f"{page_dir}/{name}", ref=sha) for name in names}
     the_manual = manual.Manual({name: text for name, text in texts.items() if text is not None})
 
-    triaged = triage.triage(llm, mr, selection.relevant, the_manual, selection.edited_pages, sha)
-    result["triage"] = triaged
-    if triaged["outcome"] != "submitted":
-        return {**result, "outcome": "needs-human", "reason": f"triage: {triaged['reason']}"}
-    answer = triaged["answer"]
-    if answer["decision"] == "no-doc-impact":
-        return {**result, "outcome": "no-doc-impact", "reason": answer["reason"]}
-
     pages = the_manual.pages
     drafted = propose(llm, mr, selection.relevant, the_manual, selection.edited_pages, sha, repo=repo)
     result["draft"] = drafted
@@ -84,9 +76,11 @@ def update_manual(gitlab: GitLab, llm: LLM, sha: str, dry_run: bool = False, rep
         return {**result, "outcome": "needs-human", "reason": f"draft: {drafted['reason']}"}
     proposal, edited = drafted["proposal"], drafted["edited"]
     if not edited:
-        if any(entry["decision"] == "needs-human" for entry in proposal["pages"]):
-            return {**result, "outcome": "needs-human", "reason": "no page edited, at least one needs a human"}
-        return {**result, "outcome": "no-change", "reason": "drafting found nothing to change"}
+        waiting = [*(f"{entry['page']} needs a human" for entry in proposal["pages"] if entry["decision"] == "needs-human"),
+                   *(f"the manual has no {entry['page']}" for entry in proposal.get("missing_pages", []))]
+        if waiting:
+            return {**result, "outcome": "needs-human", "reason": f"no page edited: {'; '.join(waiting)}"}
+        return {**result, "outcome": "no-doc-impact", "reason": proposal["reason"]}
 
     result["diff"] = "".join(_unified(f"{page_dir}/{name}", pages[name], new) for name, new in edited.items())
     if dry_run:
@@ -100,7 +94,7 @@ def update_manual(gitlab: GitLab, llm: LLM, sha: str, dry_run: bool = False, rep
     opened = gitlab.open_merge_request(
         source_branch=branch, target_branch=TARGET_BRANCH,
         title=f"Manual update for !{mr['iid']}: {mr['title']}",
-        description=_description(mr, llm.name, answer, proposal, doc_map), labels=[GENERATED_LABEL])
+        description=_description(mr, llm.name, proposal, doc_map), labels=[GENERATED_LABEL])
     return {**result, "outcome": "opened", "docs_merge_request": _ref(opened)}
 
 
@@ -113,16 +107,18 @@ def _unified(path: str, old: str, new: str) -> str:
                                         fromfile=f"a/{path}", tofile=f"b/{path}"))
 
 
-def _description(mr: dict, model: str, answer: dict, proposal: dict, doc_map: dict) -> str:
+def _description(mr: dict, model: str, proposal: dict, doc_map: dict) -> str:
     """Where the model's reasoning reaches the reviewer."""
     by_decision: dict[str, list[str]] = {}
     for entry in proposal["pages"]:
         by_decision.setdefault(entry["decision"], []).append(f"- `{entry['page']}`: {entry['reason']}")
     sections = [f"Drafted by DocBot ({model}) for !{mr['iid']}: {mr['web_url']}",
-                "### Why the manual changes\n\n" + answer["reason"]]
+                "### Why the manual changes\n\n" + proposal["reason"]]
     for decision, heading in (("edit", "Edited"), ("needs-human", "Needs a human"), ("no-change", "Unchanged")):
         if decision in by_decision:
             sections.append(f"### {heading}\n\n" + "\n".join(by_decision[decision]))
+    if missing := proposal.get("missing_pages"):
+        sections.append("### Missing pages\n\n" + "\n".join(f"- `{m['page']}`: {m['describes']}" for m in missing))
     if uncertainties := proposal.get("uncertainties"):
         sections.append("### Uncertain\n\n" + "\n".join(f"- {u}" for u in uncertainties))
     if others := [lang for lang in doc_map.get("languages", []) if lang != manual.LANGUAGE]:

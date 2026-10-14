@@ -4,7 +4,7 @@ Date: Thu, 24 Sep 2026 12:00:00 +0200
 Subject: [PATCH] MV-2302 kiosk exit pin
 
 ---
-Expected: worth documenting. The diff of kiosk-passcode, with a ticket number as its title and no description, so everything the description said has to come from the code. That the device passcode no longer leaves kiosk mode is in the comment of server/policies/kiosk.js. Triage answers doc-impact. The draft corrects "Leaving kiosk mode requires the device passcode." on _policies_kiosk.md rather than only adding to it, adds a step for the **Exit passcode**, and flags screenshots/_kiosk_mode_1.png as possibly stale. _devicescommands.md and _policies_passcode.md also talk about the device passcode and stay unchanged.
+Expected: worth documenting. The diff of kiosk-passcode, with a ticket number as its title and no description, so everything the description said has to come from the code. That the device passcode no longer leaves kiosk mode is in the comment of server/policies/kiosk.js. The draft corrects "Leaving kiosk mode requires the device passcode." on _policies_kiosk.md rather than only adding to it, adds a step for the **Exit passcode**, and flags screenshots/_kiosk_mode_1.png as possibly stale. _devicescommands.md and _policies_passcode.md also talk about the device passcode and stay unchanged.
 Expected-outcome: opened
 Expected-edits: _policies_kiosk.md
 

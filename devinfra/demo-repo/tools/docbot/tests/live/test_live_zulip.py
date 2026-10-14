@@ -1,13 +1,13 @@
-"""Triage and drafting replayed on zulip/zulip's history. Costs credits, so it only runs when asked:
+"""Drafting replayed on zulip/zulip's history. Costs credits, so it only runs when asked:
 
     DOCBOT_LLM_MODEL=mistral-large-4-0 DOCBOT_LLM_REASONING_EFFORT=high uv run --env-file .env pytest -m live -s -k zulip
 
 devinfra/zulip/cases.json lists commits that changed the product and its help
 centre together, and commits that change nothing a user sees. Each is replayed
 the way DocBot runs: the ignore list drops what never calls for a help update,
-triage decides whether the change has doc impact, and drafting finds the help
-pages to edit in the whole help centre, with read_page and search_manual. The
-help centre is the one before the commit; the commit's own help edits are the
+and drafting decides whether the change has doc impact and finds the help pages
+to edit in the whole help centre, with read_page and search_manual. The help
+centre is the one before the commit; the commit's own help edits are the
 reference, which the model never sees. Each result goes to
 devinfra/.runtime/zulip-results/, with the pages the model edited next to the
 pages the author edited. Skipped until devinfra/scripts/fetch-zulip.sh has run.
@@ -21,7 +21,7 @@ import pytest
 from replay import diffs, git
 
 from docbot import config
-from docbot.drafting import ignore, triage
+from docbot.drafting import ignore
 from docbot.drafting.manual import Manual
 from docbot.drafting.proposal import propose
 from docbot.drafting.repo import Repo
@@ -85,34 +85,40 @@ def replay(tmp_path: Path, head: str, context: str) -> dict:
                     "reference": {page: unified(manual.pages[page], git(REPO, "show", f"{head}:{help_root}{page}"), page)
                                   for page in by_author}}
     if selection.relevant:
-        triaged = triage.triage(llm, mr, selection.relevant, manual, [], commit, product=SETUP["product"])
-        report["triage"] = triaged
-        if triaged.get("answer", {}).get("decision") == "doc-impact":
-            drafted = propose(llm, mr, selection.relevant, manual, [], commit, product=SETUP["product"],
-                              repo=Repo(str(REPO), commit) if context == "repo" else None)
-            report["draft"] = drafted
-            edited = drafted.get("edited", {})
-            report["drafted"] = {page: unified(manual.pages[page], edited[page], page) for page in edited}
-            report["edited_by_model"] = list(edited)
+        drafted = propose(llm, mr, selection.relevant, manual, [], commit, product=SETUP["product"],
+                          repo=Repo(str(REPO), commit) if context == "repo" else None)
+        report["draft"] = drafted
+        edited = drafted.get("edited", {})
+        report["drafted"] = {page: unified(manual.pages[page], edited[page], page) for page in edited}
+        report["edited_by_model"] = list(edited)
     RESULTS.mkdir(parents=True, exist_ok=True)
     (RESULTS / f"{head[:10]}-{context}.json").write_text(json.dumps(report, indent=2))
 
-    decision = report.get("triage", {}).get("answer", {}).get("decision", "(nothing sent)")
-    print(f"\n===== {head[:10]} / {context}: {mr['title']}\n  triage: {decision}"
+    proposal = report.get("draft", {}).get("proposal", {})
+    print(f"\n===== {head[:10]} / {context}: {mr['title']}\n  doc impact: {doc_impact(report)}"
           f"\n  author edited: {by_author} (added {report['added_by_author']})"
-          f"\n  model edited:  {report.get('edited_by_model')}")
+          f"\n  model edited:  {report.get('edited_by_model')}"
+          f" (missing {[m['page'] for m in proposal.get('missing_pages', [])]})")
     return report
+
+
+def doc_impact(report: dict) -> bool:
+    """Whether drafting found the change affects the help centre: a page edited, handed to a human, or missing."""
+    proposal = report.get("draft", {}).get("proposal", {})
+    return bool(proposal.get("missing_pages")) or any(
+        entry["decision"] != "no-change" for entry in proposal.get("pages", []))
 
 
 @pytest.mark.parametrize("context", ["diff", "repo"])
 @pytest.mark.parametrize("case", SETUP["cases"], ids=lambda case: case["commit"][:10])
 def test_a_help_change_is_found_and_drafted(tmp_path, case, context):
     report = replay(tmp_path, case["commit"], context)
-    assert report["triage"]["answer"]["decision"] == "doc-impact"
     assert report["draft"]["outcome"] == "submitted", report["draft"].get("reason")
+    assert doc_impact(report)
 
 
 @pytest.mark.parametrize("case", SETUP.get("negatives", []), ids=lambda case: case["commit"][:10])
 def test_a_change_nobody_sees_has_no_doc_impact(tmp_path, case):
     report = replay(tmp_path, case["commit"], "diff")
-    assert report.get("triage", {}).get("answer", {}).get("decision", "no-doc-impact") == "no-doc-impact"
+    assert report.get("draft", {}).get("outcome", "submitted") == "submitted", report["draft"].get("reason")
+    assert not doc_impact(report)

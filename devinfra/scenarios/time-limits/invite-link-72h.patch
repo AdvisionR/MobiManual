@@ -10,7 +10,7 @@ now valid for 72 hours.
 Password reset links stay at 48 hours: the user asked for the reset and is
 waiting for the mail.
 ---
-Expected: worth documenting. Triage answers doc-impact. The draft changes "valid for 48 hours" to 72 hours under "Adding a user" on _users.md, and leaves the 48 hours under "Resetting a password" on the same page as they are. Changing both is wrong.
+Expected: worth documenting. The draft changes "valid for 48 hours" to 72 hours under "Adding a user" on _users.md, and leaves the 48 hours under "Resetting a password" on the same page as they are. Changing both is wrong.
 Expected-outcome: opened
 Expected-edits: _users.md
 

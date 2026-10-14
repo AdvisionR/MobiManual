@@ -24,7 +24,7 @@ Tags as in the foundation doc: **[DECIDED]**, **[EVIDENCE]**, **[PROPOSED]**,
   caveat, a fixed value that becomes a setting, a rename whose old word means something
   else on another page, a generated page, a new console language, a visible change
   hidden in a refactor, and harder negatives.
-- **The built negatives no longer tell one triage from another [EVIDENCE].** All 10 were
+- **The built negatives no longer tell a better DocBot from a worse one [EVIDENCE].** All 10 were
   silent in both repo-mode runs on 2026-10-13. Each new negative looks visible: a nightly
   job in the module behind "48 hours", a security fix about passwords, a sort order, the
   wording of the sign-in messages, a dependency upgrade.
@@ -99,14 +99,13 @@ An account that has not signed in for 180 days (`INACTIVE_DAYS`) is disabled, ex
 in resets the count. The last enabled administrator is never disabled. No template or
 label changes. Title: *Disable accounts that have not signed in for 180 days*.
 
-**Expected.** Worth documenting. Triage answers doc-impact, although the diff is one new
-server file. The draft adds the rule to "Disabling a user" on `_users.md`: 180 days
-without a sign-in, the warning email 14 days before, and **Enable** to let the user in
-again. The exception for the last administrator may be included. The draft also adds the
-warning to the emails listed under "Email notifications" on `_settings.md`. "Staying
-signed in" on `chapter1.md` is about the 30-minute session timeout, which is a different
-inactivity, and stays unchanged. So does the lockout after 5 failed attempts. "Six
-months" instead of 180 days is imprecise.
+**Expected.** Worth documenting, although the diff is one new server file. The draft adds
+the rule to "Disabling a user" on `_users.md`: 180 days without a sign-in, the warning
+email 14 days before, and **Enable** to let the user in again. The exception for the last
+administrator may be included. The draft also adds the warning to the emails listed under
+"Email notifications" on `_settings.md`. "Staying signed in" on `chapter1.md` is about
+the 30-minute session timeout, which is a different inactivity, and stays unchanged. So
+does the lockout after 5 failed attempts. "Six months" instead of 180 days is imprecise.
 
 ```
 Expected-outcome: opened
@@ -139,7 +138,7 @@ password links 30 days after they expired. An unknown link gets the same "link e
 answer as an expired one, so nothing a user sees changes. Title: *Delete expired
 password links*.
 
-**Expected.** Not worth documenting. Triage answers no-doc-impact: links still last
+**Expected.** Not worth documenting. The draft changes no page: links still last
 48 hours and still work only once. It is a trap twice over. `invitation.js` is the
 module behind "valid for 48 hours" on `_users.md`, and the change is a nightly job, like
 `inactive-accounts-disabled`. A draft that writes "expired links are deleted after
@@ -410,9 +409,9 @@ matches the owner's email address. Title: *Split the device query builder into
 helpers*. The description mentions the email address only in its last line, as an
 aside.
 
-**Expected.** Worth documenting. Triage answers doc-impact, although the title promises
-a refactor. The draft adds the owner's email address to "The search field matches the
-device name, the serial number and the owner." on `_devices.md`. Nothing else changes.
+**Expected.** Worth documenting, although the title promises a refactor. The draft adds
+the owner's email address to "The search field matches the device name, the serial
+number and the owner." on `_devices.md`. Nothing else changes.
 
 ```
 Expected-outcome: opened
@@ -477,8 +476,8 @@ table:
 ## Visible, but below the manual's level of detail (`below-manual-detail/`)
 
 The user sees the change, but the manual never described the thing at that level, so
-nothing it says becomes wrong. Changes like these caused the triage false positives in
-the 2026-10-08 evaluation. What counts as below the manual's level is open question 41.
+nothing it says becomes wrong. Changes like these caused the false positives in the
+2026-10-08 evaluation. What counts as below the manual's level is open question 41.
 The expectations here assume the manual keeps its current level of detail.
 
 | Scenario | | Expected | What it tests |
@@ -614,7 +613,7 @@ These are the gaps in the 24 built scenarios, checked against their patches and 
   had no scenario: passwords of at least 8 characters, the session timeout, and the
   Apple Push certificate. `password-min-12` covers the first.
 - **Harder negatives.** All 10 negatives were silent in both runs on 2026-10-13, so they
-  no longer tell a better triage from a worse one. In the 2026-10-08 evaluation, false
+  no longer tell a better DocBot from a worse one. In the 2026-10-08 evaluation, false
   positives were the first weakness listed, and they came from changes that look
   visible. Each of the 5 new negatives looks visible.
 

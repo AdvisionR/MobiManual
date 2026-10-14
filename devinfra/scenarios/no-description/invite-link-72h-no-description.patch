@@ -4,7 +4,7 @@ Date: Wed, 7 Oct 2026 09:10:00 +0200
 Subject: [PATCH] MV-2291 invitation link validity
 
 ---
-Expected: worth documenting. The diff of invite-link-72h, with a ticket number as its title and no description, so everything the description said has to come from the code. That reset links stay at 48 hours is in LINK_VALID_HOURS. Triage answers doc-impact. The draft changes "valid for 48 hours" to 72 hours under "Adding a user" on _users.md, and leaves the 48 hours under "Resetting a password" on the same page as they are. Changing both is wrong.
+Expected: worth documenting. The diff of invite-link-72h, with a ticket number as its title and no description, so everything the description said has to come from the code. That reset links stay at 48 hours is in LINK_VALID_HOURS. The draft changes "valid for 48 hours" to 72 hours under "Adding a user" on _users.md, and leaves the 48 hours under "Resetting a password" on the same page as they are. Changing both is wrong.
 Expected-outcome: opened
 Expected-edits: _users.md
 

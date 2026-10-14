@@ -7,7 +7,7 @@ Filtering the Audit Log from 1 to 3 March left out the entries of
 3 March: the To date was sent as midnight at its start. It is now sent as
 the end of that day, so the range includes both days it names.
 ---
-Expected: not worth documenting. Triage answers no-doc-impact. _auditlog.md says "a date range with From and To" and never said the To day was left out, so the fix makes the filter do what the page already describes. A fix of the dashboard-count-fix kind, where the manual is silent rather than explicit.
+Expected: not worth documenting. The draft changes no page. _auditlog.md says "a date range with From and To" and never said the To day was left out, so the fix makes the filter do what the page already describes. A fix of the dashboard-count-fix kind, where the manual is silent rather than explicit.
 Expected-outcome: no-doc-impact
 
  public/app/auditlog/auditlog.controller.js | 14 ++++++++++++--

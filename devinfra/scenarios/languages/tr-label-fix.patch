@@ -11,7 +11,7 @@ what is registered, and that the search hint reads as "owner" in the
 wrong case. Both Turkish labels are corrected. English and German are
 unchanged.
 ---
-Expected: not worth documenting. Triage answers no-doc-impact: only tr.json changes, the English manual DocBot keeps is unaffected, and the Turkish manual does not quote either label.
+Expected: not worth documenting. The draft changes no page: only tr.json changes, the English manual DocBot keeps is unaffected, and the Turkish manual does not quote either label.
 Expected-outcome: no-doc-impact
 
  public/i18n/tr.json | 4 ++--

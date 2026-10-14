@@ -11,7 +11,7 @@ Closes MV-2274.
 - Copy from the UX review
 - Specs for the component and the paging
 ---
-Expected: worth documenting. Triage answers doc-impact, although most of the 16 files change nothing a reader of the manual sees. The one change that matters is a label: the button next to an expired command is now **Resend** (COMMANDS.RESEND in en.json, used by command-history.html) instead of **Retry**. The draft renames it on both pages that name it: "Select **Retry** next to an expired command" on _devices_id.md and "sent again with **Retry**" on _devicescommands.md. **Retry** for a failed app installation on _appinstallations.md still uses COMMON.RETRY and stays, and the 24 hours stay. Paging, the loading and empty states and the index are below the manual's level of detail: adding them is unneeded.
+Expected: worth documenting. Most of the 16 files change nothing a reader of the manual sees. The one change that matters is a label: the button next to an expired command is now **Resend** (COMMANDS.RESEND in en.json, used by command-history.html) instead of **Retry**. The draft renames it on both pages that name it: "Select **Retry** next to an expired command" on _devices_id.md and "sent again with **Retry**" on _devicescommands.md. **Retry** for a failed app installation on _appinstallations.md still uses COMMON.RETRY and stays, and the 24 hours stay. Paging, the loading and empty states and the index are below the manual's level of detail: adding them is unneeded.
 Expected-outcome: opened
 Expected-edits: _devices_id.md _devicescommands.md
 

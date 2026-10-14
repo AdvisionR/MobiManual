@@ -10,7 +10,7 @@ agent's. The command is now named unenroll in the code and the API.
 The console still shows Retire: the labels are unchanged. The API keeps
 accepting "retire" as an alias, for customers' scripts.
 ---
-Expected: not worth documenting. Triage answers no-doc-impact: the identifiers change, the label in en.json stays Retire, and nobody using the console sees a difference. The mirror of retire-label: a draft that renames Retire on any page documents a rename that did not happen.
+Expected: not worth documenting. The draft changes no page: the identifiers change, the label in en.json stays Retire, and nobody using the console sees a difference. The mirror of retire-label: a draft that renames Retire on any page documents a rename that did not happen.
 Expected-outcome: no-doc-impact
 
  public/app/devices/devices.html |  2 +-

@@ -6,7 +6,7 @@ import os
 import httpx2
 import pytest
 from fakes import FakeLLM
-from test_update import KIOSK_EDIT, SHA, Forge, drafted, merged, triaged
+from test_update import KIOSK_EDIT, SHA, Forge, drafted, merged
 from typer.testing import CliRunner
 
 from docbot import cli
@@ -25,10 +25,12 @@ def invoke(monkeypatch, forge, llm, *args, env=ENV):
 
 
 @pytest.mark.parametrize("turns, args, outcome, narrated", [
-    ([triaged(), drafted(KIOSK_EDIT)], [], "opened", ["triage  doc-impact", "draft   _policies_kiosk.md edit"]),
-    ([triaged(), drafted(KIOSK_EDIT)], ["--dry-run"], "dry-run", ["triage  doc-impact", "+++ b/public/doc/en/"]),
-    ([triaged(decision="no-doc-impact")], [], "no-doc-impact", ["triage  no-doc-impact"]),
-    ([triaged(decision="maybe") for _ in range(agent.MAX_CALLS)], [], "needs-human", ["triage  stopped: no valid submit_triage"]),
+    ([drafted(KIOSK_EDIT)], [], "opened", ["draft   _policies_kiosk.md edit  [fake/model, 1 turns"]),
+    ([drafted(KIOSK_EDIT)], ["--dry-run"], "dry-run", ["draft   _policies_kiosk.md edit", "+++ b/public/doc/en/"]),
+    ([drafted(reason="a refactor")], [], "no-doc-impact", ["draft   no page to change", "no-doc-impact: a refactor."]),
+    ([drafted(missing=[{"page": "_locations.md", "describes": "x"}])], [], "needs-human",
+     ["draft   _locations.md missing", "the manual has no _locations.md"]),
+    ([drafted(reason="") for _ in range(agent.MAX_CALLS)], [], "needs-human", ["draft   stopped: no valid submit_proposal"]),
 ])
 def test_stdout_is_the_result_and_stderr_narrates_each_conversation(monkeypatch, turns, args, outcome, narrated):
     result = invoke(monkeypatch, Forge(commit_mrs=[merged()]), FakeLLM(*turns), "--diff-only", *args)
@@ -49,7 +51,7 @@ def test_drafting_searches_the_working_directory_by_default(monkeypatch):
             return [], {}
 
     monkeypatch.setattr(cli, "Repo", Checkout)
-    result = invoke(monkeypatch, Forge(commit_mrs=[merged()]), FakeLLM(triaged(), drafted(KIOSK_EDIT)))
+    result = invoke(monkeypatch, Forge(commit_mrs=[merged()]), FakeLLM(drafted(KIOSK_EDIT)))
     assert result.exit_code == 0, result.stderr
     assert opened == [(os.getcwd(), SHA)]
     assert json.loads(result.stdout)["draft"]["context"] == "repo"
@@ -57,7 +59,7 @@ def test_drafting_searches_the_working_directory_by_default(monkeypatch):
 
 def test_diff_only_drafts_from_the_diff_alone(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)  # not a checkout, so a search would have failed
-    result = invoke(monkeypatch, Forge(commit_mrs=[merged()]), FakeLLM(triaged(), drafted(KIOSK_EDIT)), "--diff-only")
+    result = invoke(monkeypatch, Forge(commit_mrs=[merged()]), FakeLLM(drafted(KIOSK_EDIT)), "--diff-only")
     assert result.exit_code == 0, result.stderr
     assert json.loads(result.stdout)["draft"]["context"] == "diff"
 

@@ -6,7 +6,7 @@ Subject: [PATCH] Sprint 41
 MV-2306 Audit log: filter by IP address
 MV-2311 Failed app installations: retry sooner
 ---
-Expected: worth documenting, twice. Triage answers doc-impact. The draft adds the IP address filter to "Filter by user, by action, or by a date range" under "Finding entries" on _auditlog.md, and changes "retried 3 times, an hour apart" under "Installation status" on _appinstallations.md to 5 times, 30 minutes apart. Editing only one of the two pages is incomplete. "select **Retry** next to the device" on _appinstallations.md stays.
+Expected: worth documenting, twice. The draft adds the IP address filter to "Filter by user, by action, or by a date range" under "Finding entries" on _auditlog.md, and changes "retried 3 times, an hour apart" under "Installation status" on _appinstallations.md to 5 times, 30 minutes apart. Editing only one of the two pages is incomplete. "select **Retry** next to the device" on _appinstallations.md stays.
 Expected-outcome: opened
 Expected-edits: _auditlog.md _appinstallations.md
 

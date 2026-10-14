@@ -86,16 +86,15 @@ def _narrate(result: dict) -> None:
     if source := result.get("source"):
         say(f"  source  !{source['iid']}  {source['title']}")
         say(f"          {source['author']}  {source['url']}")
-    for step in ("triage", "draft"):
-        if step in result:
-            say(f"  {step:<7} {_summary(result[step])}")
+    if "draft" in result:
+        say(f"  draft   {_summary(result['draft'])}")
     outcome = result["outcome"]
     if outcome == "skipped":
         say(f"docbot: {result['sha'][:8]}: {result['reason']}, nothing to do")
     elif outcome == "exists":
         mr = result["docs_merge_request"]
         say(f"docbot: already handled by !{mr['iid']} ({mr['state']})  {mr['url']}")
-    elif outcome in ("no-doc-impact", "no-change", "needs-human"):
+    elif outcome in ("no-doc-impact", "needs-human"):
         say(f"docbot: {outcome}: {result['reason']}. No merge request opened")
     elif outcome == "dry-run":
         say(result["diff"])
@@ -107,15 +106,15 @@ def _narrate(result: dict) -> None:
         say(f"docbot: {result['error']}")
 
 
-def _summary(step: dict) -> str:
-    """One line per conversation: what it decided, and what it cost in turns and tokens."""
-    usage = [t["usage"] for t in step["turns"]]
+def _summary(draft: dict) -> str:
+    """One line for the conversation: what it decided, and what it cost in turns and tokens."""
+    usage = [t["usage"] for t in draft["turns"]]
     tokens = (f"{sum(u['input_tokens'] for u in usage)} in ({sum(u['cached_tokens'] for u in usage)} cached), "
               f"{sum(u['output_tokens'] for u in usage)} out")
-    if step["outcome"] != "submitted":
-        decided = f"stopped: {step['reason']}"
-    elif "answer" in step:
-        decided = step["answer"]["decision"]
+    if draft["outcome"] != "submitted":
+        decided = f"stopped: {draft['reason']}"
     else:
-        decided = ", ".join(f"{p['page']} {p['decision']}" for p in step["proposal"]["pages"])
-    return f"{decided}  [{step['model']}, {len(usage)} turns, {tokens}]"
+        proposal = draft["proposal"]
+        decided = ", ".join([*(f"{p['page']} {p['decision']}" for p in proposal["pages"]),
+                             *(f"{m['page']} missing" for m in proposal.get("missing_pages", []))]) or "no page to change"
+    return f"{decided}  [{draft['model']}, {len(usage)} turns, {tokens}]"
